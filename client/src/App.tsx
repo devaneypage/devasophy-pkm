@@ -13,6 +13,7 @@ import BulkImport from "./pages/BulkImport";
 import Search from "./pages/Search";
 import NotebookDetail from "./pages/NotebookDetail";
 import LexiconDetail from "./pages/LexiconDetail";
+import Export from "./pages/Export";
 
 function Router() {
   return (
@@ -64,6 +65,13 @@ function Router() {
         {() => (
           <DashboardLayout currentModule="lexicon">
             <LexiconDetail />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/export"}>
+        {() => (
+          <DashboardLayout>
+            <Export />
           </DashboardLayout>
         )}
       </Route>

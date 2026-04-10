@@ -21,11 +21,12 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, BookOpen, Scroll, PenTool, Search, Upload } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, BookOpen, Scroll, PenTool, Search, Upload, Download } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
+import TaxonomySidebar from './TaxonomySidebar';
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -34,6 +35,7 @@ const menuItems = [
   { icon: PenTool, label: "Research Studio", path: "/documents" },
   { icon: Search, label: "Search", path: "/search" },
   { icon: Upload, label: "Bulk Import", path: "/bulk-import" },
+  { icon: Download, label: "Export", path: "/export" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -186,7 +188,7 @@ function DashboardLayoutContent({
             </div>
           </SidebarHeader>
 
-          <SidebarContent className="gap-0">
+          <SidebarContent className="gap-0 overflow-y-auto">
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
                 const pathToModule: Record<string, "home" | "notebook" | "lexicon" | "documents"> = {
@@ -213,6 +215,11 @@ function DashboardLayoutContent({
                 );
               })}
             </SidebarMenu>
+            {!isCollapsed && (
+              <div className="mt-4 border-t border-border">
+                <TaxonomySidebar />
+              </div>
+            )}
           </SidebarContent>
 
           <SidebarFooter className="p-3">
