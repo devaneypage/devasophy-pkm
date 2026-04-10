@@ -1,11 +1,24 @@
-import { eq } from "drizzle-orm";
+import { eq, and, like, desc, asc, between, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import {
+  InsertUser,
+  users,
+  notebookEntries,
+  lexiconEntries,
+  documents,
+  semanticLinks,
+  tags,
+  entryTags,
+  taxonomyAreas,
+  taxonomyCategories,
+  importHistory,
+  exportHistory,
+  searchIndex,
+} from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -89,4 +102,339 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ============================================================================
+// NOTEBOOK ENTRIES
+// ============================================================================
+
+export async function createNotebookEntry(userId: number, entry: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(notebookEntries).values({
+    userId,
+    ...entry,
+  });
+  return result;
+}
+
+export async function getNotebookEntries(userId: number, filters?: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const conditions = [eq(notebookEntries.userId, userId)];
+  
+  if (filters?.categoryId) {
+    conditions.push(eq(notebookEntries.categoryId, filters.categoryId));
+  }
+  
+  if (filters?.search) {
+    conditions.push(like(notebookEntries.text, `%${filters.search}%`));
+  }
+  
+  const orderBy = filters?.sortBy === "recent" 
+    ? desc(notebookEntries.createdAt)
+    : asc(notebookEntries.createdAt);
+  
+  return await db
+    .select()
+    .from(notebookEntries)
+    .where(and(...conditions))
+    .orderBy(orderBy);
+}
+
+export async function getNotebookEntry(userId: number, entryId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db
+    .select()
+    .from(notebookEntries)
+    .where(and(eq(notebookEntries.userId, userId), eq(notebookEntries.id, entryId)))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateNotebookEntry(userId: number, entryId: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .update(notebookEntries)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(eq(notebookEntries.userId, userId), eq(notebookEntries.id, entryId)));
+}
+
+export async function deleteNotebookEntry(userId: number, entryId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .delete(notebookEntries)
+    .where(and(eq(notebookEntries.userId, userId), eq(notebookEntries.id, entryId)));
+}
+
+// ============================================================================
+// LEXICON ENTRIES
+// ============================================================================
+
+export async function createLexiconEntry(userId: number, entry: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(lexiconEntries).values({
+    userId,
+    ...entry,
+  });
+  return result;
+}
+
+export async function getLexiconEntries(userId: number, filters?: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const conditions = [eq(lexiconEntries.userId, userId)];
+  
+  if (filters?.categoryId) {
+    conditions.push(eq(lexiconEntries.categoryId, filters.categoryId));
+  }
+  
+  if (filters?.search) {
+    conditions.push(like(lexiconEntries.term, `%${filters.search}%`));
+  }
+  
+  if (filters?.partOfSpeech) {
+    conditions.push(eq(lexiconEntries.partOfSpeech, filters.partOfSpeech));
+  }
+  
+  if (filters?.sourceType) {
+    conditions.push(eq(lexiconEntries.sourceType, filters.sourceType));
+  }
+  
+  return await db
+    .select()
+    .from(lexiconEntries)
+    .where(and(...conditions))
+    .orderBy(asc(lexiconEntries.term));
+}
+
+export async function getLexiconEntry(userId: number, entryId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db
+    .select()
+    .from(lexiconEntries)
+    .where(and(eq(lexiconEntries.userId, userId), eq(lexiconEntries.id, entryId)))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateLexiconEntry(userId: number, entryId: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .update(lexiconEntries)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(eq(lexiconEntries.userId, userId), eq(lexiconEntries.id, entryId)));
+}
+
+export async function deleteLexiconEntry(userId: number, entryId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .delete(lexiconEntries)
+    .where(and(eq(lexiconEntries.userId, userId), eq(lexiconEntries.id, entryId)));
+}
+
+// ============================================================================
+// DOCUMENTS
+// ============================================================================
+
+export async function createDocument(userId: number, doc: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(documents).values({
+    userId,
+    ...doc,
+  });
+  return result;
+}
+
+export async function getDocuments(userId: number, filters?: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const conditions = [eq(documents.userId, userId)];
+  
+  if (filters?.categoryId) {
+    conditions.push(eq(documents.categoryId, filters.categoryId));
+  }
+  
+  if (filters?.project) {
+    conditions.push(eq(documents.project, filters.project));
+  }
+  
+  if (filters?.status) {
+    conditions.push(eq(documents.status, filters.status));
+  }
+  
+  return await db
+    .select()
+    .from(documents)
+    .where(and(...conditions))
+    .orderBy(desc(documents.updatedAt));
+}
+
+export async function getDocument(userId: number, docId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.userId, userId), eq(documents.id, docId)))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateDocument(userId: number, docId: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .update(documents)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(eq(documents.userId, userId), eq(documents.id, docId)));
+}
+
+export async function deleteDocument(userId: number, docId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .delete(documents)
+    .where(and(eq(documents.userId, userId), eq(documents.id, docId)));
+}
+
+// ============================================================================
+// SEMANTIC LINKS
+// ============================================================================
+
+export async function createSemanticLink(userId: number, link: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.insert(semanticLinks).values({
+    userId,
+    ...link,
+  });
+}
+
+export async function getSemanticLinks(userId: number, sourceType: "notebook" | "lexicon" | "document", sourceId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .select()
+    .from(semanticLinks)
+    .where(
+      and(
+        eq(semanticLinks.userId, userId),
+        eq(semanticLinks.sourceType, sourceType),
+        eq(semanticLinks.sourceId, sourceId)
+      )
+    );
+}
+
+export async function deleteSemanticLink(userId: number, linkId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .delete(semanticLinks)
+    .where(and(eq(semanticLinks.userId, userId), eq(semanticLinks.id, linkId)));
+}
+
+// ============================================================================
+// TAXONOMY
+// ============================================================================
+
+export async function getTaxonomyAreas(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .select()
+    .from(taxonomyAreas)
+    .where(eq(taxonomyAreas.userId, userId))
+    .orderBy(asc(taxonomyAreas.areaNumber));
+}
+
+export async function getTaxonomyCategories(userId: number, areaId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .select()
+    .from(taxonomyCategories)
+    .where(
+      and(
+        eq(taxonomyCategories.userId, userId),
+        eq(taxonomyCategories.areaId, areaId)
+      )
+    )
+    .orderBy(asc(taxonomyCategories.categoryNumber));
+}
+
+// ============================================================================
+// SEARCH
+// ============================================================================
+
+export async function searchAllModules(userId: number, query: string, filters?: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const searchTerm = `%${query}%`;
+  
+  const notebookResults = await db
+    .select()
+    .from(notebookEntries)
+    .where(
+      and(
+        eq(notebookEntries.userId, userId),
+        like(notebookEntries.text, searchTerm)
+      )
+    );
+  
+  const lexiconResults = await db
+    .select()
+    .from(lexiconEntries)
+    .where(
+      and(
+        eq(lexiconEntries.userId, userId),
+        like(lexiconEntries.term, searchTerm)
+      )
+    );
+  
+  const documentResults = await db
+    .select()
+    .from(documents)
+    .where(
+      and(
+        eq(documents.userId, userId),
+        like(documents.title, searchTerm)
+      )
+    );
+  
+  return {
+    notebook: notebookResults,
+    lexicon: lexiconResults,
+    documents: documentResults,
+  };
+}

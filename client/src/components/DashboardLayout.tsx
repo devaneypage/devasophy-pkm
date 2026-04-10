@@ -21,15 +21,19 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, BookOpen, Scroll, PenTool, Search, Upload } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: BookOpen, label: "Commonplace Notebook", path: "/notebook" },
+  { icon: Scroll, label: "Clavis Aurea", path: "/lexicon" },
+  { icon: PenTool, label: "Research Studio", path: "/documents" },
+  { icon: Search, label: "Search", path: "/search" },
+  { icon: Upload, label: "Bulk Import", path: "/bulk-import" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -39,8 +43,10 @@ const MAX_WIDTH = 480;
 
 export default function DashboardLayout({
   children,
+  currentModule,
 }: {
   children: React.ReactNode;
+  currentModule?: "home" | "notebook" | "lexicon" | "documents";
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -90,7 +96,7 @@ export default function DashboardLayout({
         } as CSSProperties
       }
     >
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
+      <DashboardLayoutContent setSidebarWidth={setSidebarWidth} currentModule={currentModule}>
         {children}
       </DashboardLayoutContent>
     </SidebarProvider>
@@ -100,11 +106,13 @@ export default function DashboardLayout({
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
+  currentModule?: "home" | "notebook" | "lexicon" | "documents";
 };
 
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
+  currentModule,
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -171,7 +179,7 @@ function DashboardLayoutContent({
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="font-semibold tracking-tight truncate">
-                    Navigation
+                    Devasophy
                   </span>
                 </div>
               ) : null}
@@ -181,7 +189,13 @@ function DashboardLayoutContent({
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
-                const isActive = location === item.path;
+                const pathToModule: Record<string, "home" | "notebook" | "lexicon" | "documents"> = {
+                  "/": "home",
+                  "/notebook": "notebook",
+                  "/lexicon": "lexicon",
+                  "/documents": "documents",
+                };
+                const isActive = currentModule ? pathToModule[item.path] === currentModule : location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton

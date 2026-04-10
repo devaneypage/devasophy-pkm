@@ -4,13 +4,69 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import DashboardLayout from "./components/DashboardLayout";
 import Home from "./pages/Home";
+import Notebook from "./pages/Notebook";
+import Lexicon from "./pages/Lexicon";
+import Documents from "./pages/Documents";
+import BulkImport from "./pages/BulkImport";
+import Search from "./pages/Search";
+import NotebookDetail from "./pages/NotebookDetail";
+import LexiconDetail from "./pages/LexiconDetail";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/notebook"}>
+        {() => (
+          <DashboardLayout currentModule="notebook">
+            <Notebook />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/lexicon"}>
+        {() => (
+          <DashboardLayout currentModule="lexicon">
+            <Lexicon />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/documents"}>
+        {() => (
+          <DashboardLayout currentModule="documents">
+            <Documents />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/bulk-import"}>
+        {() => (
+          <DashboardLayout>
+            <BulkImport />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/search"}>
+        {() => (
+          <DashboardLayout>
+            <Search />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/notebook/:id"}>
+        {() => (
+          <DashboardLayout currentModule="notebook">
+            <NotebookDetail />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/lexicon/:id"}>
+        {() => (
+          <DashboardLayout currentModule="lexicon">
+            <LexiconDetail />
+          </DashboardLayout>
+        )}
+      </Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
