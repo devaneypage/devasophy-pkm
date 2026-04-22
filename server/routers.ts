@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -285,6 +286,32 @@ export const appRouter = router({
       .input(z.object({ areaId: z.number() }))
       .query(async ({ ctx, input }) => {
         return await getTaxonomyCategories(ctx.user.id, input.areaId);
+      }),
+  }),
+
+  autofill: router({
+    loadUploadedFile: protectedProcedure
+      .input(z.object({ source: z.enum(["quotes", "lexicon"]) }))
+      .mutation(async ({ input }) => {
+        const sources = {
+          quotes: {
+            fileName: "Quotes-All_with_notes_with_metadata.json",
+            path: "/home/ubuntu/upload/Quotes-All_with_notes_with_metadata.json",
+          },
+          lexicon: {
+            fileName: "Clavis_Aurea_Complete.json",
+            path: "/home/ubuntu/upload/Clavis_Aurea_Complete.json",
+          },
+        } as const;
+
+        const target = sources[input.source];
+        const text = await readFile(target.path, "utf8");
+
+        return {
+          source: input.source,
+          fileName: target.fileName,
+          text,
+        };
       }),
   }),
 

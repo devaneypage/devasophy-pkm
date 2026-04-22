@@ -90,4 +90,10 @@
 - [x] Add drag-and-drop import for the Clavis Aurea JSON workflow
 - [x] Add drag-and-drop import for the Quotes JSON workflow
 - [x] Test the new icon system and drag-and-drop import behavior
-- [ ] Save a checkpoint for the follow-up enhancements
+- [x] Save a checkpoint for the follow-up enhancements
+
+## Follow-up Enhancements — One-Click Import Autofill
+- [x] Add one-click autofill for the previously uploaded Quotes file in Bulk Import
+- [x] Add one-click autofill for the previously uploaded Clavis Aurea file in Bulk Import
+- [x] Test the autofill import workflow
+- [ ] Save a checkpoint for the autofill enhancement

@@ -3,15 +3,15 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, CheckCircle, FileJson2, Upload, UploadCloud } from "lucide-react";
+import { AlertCircle, CheckCircle, FileJson2, Sparkles, Upload, UploadCloud } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import {
-  detectImportPayloadType,
   extractClavisAureaEntries,
   normalizeLexiconImportItem,
   normalizeNotebookImportItem,
   validateClavisAureaPayload,
 } from "@shared/pkmFormatting";
+import { buildAutofillErrorMessage, buildAutofillLoadState } from "@shared/importAutofill";
 
 interface ImportResult {
   success: number;
@@ -49,6 +49,7 @@ export default function BulkImport() {
 
   const notebookCreateMutation = trpc.notebook.create.useMutation();
   const lexiconCreateMutation = trpc.lexicon.create.useMutation();
+  const autofillMutation = trpc.autofill.loadUploadedFile.useMutation();
 
   const mode = importModes[importType];
 
@@ -150,25 +151,35 @@ export default function BulkImport() {
     }
   };
 
-  const handleLoadedText = (text: string, fileName?: string) => {
-    setJsonInput(text);
-    setLoadedFileName(fileName || null);
-    setResult(null);
+  const handleLoadedText = (text: string, fileName?: string, preferredSource?: ImportType) => {
+    const state = buildAutofillLoadState({
+      preferredSource: preferredSource ?? importType,
+      text,
+      fileName: fileName || loadedFileName || "Imported JSON",
+    });
 
-    try {
-      const parsed = JSON.parse(text);
-      const detected = detectImportPayloadType(parsed);
-      if (detected) {
-        setImportType(detected);
-      }
-    } catch {
-      // Preserve manual correction workflow if the file content is not yet valid JSON.
-    }
+    setJsonInput(state.jsonInput);
+    setLoadedFileName(state.loadedFileName);
+    setImportType(state.importType);
+    setResult(null);
   };
 
   const handleFile = async (file: File) => {
     const text = await file.text();
-    handleLoadedText(text, file.name);
+    handleLoadedText(text, file.name, importType);
+  };
+
+  const handleAutofill = async (source: ImportType) => {
+    try {
+      const payload = await autofillMutation.mutateAsync({ source });
+      handleLoadedText(payload.text, payload.fileName, source);
+    } catch {
+      setResult({
+        success: 0,
+        failed: 1,
+        errors: [buildAutofillErrorMessage(source)],
+      });
+    }
   };
 
   return (
@@ -184,7 +195,12 @@ export default function BulkImport() {
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-6">
           <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
-            <h2 className="mb-4 text-[2rem] leading-none">Select import mode</h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-[2rem] leading-none">Select import mode</h2>
+              <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                One-click autofill ready
+              </span>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
               {(Object.keys(importModes) as Array<keyof typeof importModes>).map((key) => {
                 const item = importModes[key];
@@ -210,11 +226,44 @@ export default function BulkImport() {
           </Card>
 
           <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-[2rem] leading-none">Drag-and-drop import</h2>
-              <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                JSON files
-              </span>
+            <div className="mb-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] xl:items-start">
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="text-[2rem] leading-none">Drag-and-drop import</h2>
+                  <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    JSON files
+                  </span>
+                </div>
+                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                  Drop a file, choose one manually, or use the autofill buttons to load your previously uploaded datasets directly into the editor.
+                </p>
+              </div>
+              <div className="rounded-[1.3rem] border border-black/10 bg-[#f6f3ec] p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Autofill from uploaded archive</p>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                  <Button
+                    type="button"
+                    onClick={() => void handleAutofill("quotes")}
+                    disabled={autofillMutation.isPending}
+                    className="h-11 justify-start rounded-full border-2 border-black bg-white px-4 text-black shadow-none hover:bg-white"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Load Quotes file
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void handleAutofill("lexicon")}
+                    disabled={autofillMutation.isPending}
+                    className="h-11 justify-start rounded-full border-2 border-black bg-white px-4 text-black shadow-none hover:bg-white"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Load Clavis Aurea file
+                  </Button>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                  These buttons load the previously uploaded source files directly into the import workspace without requiring a new file drop.
+                </p>
+              </div>
             </div>
 
             <div
@@ -250,7 +299,9 @@ export default function BulkImport() {
                 <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
                   Drop a JSON file to auto-load it into the editor below. If the file structure is recognized, the workspace will automatically switch to the correct import mode.
                 </p>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">{fileHint}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  {autofillMutation.isPending ? "Loading uploaded file..." : fileHint}
+                </p>
                 <input
                   ref={fileInputRef}
                   type="file"
