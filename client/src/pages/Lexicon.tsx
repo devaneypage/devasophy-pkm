@@ -1,15 +1,17 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronDown, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import CategorySelect from "@/components/CategorySelect";
 
 export default function Lexicon() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     term: "",
     partOfSpeech: "",
@@ -19,11 +21,25 @@ export default function Lexicon() {
     sourceType: "",
     imageNum: "",
     notes: "",
+    categoryId: undefined as number | undefined,
+  });
+  const [editFormData, setEditFormData] = useState({
+    term: "",
+    partOfSpeech: "",
+    definition: "",
+    etymology: "",
+    origin: "",
+    sourceType: "",
+    imageNum: "",
+    notes: "",
+    categoryId: undefined as number | undefined,
   });
 
   const { data: entries, isLoading, refetch } = trpc.lexicon.list.useQuery({
     search: searchTerm,
   });
+
+  const { data: taxonomyTree } = trpc.taxonomy.getTree.useQuery();
 
   const createMutation = trpc.lexicon.create.useMutation({
     onSuccess: () => {
@@ -37,8 +53,16 @@ export default function Lexicon() {
         sourceType: "",
         imageNum: "",
         notes: "",
+        categoryId: undefined,
       });
       setShowForm(false);
+    },
+  });
+
+  const updateMutation = trpc.lexicon.update.useMutation({
+    onSuccess: () => {
+      refetch();
+      setEditingEntryId(null);
     },
   });
 
@@ -58,6 +82,40 @@ export default function Lexicon() {
     e.preventDefault();
     if (!formData.term.trim()) return;
     createMutation.mutate(formData);
+  };
+
+  const startEditing = (entry: NonNullable<typeof entries>[number]) => {
+    setEditingEntryId(entry.id);
+    setExpandedId(entry.id);
+    setEditFormData({
+      term: entry.term,
+      partOfSpeech: entry.partOfSpeech || "",
+      definition: entry.definition || "",
+      etymology: entry.etymology || "",
+      origin: entry.origin || "",
+      sourceType: entry.sourceType || "",
+      imageNum: entry.imageNum || "",
+      notes: entry.notes || "",
+      categoryId: entry.categoryId || undefined,
+    });
+  };
+
+  const handleUpdate = (entryId: number, e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFormData.term.trim()) return;
+
+    updateMutation.mutate({
+      id: entryId,
+      term: editFormData.term,
+      partOfSpeech: editFormData.partOfSpeech || undefined,
+      definition: editFormData.definition || undefined,
+      etymology: editFormData.etymology || undefined,
+      origin: editFormData.origin || undefined,
+      sourceType: editFormData.sourceType || undefined,
+      imageNum: editFormData.imageNum || undefined,
+      notes: editFormData.notes || undefined,
+      categoryId: editFormData.categoryId,
+    });
   };
 
   return (
@@ -224,6 +282,14 @@ export default function Lexicon() {
               </div>
             </div>
 
+            <CategorySelect
+              label="Johnny Decimal category"
+              value={formData.categoryId}
+              tree={taxonomyTree}
+              placeholder="Assign this term to a seeded lexicon category"
+              onChange={(categoryId) => setFormData({ ...formData, categoryId })}
+            />
+
             <div className="flex flex-wrap gap-3">
               <Button
                 type="submit"
@@ -271,6 +337,16 @@ export default function Lexicon() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditing(entry);
+                      }}
+                      className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-black bg-white transition hover:bg-[#f6f3ec]"
+                    >
+                      <Pencil className="h-4 w-4 text-black" />
+                    </button>
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteMutation.mutate({ id: entry.id });
@@ -311,6 +387,43 @@ export default function Lexicon() {
                       <div className="rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Notes</p>
                         <p className="text-sm leading-6 text-foreground">{entry.notes}</p>
+                      </div>
+                    )}
+
+                    {editingEntryId === entry.id && (
+                      <div className="lg:col-span-2 rounded-[1.25rem] border-2 border-black bg-[#f6f3ec] p-5">
+                        <form onSubmit={(e) => handleUpdate(entry.id, e)} className="space-y-4">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <Input value={editFormData.term} onChange={(e) => setEditFormData({ ...editFormData, term: e.target.value })} placeholder="Term" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                            <Input value={editFormData.partOfSpeech} onChange={(e) => setEditFormData({ ...editFormData, partOfSpeech: e.target.value })} placeholder="Part of speech" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                          </div>
+                          <Textarea value={editFormData.definition} onChange={(e) => setEditFormData({ ...editFormData, definition: e.target.value })} rows={3} placeholder="Definition" className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none" />
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <Textarea value={editFormData.etymology} onChange={(e) => setEditFormData({ ...editFormData, etymology: e.target.value })} rows={3} placeholder="Etymology" className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none" />
+                            <Textarea value={editFormData.origin} onChange={(e) => setEditFormData({ ...editFormData, origin: e.target.value })} rows={3} placeholder="Origin" className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none" />
+                          </div>
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <Input value={editFormData.sourceType} onChange={(e) => setEditFormData({ ...editFormData, sourceType: e.target.value })} placeholder="Source type" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                            <Input value={editFormData.imageNum} onChange={(e) => setEditFormData({ ...editFormData, imageNum: e.target.value })} placeholder="Reference image number" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                          </div>
+                          <Textarea value={editFormData.notes} onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })} rows={3} placeholder="Notes" className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none" />
+                          <CategorySelect
+                            label="Johnny Decimal category"
+                            value={editFormData.categoryId}
+                            tree={taxonomyTree}
+                            placeholder="Reassign this term to a seeded category"
+                            onChange={(categoryId) => setEditFormData({ ...editFormData, categoryId })}
+                          />
+                          <div className="flex flex-wrap gap-3">
+                            <Button type="submit" disabled={updateMutation.isPending} className="h-11 rounded-full border-2 border-black bg-[#56c5ea] px-5 text-black shadow-none hover:bg-[#3ab8e3]">
+                              {updateMutation.isPending ? "Saving..." : "Save changes"}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setEditingEntryId(null)} className="h-11 rounded-full border-2 border-black bg-white px-5 text-black shadow-none hover:bg-white">
+                              <X className="mr-2 h-4 w-4" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
                       </div>
                     )}
                   </div>

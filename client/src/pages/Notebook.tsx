@@ -1,15 +1,17 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, Plus, Quote, Search, Trash2 } from "lucide-react";
+import { Heart, Pencil, Plus, Quote, Search, Trash2, X } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import CategorySelect from "@/components/CategorySelect";
 
 export default function Notebook() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     text: "",
     author: "",
@@ -20,11 +22,26 @@ export default function Notebook() {
     tags: "",
     collections: "",
     favorite: false,
+    categoryId: undefined as number | undefined,
+  });
+  const [editFormData, setEditFormData] = useState({
+    text: "",
+    author: "",
+    work: "",
+    sourceType: "",
+    location: "",
+    note: "",
+    tags: "",
+    collections: "",
+    favorite: false,
+    categoryId: undefined as number | undefined,
   });
 
   const { data: entries, isLoading, refetch } = trpc.notebook.list.useQuery({
     search: searchTerm,
   });
+
+  const { data: taxonomyTree } = trpc.taxonomy.getTree.useQuery();
 
   const createMutation = trpc.notebook.create.useMutation({
     onSuccess: () => {
@@ -39,8 +56,16 @@ export default function Notebook() {
         tags: "",
         collections: "",
         favorite: false,
+        categoryId: undefined,
       });
       setShowForm(false);
+    },
+  });
+
+  const updateMutation = trpc.notebook.update.useMutation({
+    onSuccess: () => {
+      refetch();
+      setEditingEntryId(null);
     },
   });
 
@@ -55,6 +80,41 @@ export default function Notebook() {
     createMutation.mutate({
       ...formData,
       uuid: uuidv4(),
+    });
+  };
+
+  const startEditing = (entry: NonNullable<typeof entries>[number]) => {
+    setEditingEntryId(entry.id);
+    setEditFormData({
+      text: entry.text,
+      author: entry.author || "",
+      work: entry.work || "",
+      sourceType: entry.sourceType || "",
+      location: entry.location || "",
+      note: entry.note || "",
+      tags: entry.tags || "",
+      collections: entry.collections || "",
+      favorite: entry.favorite || false,
+      categoryId: entry.categoryId || undefined,
+    });
+  };
+
+  const handleUpdate = (entryId: number, e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFormData.text.trim()) return;
+
+    updateMutation.mutate({
+      id: entryId,
+      text: editFormData.text,
+      author: editFormData.author || undefined,
+      work: editFormData.work || undefined,
+      sourceType: editFormData.sourceType || undefined,
+      location: editFormData.location || undefined,
+      note: editFormData.note || undefined,
+      tags: editFormData.tags || undefined,
+      collections: editFormData.collections || undefined,
+      favorite: editFormData.favorite,
+      categoryId: editFormData.categoryId,
     });
   };
 
@@ -182,6 +242,14 @@ export default function Notebook() {
               />
             </div>
 
+            <CategorySelect
+              label="Johnny Decimal category"
+              value={formData.categoryId}
+              tree={taxonomyTree}
+              placeholder="Assign this entry to a seeded notebook category"
+              onChange={(categoryId) => setFormData({ ...formData, categoryId })}
+            />
+
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">Tags</label>
@@ -246,6 +314,11 @@ export default function Notebook() {
                     {entry.sourceType && <span className="dev-chip">{entry.sourceType}</span>}
                   </div>
                   {entry.note && <p className="text-sm leading-6 text-muted-foreground">{entry.note}</p>}
+                  {entry.categoryId && (
+                    <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Johnny Decimal category assigned
+                    </p>
+                  )}
                   {entry.tags && (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {entry.tags.split(",").map((tag) => (
@@ -257,6 +330,13 @@ export default function Notebook() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 lg:flex-col">
+                  <button
+                    type="button"
+                    onClick={() => startEditing(entry)}
+                    className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-black bg-white transition hover:bg-[#f6f3ec]"
+                  >
+                    <Pencil className="h-4 w-4 text-black" />
+                  </button>
                   <button className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-black bg-white transition hover:bg-[#f6f3ec]">
                     <Heart className={`h-4 w-4 ${entry.favorite ? "fill-[#e25b33] text-[#e25b33]" : "text-black"}`} />
                   </button>
@@ -268,6 +348,52 @@ export default function Notebook() {
                   </button>
                 </div>
               </div>
+
+              {editingEntryId === entry.id && (
+                <div className="border-t border-black/10 bg-[#f6f3ec] p-5">
+                  <form onSubmit={(e) => handleUpdate(entry.id, e)} className="space-y-4">
+                    <Textarea
+                      value={editFormData.text}
+                      onChange={(e) => setEditFormData({ ...editFormData, text: e.target.value })}
+                      rows={4}
+                      className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
+                    />
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      <Input value={editFormData.author} onChange={(e) => setEditFormData({ ...editFormData, author: e.target.value })} placeholder="Author" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                      <Input value={editFormData.work} onChange={(e) => setEditFormData({ ...editFormData, work: e.target.value })} placeholder="Work" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                      <Input value={editFormData.sourceType} onChange={(e) => setEditFormData({ ...editFormData, sourceType: e.target.value })} placeholder="Source type" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                      <Input value={editFormData.location} onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })} placeholder="Location" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                    </div>
+                    <Textarea
+                      value={editFormData.note}
+                      onChange={(e) => setEditFormData({ ...editFormData, note: e.target.value })}
+                      rows={3}
+                      placeholder="General note or commentary"
+                      className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
+                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Input value={editFormData.tags} onChange={(e) => setEditFormData({ ...editFormData, tags: e.target.value })} placeholder="Tags" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                      <Input value={editFormData.collections} onChange={(e) => setEditFormData({ ...editFormData, collections: e.target.value })} placeholder="Collections" className="rounded-full border-2 border-black/85 bg-white shadow-none" />
+                    </div>
+                    <CategorySelect
+                      label="Johnny Decimal category"
+                      value={editFormData.categoryId}
+                      tree={taxonomyTree}
+                      placeholder="Reassign this entry to a seeded category"
+                      onChange={(categoryId) => setEditFormData({ ...editFormData, categoryId })}
+                    />
+                    <div className="flex flex-wrap gap-3">
+                      <Button type="submit" disabled={updateMutation.isPending} className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]">
+                        {updateMutation.isPending ? "Saving..." : "Save changes"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => setEditingEntryId(null)} className="h-11 rounded-full border-2 border-black bg-white px-5 text-black shadow-none hover:bg-white">
+                        <X className="mr-2 h-4 w-4" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </Card>
           ))
         ) : (

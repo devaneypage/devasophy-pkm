@@ -102,4 +102,22 @@
 - [x] Add content-based automatic categorization for imported quotes
 - [x] Apply inferred categories during quote JSON import and one-click autofill import flows
 - [x] Add tests for quote categorization rules and import behavior
-- [ ] Save a checkpoint for the quote categorization enhancement
+- [x] Save a checkpoint for the quote categorization enhancement
+
+## External TODO Reconciliation — Attached PKM Roadmap
+- [ ] Compare the attached Devanomy/Devasophy TODO against the current implemented site and identify unfinished or divergent items
+- [ ] Select the next highest-priority unfinished feature set from the attached roadmap for implementation
+- [ ] Create a detailed implementation plan for the selected roadmap items
+
+## Selected Roadmap Implementation — Johnny Decimal and Inline Editing
+- [x] Seed all Johnny Decimal categories required for the current PKM taxonomy into the database
+- [x] Expose seeded Johnny Decimal categories through backend procedures for form and navigation use
+- [x] Add category selector support to relevant note creation and editing forms
+- [x] Add update and delete procedures for quotations
+- [x] Add update and delete procedures for vocabulary entries
+- [x] Add update and delete procedures for general notes
+- [x] Add inline edit dialog to the vocabulary interface
+- [x] Add inline edit dialog to the general notes interface
+- [x] Verify quotation editing workflows in the current quote browser UI
+- [x] Add tests for category seeding, category selection, and inline editing flows
+- [x] Save a checkpoint for the Johnny Decimal and inline editing feature set

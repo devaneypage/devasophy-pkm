@@ -89,8 +89,8 @@ describe("generic import normalization", () => {
       sourceType: undefined,
       location: "12",
       note: "Useful for the introduction",
-      tags: "knowledge,patterns",
-      collections: undefined,
+      tags: "knowledge, patterns, Knowledge & Learning, Books & Reading",
+      collections: "Knowledge & Learning",
       favorite: true,
     });
   });

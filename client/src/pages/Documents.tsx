@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, ChevronRight, FileText, Library, Link2, Plus, Search, Trash2 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { buildLexiconReferenceInsert, buildNotebookReferenceInsert } from "@shared/pkmFormatting";
+import CategorySelect from "@/components/CategorySelect";
 
 const statusColors: Record<string, string> = {
   draft: "#efb93a",
@@ -29,12 +30,15 @@ export default function Documents() {
     project: "",
     folder: "",
     status: "draft" as const,
+    categoryId: undefined as number | undefined,
   });
   const [editContent, setEditContent] = useState("");
 
   const { data: documents, isLoading, refetch } = trpc.documents.list.useQuery({
     status: undefined,
   });
+
+  const { data: taxonomyTree } = trpc.taxonomy.getTree.useQuery();
 
   const { data: selectedDoc } = trpc.documents.get.useQuery(
     { id: selectedDocId! },
@@ -69,6 +73,7 @@ export default function Documents() {
         project: "",
         folder: "",
         status: "draft",
+        categoryId: undefined,
       });
       setShowForm(false);
     },
@@ -223,6 +228,13 @@ export default function Documents() {
                 onChange={(e) => setFormData({ ...formData, folder: e.target.value })}
                 placeholder="Folder"
                 className="rounded-full border-2 border-black/85 bg-white shadow-none"
+              />
+              <CategorySelect
+                label="Johnny Decimal category"
+                value={formData.categoryId}
+                tree={taxonomyTree}
+                placeholder="Assign this document to a seeded writing category"
+                onChange={(categoryId) => setFormData({ ...formData, categoryId })}
               />
               <div className="flex flex-wrap gap-2">
                 <Button

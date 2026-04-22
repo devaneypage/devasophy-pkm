@@ -25,6 +25,8 @@ import {
   deleteSemanticLink,
   getTaxonomyAreas,
   getTaxonomyCategories,
+  getTaxonomyTree,
+  seedJohnnyDecimalTaxonomy,
   searchAllModules,
 } from "./db";
 
@@ -96,6 +98,7 @@ export const appRouter = router({
           tags: z.string().optional(),
           collections: z.string().optional(),
           favorite: z.boolean().optional(),
+          categoryId: z.number().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -163,6 +166,7 @@ export const appRouter = router({
           sourceType: z.string().optional(),
           imageNum: z.string().optional(),
           notes: z.string().optional(),
+          categoryId: z.number().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -224,6 +228,7 @@ export const appRouter = router({
           project: z.string().optional(),
           folder: z.string().optional(),
           status: z.enum(["draft", "in_progress", "completed", "archived"]).optional(),
+          categoryId: z.number().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -278,6 +283,11 @@ export const appRouter = router({
   // TAXONOMY
   // ============================================================================
   taxonomy: router({
+    seed: protectedProcedure.mutation(async ({ ctx }) => {
+      await seedJohnnyDecimalTaxonomy(ctx.user.id);
+      return { success: true } as const;
+    }),
+
     getAreas: protectedProcedure.query(async ({ ctx }) => {
       return await getTaxonomyAreas(ctx.user.id);
     }),
@@ -287,6 +297,10 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         return await getTaxonomyCategories(ctx.user.id, input.areaId);
       }),
+
+    getTree: protectedProcedure.query(async ({ ctx }) => {
+      return await getTaxonomyTree(ctx.user.id);
+    }),
   }),
 
   autofill: router({

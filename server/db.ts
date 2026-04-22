@@ -16,6 +16,7 @@ import {
   searchIndex,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { johnnyDecimalSeeds } from "../shared/johnnyDecimal";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -365,10 +366,78 @@ export async function deleteSemanticLink(userId: number, linkId: number) {
 // TAXONOMY
 // ============================================================================
 
+export async function seedJohnnyDecimalTaxonomy(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existingAreas = await db
+    .select()
+    .from(taxonomyAreas)
+    .where(eq(taxonomyAreas.userId, userId));
+
+  const areaNumbers = new Set(existingAreas.map((area) => area.areaNumber));
+  const uniqueAreaSeeds = new Map<number, { areaName: string; description: string }>();
+
+  for (const seed of johnnyDecimalSeeds) {
+    if (!uniqueAreaSeeds.has(seed.areaNumber)) {
+      uniqueAreaSeeds.set(seed.areaNumber, {
+        areaName: seed.areaName,
+        description: seed.areaDescription,
+      });
+    }
+  }
+
+  for (const [areaNumber, areaSeed] of Array.from(uniqueAreaSeeds.entries())) {
+    if (!areaNumbers.has(areaNumber)) {
+      await db.insert(taxonomyAreas).values({
+        userId,
+        areaNumber,
+        areaName: areaSeed.areaName,
+        description: areaSeed.description,
+      });
+    }
+  }
+
+  const refreshedAreas = await db
+    .select()
+    .from(taxonomyAreas)
+    .where(eq(taxonomyAreas.userId, userId));
+
+  const areaByNumber = new Map(refreshedAreas.map((area) => [area.areaNumber, area]));
+
+  const existingCategories = await db
+    .select()
+    .from(taxonomyCategories)
+    .where(eq(taxonomyCategories.userId, userId));
+
+  const categoryNumbers = new Set(existingCategories.map((category) => category.categoryNumber));
+
+  for (const seed of johnnyDecimalSeeds) {
+    if (categoryNumbers.has(seed.categoryNumber)) {
+      continue;
+    }
+
+    const area = areaByNumber.get(seed.areaNumber);
+    if (!area) {
+      continue;
+    }
+
+    await db.insert(taxonomyCategories).values({
+      userId,
+      areaId: area.id,
+      categoryNumber: seed.categoryNumber,
+      categoryName: seed.categoryName,
+      description: seed.categoryDescription,
+    });
+  }
+}
+
 export async function getTaxonomyAreas(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
+  await seedJohnnyDecimalTaxonomy(userId);
+
   return await db
     .select()
     .from(taxonomyAreas)
@@ -379,7 +448,9 @@ export async function getTaxonomyAreas(userId: number) {
 export async function getTaxonomyCategories(userId: number, areaId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
+  await seedJohnnyDecimalTaxonomy(userId);
+
   return await db
     .select()
     .from(taxonomyCategories)
@@ -390,6 +461,30 @@ export async function getTaxonomyCategories(userId: number, areaId: number) {
       )
     )
     .orderBy(asc(taxonomyCategories.categoryNumber));
+}
+
+export async function getTaxonomyTree(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await seedJohnnyDecimalTaxonomy(userId);
+
+  const areas = await db
+    .select()
+    .from(taxonomyAreas)
+    .where(eq(taxonomyAreas.userId, userId))
+    .orderBy(asc(taxonomyAreas.areaNumber));
+
+  const categories = await db
+    .select()
+    .from(taxonomyCategories)
+    .where(eq(taxonomyCategories.userId, userId))
+    .orderBy(asc(taxonomyCategories.categoryNumber));
+
+  return areas.map((area) => ({
+    ...area,
+    categories: categories.filter((category) => category.areaId === area.id),
+  }));
 }
 
 // ============================================================================
