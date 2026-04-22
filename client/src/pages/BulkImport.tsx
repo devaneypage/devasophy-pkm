@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, CheckCircle, AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Upload } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
 interface ImportResult {
@@ -11,6 +11,21 @@ interface ImportResult {
   failed: number;
   errors: string[];
 }
+
+const importModes = {
+  quotes: {
+    title: "Commonplace Notebook",
+    description: "Import quotations, passages, observations, metadata, and tags into your notebook.",
+    accent: "#efb93a",
+    pattern: "dev-pattern-waves",
+  },
+  lexicon: {
+    title: "Clavis Aurea",
+    description: "Import glossary entries, etymologies, definitions, and concordance notes.",
+    accent: "#56c5ea",
+    pattern: "dev-pattern-dots",
+  },
+} as const;
 
 export default function BulkImport() {
   const [importType, setImportType] = useState<"quotes" | "lexicon">("quotes");
@@ -23,11 +38,7 @@ export default function BulkImport() {
 
   const handleImport = async () => {
     if (!jsonInput.trim()) {
-      setResult({
-        success: 0,
-        failed: 1,
-        errors: ["Please paste JSON data"],
-      });
+      setResult({ success: 0, failed: 1, errors: ["Please paste JSON data"] });
       return;
     }
 
@@ -56,14 +67,12 @@ export default function BulkImport() {
               uuid: uuidv4(),
             });
             success++;
-          } catch (error) {
+          } catch {
             failed++;
-            errors.push(
-              `Failed to import quote: "${(item.text || item.quote || "").substring(0, 50)}..."`
-            );
+            errors.push(`Failed to import quote: "${(item.text || item.quote || "").substring(0, 50)}..."`);
           }
         }
-      } else if (importType === "lexicon") {
+      } else {
         for (const item of items) {
           try {
             await lexiconCreateMutation.mutateAsync({
@@ -77,7 +86,7 @@ export default function BulkImport() {
               notes: item.notes || "",
             });
             success++;
-          } catch (error) {
+          } catch {
             failed++;
             errors.push(`Failed to import term: "${item.term || item.word || ""}"`);
           }
@@ -96,80 +105,122 @@ export default function BulkImport() {
     }
   };
 
+  const mode = importModes[importType];
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <div className="bg-card border-b border-border px-6 py-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2">Bulk Import Tool</h1>
-          <p className="text-muted-foreground">
-            Import quotes, vocabulary terms, and other data in bulk from JSON files
-          </p>
+    <div className="space-y-6">
+      <section className="dev-soft-card p-6 sm:p-8">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Ingestion and archive tools</p>
+        <h1 className="mb-4">Bulk Import</h1>
+        <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
+          Paste structured JSON to ingest your quotations or Clavis Aurea entries into the Devanomy workspace in a single pass.
+        </p>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="space-y-6">
+          <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+            <h2 className="mb-4 text-[2rem] leading-none">Select import mode</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {(Object.keys(importModes) as Array<keyof typeof importModes>).map((key) => {
+                const item = importModes[key];
+                const selected = importType === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setImportType(key);
+                      setResult(null);
+                    }}
+                    className={`overflow-hidden rounded-[1.3rem] border-2 border-black bg-white text-left transition ${selected ? "-translate-y-1" : "hover:-translate-y-1"}`}
+                  >
+                    <div className={`${item.pattern} h-5 w-full`} style={{ backgroundColor: item.accent }} />
+                    <div className="space-y-2 p-5">
+                      <p className="text-xl font-bold text-foreground">{item.title}</p>
+                      <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+            <h2 className="mb-4 text-[2rem] leading-none">Paste JSON data</h2>
+            <Textarea
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              placeholder="Paste your JSON array here..."
+              rows={14}
+              className="rounded-[1.3rem] border-2 border-black/85 bg-white font-mono text-sm shadow-none"
+            />
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button
+                onClick={handleImport}
+                disabled={isImporting || !jsonInput.trim()}
+                className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {isImporting ? "Importing..." : "Import data"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setJsonInput("");
+                  setResult(null);
+                }}
+                className="h-11 rounded-full border-2 border-black bg-white px-5 text-black shadow-none hover:bg-[#f6f3ec]"
+              >
+                Clear
+              </Button>
+            </div>
+          </Card>
+
+          {result && (
+            <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+              <div className="flex items-start gap-4">
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black"
+                  style={{ backgroundColor: result.failed === 0 ? "#bfd73d" : "#efb93a" }}
+                >
+                  {result.failed === 0 ? <CheckCircle className="h-5 w-5 text-black" /> : <AlertCircle className="h-5 w-5 text-black" />}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-[1.8rem] leading-none">Import complete</h3>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    <strong className="text-foreground">{result.success} successful</strong>
+                    {result.failed > 0 ? <> · <strong className="text-[#e25b33]">{result.failed} failed</strong></> : null}
+                  </p>
+                  {result.errors.length > 0 && (
+                    <div className="mt-4 rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4 text-sm leading-6 text-muted-foreground">
+                      {result.errors.map((error, index) => (
+                        <p key={index}>{error}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Import Type Selection */}
-        <Card className="bg-card border-border p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">Step 1: Select Import Type</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              onClick={() => {
-                setImportType("quotes");
-                setResult(null);
-              }}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                importType === "quotes"
-                  ? "border-primary bg-primary/10"
-                  : "border-border hover:border-primary/50"
-              }`}
-            >
-              <div className="text-lg font-bold mb-2">Commonplace Notebook</div>
-              <div className="text-sm text-muted-foreground">
-                Import quotes, passages, and observations with source metadata
-              </div>
-            </button>
-            <button
-              onClick={() => {
-                setImportType("lexicon");
-                setResult(null);
-              }}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                importType === "lexicon"
-                  ? "border-primary bg-primary/10"
-                  : "border-border hover:border-primary/50"
-              }`}
-            >
-              <div className="text-lg font-bold mb-2">Clavis Aurea</div>
-              <div className="text-sm text-muted-foreground">
-                Import vocabulary terms with definitions and etymologies
-              </div>
-            </button>
-          </div>
-        </Card>
-
-        {/* Expected Format */}
-        <Card className="bg-card/50 border-border p-6 mb-6">
-          <h2 className="text-lg font-bold mb-4">Expected JSON Format</h2>
-          {importType === "quotes" ? (
-            <div className="bg-background p-4 rounded-lg font-mono text-sm text-muted-foreground overflow-x-auto">
-              <pre>{`[
+        <aside className="space-y-6">
+          <Card className="dev-card overflow-hidden rounded-[1.5rem] p-0 shadow-none">
+            <div className={`${mode.pattern} h-5 w-full`} style={{ backgroundColor: mode.accent }} />
+            <div className="p-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Expected format</p>
+              <div className="rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4 font-mono text-xs leading-6 text-muted-foreground">
+                <pre className="overflow-x-auto whitespace-pre-wrap">{importType === "quotes" ? `[
   {
     "text": "Quote or passage text",
     "author": "Author name",
     "work": "Book or source title",
     "sourceType": "Book",
     "location": "Page number or timestamp",
-    "note": "Your personal notes",
-    "tags": "comma,separated,tags",
-    "favorite": false
+    "note": "Personal note",
+    "tags": "comma,separated,tags"
   }
-]`}</pre>
-            </div>
-          ) : (
-            <div className="bg-background p-4 rounded-lg font-mono text-sm text-muted-foreground overflow-x-auto">
-              <pre>{`[
+]` : `[
   {
     "term": "Word or phrase",
     "partOfSpeech": "noun",
@@ -180,99 +231,20 @@ export default function BulkImport() {
     "notes": "Additional notes"
   }
 ]`}</pre>
-            </div>
-          )}
-        </Card>
-
-        {/* JSON Input */}
-        <Card className="bg-card border-border p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">Step 2: Paste JSON Data</h2>
-          <Textarea
-            value={jsonInput}
-            onChange={(e) => setJsonInput(e.target.value)}
-            placeholder="Paste your JSON array here..."
-            rows={12}
-            className="font-mono text-sm"
-          />
-        </Card>
-
-        {/* Import Button */}
-        <div className="flex gap-2 mb-6">
-          <Button
-            onClick={handleImport}
-            disabled={isImporting || !jsonInput.trim()}
-            className="flex items-center gap-2"
-          >
-            <Upload size={20} />
-            {isImporting ? "Importing..." : "Import Data"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setJsonInput("");
-              setResult(null);
-            }}
-          >
-            Clear
-          </Button>
-        </div>
-
-        {/* Results */}
-        {result && (
-          <Card
-            className={`border-2 p-6 ${
-              result.failed === 0
-                ? "bg-green-900/20 border-green-700"
-                : "bg-amber-900/20 border-amber-700"
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              {result.failed === 0 ? (
-                <CheckCircle size={24} className="text-green-500 flex-shrink-0 mt-1" />
-              ) : (
-                <AlertCircle size={24} className="text-amber-500 flex-shrink-0 mt-1" />
-              )}
-              <div className="flex-1">
-                <h3 className="text-lg font-bold mb-2">Import Complete</h3>
-                <div className="space-y-1 text-sm mb-4">
-                  <p>
-                    <strong className="text-green-400">{result.success} successful</strong>
-                    {result.failed > 0 && (
-                      <>
-                        {" "}
-                        •{" "}
-                        <strong className="text-amber-400">{result.failed} failed</strong>
-                      </>
-                    )}
-                  </p>
-                </div>
-                {result.errors.length > 0 && (
-                  <div className="bg-background/50 p-3 rounded text-sm">
-                    <p className="font-semibold mb-2">Errors:</p>
-                    <ul className="space-y-1 text-muted-foreground">
-                      {result.errors.map((error, i) => (
-                        <li key={i}>• {error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             </div>
           </Card>
-        )}
 
-        {/* Sample Data Info */}
-        <Card className="bg-card/50 border-border p-6 mt-6">
-          <h3 className="font-bold mb-2">Tips for Successful Import</h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>• Ensure your JSON is valid and properly formatted</li>
-            <li>• Use an array of objects, even if importing a single item</li>
-            <li>• Field names should match the expected format exactly</li>
-            <li>• Extra fields will be ignored</li>
-            <li>• Failed imports won't stop the entire process</li>
-          </ul>
-        </Card>
-      </div>
+          <Card className="dev-card rounded-[1.5rem] p-5 shadow-none">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Import notes</p>
+            <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+              <p>Use an array of objects, even if you are importing a single record.</p>
+              <p>Unknown fields are ignored, while failed rows do not interrupt the rest of the import job.</p>
+              <p>For Clavis Aurea, the interface is ready for the full 354-entry JSON payload you provided.</p>
+            </div>
+          </Card>
+        </aside>
+      </section>
     </div>
   );
 }

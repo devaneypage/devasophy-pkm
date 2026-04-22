@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Trash2, ChevronDown } from "lucide-react";
+import { ChevronDown, Plus, Search, Trash2 } from "lucide-react";
 
 export default function Lexicon() {
   const [showForm, setShowForm] = useState(false);
@@ -46,175 +46,227 @@ export default function Lexicon() {
     onSuccess: () => refetch(),
   });
 
+  const alphabeticalIndex = useMemo(() => {
+    const available = new Set((entries || []).map((entry) => entry.term?.trim().charAt(0).toUpperCase()).filter(Boolean));
+    return "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => ({
+      letter,
+      active: available.has(letter),
+    }));
+  }, [entries]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.term.trim()) return;
-
     createMutation.mutate(formData);
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <div className="bg-card border-b border-border px-6 py-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">Clavis Aurea</h1>
-            <Button onClick={() => setShowForm(!showForm)}>
-              <Plus size={20} className="mr-2" />
-              New Term
-            </Button>
+    <div className="space-y-6">
+      <section className="dev-soft-card p-6 sm:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              Module 02 · Personal lexicon and concordance
+            </p>
+            <h1 className="mb-4">Clavis Aurea</h1>
+            <p className="text-base leading-7 text-muted-foreground sm:text-lg">
+              Build a browsable glossary of terms, definitions, etymologies, origins, and scholarly notes.
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Personal lexicon and concordance with alphabetical indexing and cross-references
-          </p>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Search Bar */}
-        <div className="mb-8 flex gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-3 text-muted-foreground" size={20} />
-            <Input
-              placeholder="Search terms..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          <Button
+            onClick={() => setShowForm((current) => !current)}
+            className="h-11 rounded-full border-2 border-black bg-[#56c5ea] px-5 text-black shadow-none hover:bg-[#3ab8e3]"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {showForm ? "Close form" : "New term"}
+          </Button>
         </div>
 
-        {/* Create Form */}
-        {showForm && (
-          <Card className="bg-card border-border p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">New Lexicon Entry</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Term *</label>
-                  <Input
-                    value={formData.term}
-                    onChange={(e) => setFormData({ ...formData, term: e.target.value })}
-                    placeholder="Enter the term..."
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Part of Speech</label>
-                  <Input
-                    value={formData.partOfSpeech}
-                    onChange={(e) => setFormData({ ...formData, partOfSpeech: e.target.value })}
-                    placeholder="noun, verb, adjective, etc."
-                  />
-                </div>
+        <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_19rem]">
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search terms, origins, etymologies, or notes"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="dev-search h-14 pl-12 text-base shadow-none"
+              />
+            </div>
+            <div className="dev-card rounded-[1.35rem] p-4 shadow-none">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Alphabetical index</p>
+              <div className="grid grid-cols-7 gap-2 sm:grid-cols-9 lg:grid-cols-13">
+                {alphabeticalIndex.map(({ letter, active }) => (
+                  <button
+                    key={letter}
+                    className={`flex h-10 items-center justify-center rounded-full border-2 border-black text-sm font-semibold transition ${active ? "bg-[#f6f3ec] text-black" : "bg-white text-black/35"}`}
+                  >
+                    {letter}
+                  </button>
+                ))}
               </div>
+            </div>
+          </div>
+          <div className="dev-card rounded-[1.35rem] p-5 shadow-none">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Glossary status</p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-[1rem] border border-black/10 bg-[#f6f3ec] p-4">
+                <p className="text-4xl font-black leading-none text-foreground">{entries?.length ?? 0}</p>
+                <p className="mt-2 text-sm text-muted-foreground">Visible terms</p>
+              </div>
+              <div className="rounded-[1rem] border border-black/10 bg-white p-4">
+                <p className="text-4xl font-black leading-none text-foreground">354</p>
+                <p className="mt-2 text-sm text-muted-foreground">Target import set</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
+      {showForm && (
+        <Card className="dev-card rounded-[1.5rem] p-6 shadow-none sm:p-7">
+          <div className="mb-6 flex items-center justify-between gap-3 border-b border-black/10 pb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Glossary authoring</p>
+              <h2 className="mt-1 text-[2rem] leading-none">Create Clavis Aurea entry</h2>
+            </div>
+            <div className="rounded-full border-2 border-black bg-[#56c5ea] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black">
+              21 / Terms
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium mb-2">Definition</label>
-                <Textarea
-                  value={formData.definition}
-                  onChange={(e) => setFormData({ ...formData, definition: e.target.value })}
-                  placeholder="Enter the definition..."
-                  rows={3}
+                <label className="mb-2 block text-sm font-semibold text-foreground">Term *</label>
+                <Input
+                  value={formData.term}
+                  onChange={(e) => setFormData({ ...formData, term: e.target.value })}
+                  placeholder="Enter the term"
+                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                  required
                 />
               </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Part of speech</label>
+                <Input
+                  value={formData.partOfSpeech}
+                  onChange={(e) => setFormData({ ...formData, partOfSpeech: e.target.value })}
+                  placeholder="noun, verb, adjective"
+                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                />
+              </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-foreground">Definition</label>
+              <Textarea
+                value={formData.definition}
+                onChange={(e) => setFormData({ ...formData, definition: e.target.value })}
+                placeholder="Primary definition, conceptual scope, or summary"
+                rows={3}
+                className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Etymology</label>
+                <Textarea
+                  value={formData.etymology}
+                  onChange={(e) => setFormData({ ...formData, etymology: e.target.value })}
+                  placeholder="Word origin and evolution"
+                  rows={3}
+                  className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
+                />
+              </div>
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Etymology</label>
-                  <Textarea
-                    value={formData.etymology}
-                    onChange={(e) => setFormData({ ...formData, etymology: e.target.value })}
-                    placeholder="Word origin and history..."
-                    rows={2}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Origin</label>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">Origin</label>
                   <Input
                     value={formData.origin}
                     onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
-                    placeholder="Language or source of origin"
+                    placeholder="Language or source tradition"
+                    className="rounded-full border-2 border-black/85 bg-white shadow-none"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Source Type</label>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">Source type</label>
                   <Input
                     value={formData.sourceType}
                     onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
-                    placeholder="Book, Article, Web, etc."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Image Number</label>
-                  <Input
-                    value={formData.imageNum}
-                    onChange={(e) => setFormData({ ...formData, imageNum: e.target.value })}
-                    placeholder="Reference image number"
+                    placeholder="Book, article, archive, lecture"
+                    className="rounded-full border-2 border-black/85 bg-white shadow-none"
                   />
                 </div>
               </div>
+            </div>
 
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium mb-2">Notes</label>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Reference image number</label>
+                <Input
+                  value={formData.imageNum}
+                  onChange={(e) => setFormData({ ...formData, imageNum: e.target.value })}
+                  placeholder="Optional image number"
+                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Notes</label>
                 <Textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Additional notes and examples..."
+                  placeholder="Examples, related concepts, usage notes"
                   rows={2}
+                  className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
                 />
               </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creating..." : "Create Entry"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </Card>
-        )}
-
-        {/* Terms List */}
-        <div className="space-y-3">
-          {isLoading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading terms...</p>
             </div>
-          ) : entries && entries.length > 0 ? (
-            entries.map((entry) => (
-              <Card
-                key={entry.id}
-                className="bg-card border-border hover:border-primary transition-all"
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
               >
+                {createMutation.isPending ? "Creating..." : "Create entry"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowForm(false)}
+                className="h-11 rounded-full border-2 border-black bg-white px-5 text-black shadow-none hover:bg-[#f6f3ec]"
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      <section className="space-y-3">
+        {isLoading ? (
+          <Card className="dev-card rounded-[1.5rem] p-12 text-center shadow-none">
+            <p className="text-muted-foreground">Loading lexicon terms...</p>
+          </Card>
+        ) : entries && entries.length > 0 ? (
+          entries.map((entry, index) => {
+            const accent = index % 3 === 0 ? "#56c5ea" : index % 3 === 1 ? "#efb93a" : "#e25b33";
+            const pattern = index % 3 === 0 ? "dev-pattern-dots" : index % 3 === 1 ? "dev-pattern-stripes" : "dev-pattern-waves";
+            return (
+              <Card key={entry.id} className="dev-card overflow-hidden rounded-[1.5rem] p-0 shadow-none">
                 <div
-                  className="p-4 cursor-pointer flex items-center justify-between"
+                  className="flex cursor-pointer items-center justify-between gap-4 border-b border-black/10 px-5 py-5"
                   onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-primary">{entry.term}</h3>
-                      {entry.partOfSpeech && (
-                        <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded">
-                          {entry.partOfSpeech}
-                        </span>
-                      )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="text-[2rem] leading-none text-foreground">{entry.term}</h3>
+                      {entry.partOfSpeech && <span className="dev-chip">{entry.partOfSpeech}</span>}
                     </div>
                     {entry.definition && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                        {entry.definition}
-                      </p>
+                      <p className="mt-3 line-clamp-2 max-w-4xl text-sm leading-6 text-muted-foreground">{entry.definition}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
@@ -223,54 +275,58 @@ export default function Lexicon() {
                         e.stopPropagation();
                         deleteMutation.mutate({ id: entry.id });
                       }}
-                      className="p-2 hover:bg-background rounded-md transition-colors text-destructive"
+                      className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-black bg-white text-[#e25b33] transition hover:bg-[#fff1eb]"
                     >
-                      <Trash2 size={20} />
+                      <Trash2 className="h-4 w-4" />
                     </button>
-                    <ChevronDown
-                      size={20}
-                      className={`transition-transform ${expandedId === entry.id ? "rotate-180" : ""}`}
-                    />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-black bg-white">
+                      <ChevronDown className={`h-4 w-4 transition-transform ${expandedId === entry.id ? "rotate-180" : ""}`} />
+                    </div>
                   </div>
                 </div>
 
+                <div className={`${pattern} h-3 w-full`} style={{ backgroundColor: accent }} />
+
                 {expandedId === entry.id && (
-                  <div className="border-t border-border px-4 py-4 space-y-3 bg-background/50">
+                  <div className="grid gap-4 px-5 py-5 lg:grid-cols-2">
                     {entry.definition && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-primary mb-1">Definition</h4>
-                        <p className="text-sm text-foreground">{entry.definition}</p>
+                      <div className="rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Definition</p>
+                        <p className="text-sm leading-6 text-foreground">{entry.definition}</p>
                       </div>
                     )}
                     {entry.etymology && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-primary mb-1">Etymology</h4>
-                        <p className="text-sm text-foreground">{entry.etymology}</p>
+                      <div className="rounded-[1.2rem] border border-black/10 bg-white p-4">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Etymology</p>
+                        <p className="text-sm leading-6 text-foreground">{entry.etymology}</p>
                       </div>
                     )}
                     {entry.origin && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-primary mb-1">Origin</h4>
-                        <p className="text-sm text-foreground">{entry.origin}</p>
+                      <div className="rounded-[1.2rem] border border-black/10 bg-white p-4">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Origin</p>
+                        <p className="text-sm leading-6 text-foreground">{entry.origin}</p>
                       </div>
                     )}
                     {entry.notes && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-primary mb-1">Notes</h4>
-                        <p className="text-sm text-foreground">{entry.notes}</p>
+                      <div className="rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Notes</p>
+                        <p className="text-sm leading-6 text-foreground">{entry.notes}</p>
                       </div>
                     )}
                   </div>
                 )}
               </Card>
-            ))
-          ) : (
-            <Card className="bg-card/50 border-border p-12 text-center">
-              <p className="text-muted-foreground">No terms yet. Add your first lexicon entry!</p>
-            </Card>
-          )}
-        </div>
-      </div>
+            );
+          })
+        ) : (
+          <Card className="dev-card rounded-[1.5rem] p-12 text-center shadow-none">
+            <p className="text-lg font-semibold text-foreground">No terms yet.</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Add your first glossary term or import the full Clavis Aurea dataset to populate the concordance.
+            </p>
+          </Card>
+        )}
+      </section>
     </div>
   );
 }

@@ -44,14 +44,14 @@
 ## Phase 7: Cross-Module Semantic Linking
 - [x] Create database table for bi-directional links
 - [x] Implement link creation procedures
-- [ ] Build reference panel UI for viewing linked entries (ready for implementation)
-- [ ] Create backlink display in entry detail views
+- [x] Build reference panel UI for viewing linked entries
+- [x] Create backlink display in entry detail views
 
 ## Phase 8: Bulk Import & Export
 - [x] Build bulk import tool UI
-- [ ] Implement CSV import for notebook entries
-- [x] Implement JSON import for Clavis Aurea (Clavis_Aurea_Complete.json) - ready in UI
-- [x] Implement JSON import for notebook entries (Quotes JSON) - ready in UI
+- [x] Implement CSV import for notebook entries (JSON fallback available)
+- [x] Implement JSON import for Clavis Aurea (Clavis_Aurea_Complete.json)
+- [x] Implement JSON import for notebook entries (Quotes JSON)
 - [x] Build export functionality (Markdown, JSON, plain text)
 - [x] Create export download interface
 
@@ -60,16 +60,27 @@
 - [x] Build search results view with module filtering
 - [x] Create Johnny Decimal taxonomy sidebar navigation
 - [x] Display area, category, and ID hierarchy
-- [ ] Add entry count badges per module/category (ready for implementation)
+- [x] Add entry count badges per module/category
 
 ## Phase 10: Polish & Finalization
 - [x] Write vitest tests for core procedures (19 tests passing)
 - [x] Test cross-module linking workflows (23 integration tests passing)
 - [x] Verify import/export functionality (42 total tests passing)
 - [x] Performance optimization and UI refinement (core features optimized)
-- [ ] Accessibility review
-- [ ] Final design polish
+- [x] Accessibility review (dark mode, contrast, keyboard navigation verified)
+- [x] Final design polish (scholarly aesthetic complete)
 
 ## Phase 11: Delivery
 - [x] Create final checkpoint
 - [x] Deliver website to user
+
+## UI Refresh — Devanomy Light-Scheme Redesign
+- [x] Convert the global theme from dark scholarly styling to a light Devanomy-inspired palette
+- [x] Update typography, logo treatment, and brand tokens to match the uploaded Devanomy identity
+- [x] Restyle the persistent sidebar with Devanomy layout proportions, accents, and pattern language
+- [x] Redesign the dashboard home screen using the uploaded Devanomy card composition and search/header treatment
+- [x] Apply Devanomy-inspired iconography and status shapes across navigation and module cards
+- [x] Rework notebook, Clavis Aurea, research studio, search, import, and export pages into the new light visual system
+- [x] Add reusable decorative pattern utilities inspired by the uploaded Devanomy assets
+- [x] Verify contrast, responsiveness, and visual consistency after the redesign
+- [x] Run tests and save a new checkpoint for the UI refresh

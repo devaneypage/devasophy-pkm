@@ -18,7 +18,13 @@ import Export from "./pages/Export";
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/"}>
+        {() => (
+          <DashboardLayout currentModule="home">
+            <Home />
+          </DashboardLayout>
+        )}
+      </Route>
       <Route path={"/notebook"}>
         {() => (
           <DashboardLayout currentModule="notebook">

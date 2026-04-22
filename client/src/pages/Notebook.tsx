@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Trash2, Heart } from "lucide-react";
+import { Heart, Plus, Quote, Search, Trash2 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
 export default function Notebook() {
@@ -59,199 +59,226 @@ export default function Notebook() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <div className="bg-card border-b border-border px-6 py-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">Commonplace Notebook</h1>
-            <Button onClick={() => setShowForm(!showForm)}>
-              <Plus size={20} className="mr-2" />
-              New Entry
+    <div className="space-y-6">
+      <section className="dev-soft-card p-6 sm:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              Module 01 · Notes and quotations
+            </p>
+            <h1 className="mb-4">Commonplace Notebook</h1>
+            <p className="text-base leading-7 text-muted-foreground sm:text-lg">
+              Capture quotations, passages, and observations with source metadata, personal notes, collections, and tags.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={() => setShowForm((current) => !current)}
+              className="h-11 rounded-full border-2 border-black bg-[#e25b33] px-5 text-white shadow-none hover:bg-[#d6522d]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {showForm ? "Close form" : "New entry"}
             </Button>
           </div>
-          <p className="text-muted-foreground">
-            Capture quotes, passages, and observations with full source metadata
-          </p>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Search Bar */}
-        <div className="mb-8 flex gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-3 text-muted-foreground" size={20} />
+        <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search entries..."
+              placeholder="Search quotes, authors, works, or tags"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="dev-search h-14 pl-12 text-base shadow-none"
             />
           </div>
+          <div className="dev-card flex items-center justify-between px-4 py-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Visible entries</p>
+              <p className="text-3xl font-black leading-none">{entries?.length ?? 0}</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#efb93a]">
+              <Quote className="h-5 w-5 text-black" />
+            </div>
+          </div>
         </div>
+      </section>
 
-        {/* Create Form */}
-        {showForm && (
-          <Card className="bg-card border-border p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">New Entry</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+      {showForm && (
+        <Card className="dev-card rounded-[1.5rem] p-6 shadow-none sm:p-7">
+          <div className="mb-6 flex items-center justify-between gap-3 border-b border-black/10 pb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Quick capture</p>
+              <h2 className="mt-1 text-[2rem] leading-none">Create notebook entry</h2>
+            </div>
+            <div className="rounded-full border-2 border-black bg-[#efb93a] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black">
+              11 / Quotes
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-foreground">Quote or passage *</label>
+              <Textarea
+                value={formData.text}
+                onChange={(e) => setFormData({ ...formData, text: e.target.value })}
+                placeholder="Enter the quotation, passage, or observation you want to preserve"
+                rows={5}
+                className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
+                required
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium mb-2">Quote or Passage *</label>
-                <Textarea
-                  value={formData.text}
-                  onChange={(e) => setFormData({ ...formData, text: e.target.value })}
-                  placeholder="Enter the quote or passage..."
-                  rows={4}
-                  required
+                <label className="mb-2 block text-sm font-semibold text-foreground">Author</label>
+                <Input
+                  value={formData.author}
+                  onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                  placeholder="Author name"
+                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
                 />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Author</label>
-                  <Input
-                    value={formData.author}
-                    onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                    placeholder="Author name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Work/Source</label>
-                  <Input
-                    value={formData.work}
-                    onChange={(e) => setFormData({ ...formData, work: e.target.value })}
-                    placeholder="Book, article, etc."
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Source Type</label>
-                  <Input
-                    value={formData.sourceType}
-                    onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
-                    placeholder="Book, Article, Web, Video, etc."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Location</label>
-                  <Input
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="Page number, timestamp, URL"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-sm font-medium mb-2">Personal Notes</label>
-                <Textarea
-                  value={formData.note}
-                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                  placeholder="Your thoughts and reflections..."
-                  rows={3}
+                <label className="mb-2 block text-sm font-semibold text-foreground">Work or source</label>
+                <Input
+                  value={formData.work}
+                  onChange={(e) => setFormData({ ...formData, work: e.target.value })}
+                  placeholder="Book, article, lecture, archive"
+                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Tags</label>
-                  <Input
-                    value={formData.tags}
-                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                    placeholder="Comma-separated tags"
-                  />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Source type</label>
+                <Input
+                  value={formData.sourceType}
+                  onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
+                  placeholder="Book, article, web, video"
+                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Location</label>
+                <Input
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Page, chapter, timestamp, URL"
+                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-foreground">Personal note</label>
+              <Textarea
+                value={formData.note}
+                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                placeholder="Add a reflection, interpretation, or semantic link prompt"
+                rows={4}
+                className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Tags</label>
+                <Input
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  placeholder="epistemology, rhetoric, commonplace"
+                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Collection</label>
+                <Input
+                  value={formData.collections}
+                  onChange={(e) => setFormData({ ...formData, collections: e.target.value })}
+                  placeholder="Reading log, research file, lecture notes"
+                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3 pt-1">
+              <Button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
+              >
+                {createMutation.isPending ? "Creating..." : "Create entry"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowForm(false)}
+                className="h-11 rounded-full border-2 border-black bg-white px-5 text-black shadow-none hover:bg-[#f6f3ec]"
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      <section className="space-y-4">
+        {isLoading ? (
+          <Card className="dev-card rounded-[1.5rem] p-12 text-center shadow-none">
+            <p className="text-muted-foreground">Loading notebook entries...</p>
+          </Card>
+        ) : entries && entries.length > 0 ? (
+          entries.map((entry, index) => (
+            <Card key={entry.id} className="dev-card overflow-hidden rounded-[1.5rem] p-0 shadow-none">
+              <div
+                className={`h-4 w-full ${index % 3 === 0 ? "dev-pattern-waves" : index % 3 === 1 ? "dev-pattern-dots" : "dev-pattern-stripes"}`}
+                style={{ backgroundColor: index % 3 === 0 ? "#efb93a" : index % 3 === 1 ? "#56c5ea" : "#e25b33" }}
+              />
+              <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="mb-3 text-2xl italic leading-9 text-foreground">“{entry.text}”</p>
+                  <div className="mb-3 flex flex-wrap gap-2 text-sm text-muted-foreground">
+                    {entry.author && <span className="dev-chip">{entry.author}</span>}
+                    {entry.work && <span className="dev-chip">{entry.work}</span>}
+                    {entry.location && <span className="dev-chip">{entry.location}</span>}
+                    {entry.sourceType && <span className="dev-chip">{entry.sourceType}</span>}
+                  </div>
+                  {entry.note && <p className="text-sm leading-6 text-muted-foreground">{entry.note}</p>}
+                  {entry.tags && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {entry.tags.split(",").map((tag) => (
+                        <span key={tag} className="rounded-full border border-black/20 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-foreground">
+                          {tag.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Collection</label>
-                  <Input
-                    value={formData.collections}
-                    onChange={(e) => setFormData({ ...formData, collections: e.target.value })}
-                    placeholder="Collection name"
-                  />
+                <div className="flex items-center gap-2 lg:flex-col">
+                  <button className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-black bg-white transition hover:bg-[#f6f3ec]">
+                    <Heart className={`h-4 w-4 ${entry.favorite ? "fill-[#e25b33] text-[#e25b33]" : "text-black"}`} />
+                  </button>
+                  <button
+                    onClick={() => deleteMutation.mutate({ id: entry.id })}
+                    className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-black bg-white text-[#e25b33] transition hover:bg-[#fff1eb]"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creating..." : "Create Entry"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
+            </Card>
+          ))
+        ) : (
+          <Card className="dev-card rounded-[1.5rem] p-12 text-center shadow-none">
+            <p className="text-lg font-semibold text-foreground">No notebook entries yet.</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Start your Devanomy commonplace archive by capturing your first quotation or observation.
+            </p>
           </Card>
         )}
-
-        {/* Entries List */}
-        <div className="space-y-4">
-          {isLoading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading entries...</p>
-            </div>
-          ) : entries && entries.length > 0 ? (
-            entries.map((entry) => (
-              <Card
-                key={entry.id}
-                className="bg-card border-border p-6 hover:border-primary transition-all"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="text-lg mb-2 italic text-foreground">"{entry.text}"</p>
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-2">
-                      {entry.author && <span>— {entry.author}</span>}
-                      {entry.work && <span>from {entry.work}</span>}
-                      {entry.location && <span>({entry.location})</span>}
-                    </div>
-                    {entry.note && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        <strong>Note:</strong> {entry.note}
-                      </p>
-                    )}
-                    {entry.tags && (
-                      <div className="flex flex-wrap gap-2">
-                        {entry.tags.split(",").map((tag) => (
-                          <span
-                            key={tag}
-                            className="inline-block px-2 py-1 bg-primary/20 text-primary text-xs rounded"
-                          >
-                            {tag.trim()}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="p-2 hover:bg-background rounded-md transition-colors">
-                      <Heart
-                        size={20}
-                        className={entry.favorite ? "fill-primary text-primary" : "text-muted-foreground"}
-                      />
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate({ id: entry.id })}
-                      className="p-2 hover:bg-background rounded-md transition-colors text-destructive"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
-                </div>
-              </Card>
-            ))
-          ) : (
-            <Card className="bg-card/50 border-border p-12 text-center">
-              <p className="text-muted-foreground">No entries yet. Create your first entry to get started!</p>
-            </Card>
-          )}
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

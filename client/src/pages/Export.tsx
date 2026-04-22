@@ -2,7 +2,55 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, FileJson, FileText } from "lucide-react";
+import { Download, FileJson, FileText, Library, NotebookTabs, PenSquare } from "lucide-react";
+
+const exportTypes = {
+  notebook: {
+    title: "Commonplace Notebook",
+    description: "All quotations, passages, notes, metadata, and tags.",
+    accent: "#efb93a",
+    pattern: "dev-pattern-waves",
+    icon: NotebookTabs,
+  },
+  lexicon: {
+    title: "Clavis Aurea",
+    description: "All glossary terms, definitions, origins, and notes.",
+    accent: "#56c5ea",
+    pattern: "dev-pattern-dots",
+    icon: Library,
+  },
+  documents: {
+    title: "Research Studio",
+    description: "All projects, folders, documents, and writing content.",
+    accent: "#e25b33",
+    pattern: "dev-pattern-diamonds",
+    icon: PenSquare,
+  },
+} as const;
+
+const formatMeta = {
+  json: {
+    title: "JSON",
+    subtitle: "Structured data",
+    description: "Best for re-importing, analysis, and preserving complete metadata.",
+    icon: FileJson,
+    accent: "#56c5ea",
+  },
+  markdown: {
+    title: "Markdown",
+    subtitle: "Formatted text",
+    description: "Readable and publication-friendly with headings and preserved structure.",
+    icon: FileText,
+    accent: "#efb93a",
+  },
+  text: {
+    title: "Plain Text",
+    subtitle: "Universal format",
+    description: "Simple export for raw reading, sharing, or external processing.",
+    icon: FileText,
+    accent: "#bfd73d",
+  },
+} as const;
 
 export default function Export() {
   const [exportType, setExportType] = useState<"notebook" | "lexicon" | "documents">("notebook");
@@ -32,34 +80,32 @@ export default function Export() {
       let content = "";
       let filename = "";
       let mimeType = "text/plain";
+      const dateStamp = new Date().toISOString().split("T")[0];
 
       if (exportType === "notebook" && notebookEntries) {
         if (format === "json") {
           content = JSON.stringify(notebookEntries, null, 2);
-          filename = `notebook-export-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `notebook-export-${dateStamp}.json`;
           mimeType = "application/json";
         } else if (format === "markdown") {
           content = notebookEntries
             .map(
               (entry) =>
-                `# "${entry.text}"\n\n**Author:** ${entry.author || "Unknown"}\n**Work:** ${entry.work || "Unknown"}\n**Source Type:** ${entry.sourceType || "Unknown"}\n**Location:** ${entry.location || "N/A"}\n\n${entry.note ? `**Notes:** ${entry.note}\n\n` : ""}---\n\n`
+                `# “${entry.text}”\n\n**Author:** ${entry.author || "Unknown"}\n**Work:** ${entry.work || "Unknown"}\n**Source Type:** ${entry.sourceType || "Unknown"}\n**Location:** ${entry.location || "N/A"}\n\n${entry.note ? `**Notes:** ${entry.note}\n\n` : ""}---\n\n`
             )
             .join("");
-          filename = `notebook-export-${new Date().toISOString().split("T")[0]}.md`;
+          filename = `notebook-export-${dateStamp}.md`;
           mimeType = "text/markdown";
         } else {
           content = notebookEntries
-            .map(
-              (entry) =>
-                `"${entry.text}"\n— ${entry.author || "Unknown"}, ${entry.work || "Unknown"}\n\n`
-            )
+            .map((entry) => `“${entry.text}”\n— ${entry.author || "Unknown"}, ${entry.work || "Unknown"}\n\n`)
             .join("");
-          filename = `notebook-export-${new Date().toISOString().split("T")[0]}.txt`;
+          filename = `notebook-export-${dateStamp}.txt`;
         }
       } else if (exportType === "lexicon" && lexiconTerms) {
         if (format === "json") {
           content = JSON.stringify(lexiconTerms, null, 2);
-          filename = `lexicon-export-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `lexicon-export-${dateStamp}.json`;
           mimeType = "application/json";
         } else if (format === "markdown") {
           content = lexiconTerms
@@ -68,18 +114,18 @@ export default function Export() {
                 `## ${term.term}\n\n**Part of Speech:** ${term.partOfSpeech || "N/A"}\n\n**Definition:** ${term.definition || "N/A"}\n\n**Etymology:** ${term.etymology || "N/A"}\n\n**Origin:** ${term.origin || "N/A"}\n\n${term.notes ? `**Notes:** ${term.notes}\n\n` : ""}---\n\n`
             )
             .join("");
-          filename = `lexicon-export-${new Date().toISOString().split("T")[0]}.md`;
+          filename = `lexicon-export-${dateStamp}.md`;
           mimeType = "text/markdown";
         } else {
           content = lexiconTerms
             .map((term) => `${term.term} (${term.partOfSpeech || "N/A"})\n${term.definition || "No definition"}\n\n`)
             .join("");
-          filename = `lexicon-export-${new Date().toISOString().split("T")[0]}.txt`;
+          filename = `lexicon-export-${dateStamp}.txt`;
         }
       } else if (exportType === "documents" && documents) {
         if (format === "json") {
           content = JSON.stringify(documents, null, 2);
-          filename = `documents-export-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `documents-export-${dateStamp}.json`;
           mimeType = "application/json";
         } else if (format === "markdown") {
           content = documents
@@ -88,13 +134,11 @@ export default function Export() {
                 `# ${doc.title}\n\n**Project:** ${doc.project || "N/A"}\n**Status:** ${doc.status}\n\n${doc.content || "No content"}\n\n---\n\n`
             )
             .join("");
-          filename = `documents-export-${new Date().toISOString().split("T")[0]}.md`;
+          filename = `documents-export-${dateStamp}.md`;
           mimeType = "text/markdown";
         } else {
-          content = documents
-            .map((doc) => `${doc.title}\n${doc.content || "No content"}\n\n---\n\n`)
-            .join("");
-          filename = `documents-export-${new Date().toISOString().split("T")[0]}.txt`;
+          content = documents.map((doc) => `${doc.title}\n${doc.content || "No content"}\n\n---\n\n`).join("");
+          filename = `documents-export-${dateStamp}.txt`;
         }
       }
 
@@ -106,129 +150,111 @@ export default function Export() {
     }
   };
 
+  const selectedExportMeta = exportTypes[exportType];
+  const selectedFormatMeta = formatMeta[format];
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <div className="bg-card border-b border-border px-6 py-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2">Export Data</h1>
-          <p className="text-muted-foreground">
-            Export your knowledge base entries in various formats
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <section className="dev-soft-card p-6 sm:p-8">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Archive and portability</p>
+        <h1 className="mb-4">Export Data</h1>
+        <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
+          Export any major Devanomy collection as structured JSON, editorial Markdown, or universal plain text.
+        </p>
+      </section>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Export Type Selection */}
-        <Card className="bg-card border-border p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">Step 1: Select What to Export</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(["notebook", "lexicon", "documents"] as const).map((type) => (
-              <button
-                key={type}
-                onClick={() => setExportType(type)}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  exportType === type
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <div className="text-lg font-bold mb-2">
-                  {type === "notebook"
-                    ? "Commonplace Notebook"
-                    : type === "lexicon"
-                      ? "Clavis Aurea"
-                      : "Documents"}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {type === "notebook"
-                    ? "All quotes and passages"
-                    : type === "lexicon"
-                      ? "All vocabulary terms"
-                      : "All documents"}
-                </div>
-              </button>
-            ))}
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-6">
+          <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+            <h2 className="mb-4 text-[2rem] leading-none">Select collection</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              {(Object.keys(exportTypes) as Array<keyof typeof exportTypes>).map((type) => {
+                const item = exportTypes[type];
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setExportType(type)}
+                    className={`overflow-hidden rounded-[1.3rem] border-2 border-black bg-white text-left transition ${exportType === type ? "-translate-y-1" : "hover:-translate-y-1"}`}
+                  >
+                    <div className={`${item.pattern} flex h-16 items-center justify-between px-4`} style={{ backgroundColor: item.accent }}>
+                      <Icon className="h-5 w-5 text-black" />
+                      <span className="text-xs font-semibold uppercase tracking-[0.22em] text-black">{type}</span>
+                    </div>
+                    <div className="space-y-2 p-4">
+                      <p className="text-lg font-bold text-foreground">{item.title}</p>
+                      <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+            <h2 className="mb-4 text-[2rem] leading-none">Choose format</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              {(Object.keys(formatMeta) as Array<keyof typeof formatMeta>).map((fmt) => {
+                const item = formatMeta[fmt];
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={fmt}
+                    onClick={() => setFormat(fmt)}
+                    className={`rounded-[1.3rem] border-2 border-black bg-white p-4 text-left transition ${format === fmt ? "-translate-y-1" : "hover:-translate-y-1"}`}
+                  >
+                    <div
+                      className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 border-black"
+                      style={{ backgroundColor: item.accent }}
+                    >
+                      <Icon className="h-5 w-5 text-black" />
+                    </div>
+                    <p className="text-lg font-bold text-foreground">{item.title}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{item.subtitle}</p>
+                    <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
+              size="lg"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {isExporting ? "Exporting..." : "Export now"}
+            </Button>
           </div>
-        </Card>
-
-        {/* Format Selection */}
-        <Card className="bg-card border-border p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">Step 2: Choose Export Format</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(["json", "markdown", "text"] as const).map((fmt) => (
-              <button
-                key={fmt}
-                onClick={() => setFormat(fmt)}
-                className={`p-4 rounded-lg border-2 transition-all flex items-center gap-3 ${
-                  format === fmt
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                {fmt === "json" && <FileJson size={24} className="text-primary" />}
-                {fmt === "markdown" && <FileText size={24} className="text-primary" />}
-                {fmt === "text" && <FileText size={24} className="text-primary" />}
-                <div className="text-left">
-                  <div className="font-bold capitalize">{fmt}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {fmt === "json"
-                      ? "Structured data"
-                      : fmt === "markdown"
-                        ? "Formatted text"
-                        : "Plain text"}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </Card>
-
-        {/* Format Info */}
-        <Card className="bg-card/50 border-border p-6 mb-6">
-          <h3 className="font-bold mb-2">Format Details</h3>
-          {format === "json" && (
-            <p className="text-sm text-muted-foreground">
-              JSON format preserves all metadata and structure. Best for re-importing or processing with tools.
-            </p>
-          )}
-          {format === "markdown" && (
-            <p className="text-sm text-muted-foreground">
-              Markdown format is human-readable and great for sharing or publishing. Includes formatted text and metadata.
-            </p>
-          )}
-          {format === "text" && (
-            <p className="text-sm text-muted-foreground">
-              Plain text format is simple and universal. Best for reading or basic sharing.
-            </p>
-          )}
-        </Card>
-
-        {/* Export Button */}
-        <div className="flex gap-2">
-          <Button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="flex items-center gap-2"
-            size="lg"
-          >
-            <Download size={20} />
-            {isExporting ? "Exporting..." : "Export Now"}
-          </Button>
         </div>
 
-        {/* Info */}
-        <Card className="bg-card/50 border-border p-6 mt-6">
-          <h3 className="font-bold mb-2">Export Tips</h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>• All entries and their metadata will be included in the export</li>
-            <li>• Exported files are timestamped for easy organization</li>
-            <li>• JSON format can be re-imported using the Bulk Import tool</li>
-            <li>• Markdown files can be opened in any text editor or Markdown viewer</li>
-          </ul>
-        </Card>
-      </div>
+        <aside className="space-y-6">
+          <Card className="dev-card overflow-hidden rounded-[1.5rem] p-0 shadow-none">
+            <div className={`${selectedExportMeta.pattern} h-5 w-full`} style={{ backgroundColor: selectedExportMeta.accent }} />
+            <div className="p-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Current export</p>
+              <h3 className="text-[1.8rem] leading-none">{selectedExportMeta.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{selectedExportMeta.description}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="dev-chip">{selectedFormatMeta.title}</span>
+                <span className="dev-chip">Timestamped filename</span>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="dev-card rounded-[1.5rem] p-5 shadow-none">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Export notes</p>
+            <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+              <p>Every export includes the currently stored entries and metadata for the chosen module.</p>
+              <p>JSON can be re-imported later through the bulk import workflow, while Markdown is ideal for editorial review.</p>
+              <p>Plain text keeps the archive lightweight for universal sharing and long-term preservation.</p>
+            </div>
+          </Card>
+        </aside>
+      </section>
     </div>
   );
 }
