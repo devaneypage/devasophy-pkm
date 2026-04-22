@@ -29,6 +29,37 @@ export type ClavisAureaPayload = {
   entries?: unknown[];
 };
 
+const QUOTE_CATEGORY_RULES: Array<{ label: string; keywords: string[] }> = [
+  {
+    label: "Knowledge & Learning",
+    keywords: ["knowledge", "learn", "learning", "study", "wisdom", "understand", "understanding", "truth", "insight"],
+  },
+  {
+    label: "Writing & Expression",
+    keywords: ["write", "writing", "word", "words", "language", "sentence", "essay", "draft", "poem", "poetry", "style"],
+  },
+  {
+    label: "Books & Reading",
+    keywords: ["book", "books", "reading", "read", "reader", "library", "literature", "novel", "author", "page"],
+  },
+  {
+    label: "Research & Inquiry",
+    keywords: ["research", "question", "questions", "inquiry", "investigate", "evidence", "argument", "analysis", "analyze"],
+  },
+  {
+    label: "Philosophy & Ethics",
+    keywords: ["philosophy", "ethical", "ethics", "moral", "virtue", "good", "soul", "justice", "meaning", "being"],
+  },
+  {
+    label: "Law & Reasoning",
+    keywords: ["law", "legal", "court", "judge", "reason", "reasoning", "logic", "rights", "argument", "case"],
+  },
+  {
+    label: "Memory & Reflection",
+    keywords: ["memory", "remember", "reflection", "reflect", "journal", "habit", "self", "attention", "mind"],
+  },
+];
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -56,6 +87,70 @@ function asBoolean(value: unknown): boolean | undefined {
     if (lowered === "false") return false;
   }
   return undefined;
+}
+
+function uniqueStrings(values: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    if (!value) continue;
+    const normalized = value.trim();
+    const key = normalized.toLowerCase();
+    if (!normalized || seen.has(key)) continue;
+    seen.add(key);
+    result.push(normalized);
+  }
+
+  return result;
+}
+
+function splitCommaList(value?: string): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function inferQuoteCategories(input: {
+  text: string;
+  note?: string;
+  author?: string;
+  work?: string;
+}): string[] {
+  const corpus = [input.text, input.note, input.author, input.work]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const matched = QUOTE_CATEGORY_RULES.filter((rule) =>
+    rule.keywords.some((keyword) => corpus.includes(keyword))
+  ).map((rule) => rule.label);
+
+  if (matched.length > 0) {
+    return matched.slice(0, 3);
+  }
+
+  return ["General Reflections"];
+}
+
+export function enrichNotebookImportWithCategories(input: NormalizedNotebookImport): NormalizedNotebookImport {
+  const inferredCategories = inferQuoteCategories({
+    text: input.text,
+    note: input.note,
+    author: input.author,
+    work: input.work,
+  });
+
+  const mergedTags = uniqueStrings([...splitCommaList(input.tags), ...inferredCategories]);
+  const mergedCollections = uniqueStrings([...splitCommaList(input.collections), inferredCategories[0]]);
+
+  return {
+    ...input,
+    tags: mergedTags.length > 0 ? mergedTags.join(", ") : undefined,
+    collections: mergedCollections.length > 0 ? mergedCollections.join(", ") : undefined,
+  };
 }
 
 export function extractClavisAureaEntries(input: unknown): unknown[] {
@@ -151,7 +246,7 @@ export function normalizeNotebookImportItem(input: unknown): NormalizedNotebookI
     ? tagsValue.map((tag) => asString(tag)).filter(Boolean).join(",")
     : asString(tagsValue);
 
-  return {
+  return enrichNotebookImportWithCategories({
     text,
     author: asString(record.author) ?? asString(record.by),
     work: asString(record.work) ?? asString(record.source),
@@ -161,7 +256,7 @@ export function normalizeNotebookImportItem(input: unknown): NormalizedNotebookI
     tags,
     collections: asString(record.collection) ?? asString(record.collections),
     favorite: asBoolean(record.favorite),
-  };
+  });
 }
 
 export function buildNotebookReferenceInsert(input: {

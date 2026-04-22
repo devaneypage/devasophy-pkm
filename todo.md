@@ -96,4 +96,10 @@
 - [x] Add one-click autofill for the previously uploaded Quotes file in Bulk Import
 - [x] Add one-click autofill for the previously uploaded Clavis Aurea file in Bulk Import
 - [x] Test the autofill import workflow
-- [ ] Save a checkpoint for the autofill enhancement
+- [x] Save a checkpoint for the autofill enhancement
+
+## Follow-up Enhancements — Automatic Quote Categorization
+- [x] Add content-based automatic categorization for imported quotes
+- [x] Apply inferred categories during quote JSON import and one-click autofill import flows
+- [x] Add tests for quote categorization rules and import behavior
+- [ ] Save a checkpoint for the quote categorization enhancement

@@ -188,7 +188,7 @@ export default function BulkImport() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Ingestion and archive tools</p>
         <h1 className="mb-4">Bulk Import</h1>
         <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
-          Paste structured JSON or drag a source file directly into the workspace to ingest quotations or Clavis Aurea entries in a single pass.
+          Paste structured JSON or drag a source file directly into the workspace to ingest quotations or Clavis Aurea entries in a single pass. Imported quotes are now categorized automatically from their content and merged into their tags and collections.
         </p>
       </section>
 
