@@ -105,9 +105,9 @@
 - [x] Save a checkpoint for the quote categorization enhancement
 
 ## External TODO Reconciliation — Attached PKM Roadmap
-- [ ] Compare the attached Devanomy/Devasophy TODO against the current implemented site and identify unfinished or divergent items
-- [ ] Select the next highest-priority unfinished feature set from the attached roadmap for implementation
-- [ ] Create a detailed implementation plan for the selected roadmap items
+- [x] Compare the attached Devanomy/Devasophy TODO against the current implemented site and identify unfinished or divergent items
+- [x] Select the next highest-priority unfinished feature set from the attached roadmap for implementation
+- [x] Create a detailed implementation plan for the selected roadmap items
 
 ## Selected Roadmap Implementation — Johnny Decimal and Inline Editing
 - [x] Seed all Johnny Decimal categories required for the current PKM taxonomy into the database
