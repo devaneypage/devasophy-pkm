@@ -88,6 +88,38 @@ export function validateClavisAureaPayload(input: unknown): {
   };
 }
 
+export function detectImportPayloadType(input: unknown): "quotes" | "lexicon" | null {
+  const record = asRecord(input);
+  const wrappedLexicon = record && Array.isArray(record.entries);
+  const items = Array.isArray(input)
+    ? input
+    : wrappedLexicon
+      ? extractClavisAureaEntries(input)
+      : [input];
+
+  const hasQuoteLikeShape = items.some((item) => {
+    const entry = asRecord(item);
+    if (!entry) return false;
+    return typeof entry.text === "string" || typeof entry.quote === "string";
+  });
+
+  if (hasQuoteLikeShape) {
+    return "quotes";
+  }
+
+  const hasLexiconLikeShape = items.some((item) => {
+    const entry = asRecord(item);
+    if (!entry) return false;
+    return typeof entry.term === "string" || typeof entry.word === "string";
+  });
+
+  if (wrappedLexicon || hasLexiconLikeShape) {
+    return "lexicon";
+  }
+
+  return null;
+}
+
 export function normalizeLexiconImportItem(input: unknown): NormalizedLexiconImport | null {
   const record = asRecord(input);
   if (!record) return null;

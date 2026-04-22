@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, CheckCircle, Upload } from "lucide-react";
+import { AlertCircle, CheckCircle, FileJson2, Upload, UploadCloud } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import {
+  detectImportPayloadType,
   extractClavisAureaEntries,
   normalizeLexiconImportItem,
   normalizeNotebookImportItem,
@@ -18,103 +19,126 @@ interface ImportResult {
   errors: string[];
 }
 
+type ImportType = "quotes" | "lexicon";
+
 const importModes = {
   quotes: {
     title: "Commonplace Notebook",
     description: "Import quotations, passages, observations, metadata, and tags into your notebook.",
     accent: "#efb93a",
     pattern: "dev-pattern-waves",
+    prompt: "Drop your Quotes JSON file here",
   },
   lexicon: {
     title: "Clavis Aurea",
     description: "Import glossary entries, etymologies, definitions, and concordance notes.",
     accent: "#56c5ea",
     pattern: "dev-pattern-dots",
+    prompt: "Drop your Clavis Aurea JSON file here",
   },
 } as const;
 
 export default function BulkImport() {
-  const [importType, setImportType] = useState<"quotes" | "lexicon">("quotes");
+  const [importType, setImportType] = useState<ImportType>("quotes");
   const [jsonInput, setJsonInput] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const notebookCreateMutation = trpc.notebook.create.useMutation();
   const lexiconCreateMutation = trpc.lexicon.create.useMutation();
 
-  const handleImport = async () => {
-    if (!jsonInput.trim()) {
-      setResult({ success: 0, failed: 1, errors: ["Please paste JSON data"] });
-      return;
-    }
+  const mode = importModes[importType];
 
-    setIsImporting(true);
+  const fileHint = useMemo(() => {
+    if (loadedFileName) return `Loaded file: ${loadedFileName}`;
+    return importType === "lexicon"
+      ? "Recommended: Clavis_Aurea_Complete.json"
+      : "Recommended: Quotes-All_with_notes_with_metadata.json";
+  }, [importType, loadedFileName]);
+
+  const importParsedData = async (data: unknown) => {
     const errors: string[] = [];
     let success = 0;
     let failed = 0;
 
-    try {
-      const data = JSON.parse(jsonInput);
-      const items = importType === "lexicon" ? extractClavisAureaEntries(data) : Array.isArray(data) ? data : [data];
-
-      if (importType === "quotes") {
-        for (const item of items) {
-          try {
-            const normalized = normalizeNotebookImportItem(item);
-            if (!normalized) {
-              throw new Error("Missing required quote text");
-            }
-
-            await notebookCreateMutation.mutateAsync({
-              text: normalized.text,
-              author: normalized.author || "",
-              work: normalized.work || "",
-              sourceType: normalized.sourceType || "quote",
-              location: normalized.location || "",
-              note: normalized.note || "",
-              tags: normalized.tags || "",
-              collections: normalized.collections || "",
-              favorite: normalized.favorite || false,
-              uuid: uuidv4(),
-            });
-            success++;
-          } catch {
-            failed++;
-            errors.push("Failed to import quote entry from the provided JSON payload.");
+    if (importType === "quotes") {
+      const items = Array.isArray(data) ? data : [data];
+      for (const item of items) {
+        try {
+          const normalized = normalizeNotebookImportItem(item);
+          if (!normalized) {
+            throw new Error("Missing required quote text");
           }
-        }
-      } else {
-        const payloadCheck = validateClavisAureaPayload(data);
-        if (payloadCheck.declaredTotal && payloadCheck.declaredTotal !== payloadCheck.totalEntries) {
-          errors.push(`Warning: payload declares ${payloadCheck.declaredTotal} entries but contains ${payloadCheck.totalEntries}.`);
-        }
 
-        for (const item of items) {
-          try {
-            const normalized = normalizeLexiconImportItem(item);
-            if (!normalized) {
-              throw new Error("Missing required term field");
-            }
-
-            await lexiconCreateMutation.mutateAsync({
-              term: normalized.term,
-              partOfSpeech: normalized.partOfSpeech || "",
-              definition: normalized.definition || "",
-              etymology: normalized.etymology || "",
-              origin: normalized.origin || "",
-              sourceType: normalized.sourceType || "",
-              imageNum: normalized.imageNum || "",
-              notes: normalized.notes || "",
-            });
-            success++;
-          } catch {
-            failed++;
-            errors.push("Failed to import Clavis Aurea term from the provided JSON payload.");
-          }
+          await notebookCreateMutation.mutateAsync({
+            text: normalized.text,
+            author: normalized.author || "",
+            work: normalized.work || "",
+            sourceType: normalized.sourceType || "quote",
+            location: normalized.location || "",
+            note: normalized.note || "",
+            tags: normalized.tags || "",
+            collections: normalized.collections || "",
+            favorite: normalized.favorite || false,
+            uuid: uuidv4(),
+          });
+          success++;
+        } catch {
+          failed++;
+          errors.push("Failed to import quote entry from the provided JSON payload.");
         }
       }
+    } else {
+      const payloadCheck = validateClavisAureaPayload(data);
+      if (!payloadCheck.isValid) {
+        throw new Error("The dropped or pasted file does not match the Clavis Aurea payload structure.");
+      }
+      if (payloadCheck.declaredTotal && payloadCheck.declaredTotal !== payloadCheck.totalEntries) {
+        errors.push(`Warning: payload declares ${payloadCheck.declaredTotal} entries but contains ${payloadCheck.totalEntries}.`);
+      }
 
-      setResult({ success, failed, errors: errors.slice(0, 10) });
+      const items = extractClavisAureaEntries(data);
+      for (const item of items) {
+        try {
+          const normalized = normalizeLexiconImportItem(item);
+          if (!normalized) {
+            throw new Error("Missing required term field");
+          }
+
+          await lexiconCreateMutation.mutateAsync({
+            term: normalized.term,
+            partOfSpeech: normalized.partOfSpeech || "",
+            definition: normalized.definition || "",
+            etymology: normalized.etymology || "",
+            origin: normalized.origin || "",
+            sourceType: normalized.sourceType || "",
+            imageNum: normalized.imageNum || "",
+            notes: normalized.notes || "",
+          });
+          success++;
+        } catch {
+          failed++;
+          errors.push("Failed to import Clavis Aurea term from the provided JSON payload.");
+        }
+      }
+    }
+
+    setResult({ success, failed, errors: errors.slice(0, 10) });
+  };
+
+  const handleImport = async () => {
+    if (!jsonInput.trim()) {
+      setResult({ success: 0, failed: 1, errors: ["Please paste JSON data or drop a file."] });
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const data = JSON.parse(jsonInput);
+      await importParsedData(data);
     } catch (error) {
       setResult({
         success: 0,
@@ -126,7 +150,26 @@ export default function BulkImport() {
     }
   };
 
-  const mode = importModes[importType];
+  const handleLoadedText = (text: string, fileName?: string) => {
+    setJsonInput(text);
+    setLoadedFileName(fileName || null);
+    setResult(null);
+
+    try {
+      const parsed = JSON.parse(text);
+      const detected = detectImportPayloadType(parsed);
+      if (detected) {
+        setImportType(detected);
+      }
+    } catch {
+      // Preserve manual correction workflow if the file content is not yet valid JSON.
+    }
+  };
+
+  const handleFile = async (file: File) => {
+    const text = await file.text();
+    handleLoadedText(text, file.name);
+  };
 
   return (
     <div className="space-y-6">
@@ -134,7 +177,7 @@ export default function BulkImport() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Ingestion and archive tools</p>
         <h1 className="mb-4">Bulk Import</h1>
         <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
-          Paste structured JSON to ingest your quotations or Clavis Aurea entries into the Devanomy workspace in a single pass.
+          Paste structured JSON or drag a source file directly into the workspace to ingest quotations or Clavis Aurea entries in a single pass.
         </p>
       </section>
 
@@ -167,11 +210,77 @@ export default function BulkImport() {
           </Card>
 
           <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
-            <h2 className="mb-4 text-[2rem] leading-none">Paste JSON data</h2>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-[2rem] leading-none">Drag-and-drop import</h2>
+              <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                JSON files
+              </span>
+            </div>
+
+            <div
+              onDragOver={(event) => {
+                event.preventDefault();
+                setIsDragActive(true);
+              }}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setIsDragActive(true);
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault();
+                if (event.currentTarget === event.target) {
+                  setIsDragActive(false);
+                }
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setIsDragActive(false);
+                const file = event.dataTransfer.files?.[0];
+                if (file) {
+                  void handleFile(file);
+                }
+              }}
+              className={`rounded-[1.4rem] border-2 border-dashed p-6 transition ${isDragActive ? "border-black bg-[#f6f3ec]" : "border-black/35 bg-white"}`}
+            >
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border-2 border-black bg-white">
+                  {isDragActive ? <UploadCloud className="h-6 w-6 text-black" /> : <FileJson2 className="h-6 w-6 text-black" />}
+                </div>
+                <p className="text-lg font-semibold text-foreground">{mode.prompt}</p>
+                <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
+                  Drop a JSON file to auto-load it into the editor below. If the file structure is recognized, the workspace will automatically switch to the correct import mode.
+                </p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">{fileHint}</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json,.txt,application/json,text/plain"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void handleFile(file);
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mt-5 h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Choose file
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+            <h2 className="mb-4 text-[2rem] leading-none">Paste or review JSON</h2>
             <Textarea
               value={jsonInput}
               onChange={(e) => setJsonInput(e.target.value)}
-              placeholder="Paste your JSON array here..."
+              placeholder="Paste your JSON array or dropped file content here..."
               rows={14}
               className="rounded-[1.3rem] border-2 border-black/85 bg-white font-mono text-sm shadow-none"
             />
@@ -189,6 +298,7 @@ export default function BulkImport() {
                 onClick={() => {
                   setJsonInput("");
                   setResult(null);
+                  setLoadedFileName(null);
                 }}
                 className="h-11 rounded-full border-2 border-black bg-white px-5 text-black shadow-none hover:bg-[#f6f3ec]"
               >
@@ -210,7 +320,11 @@ export default function BulkImport() {
                   <h3 className="text-[1.8rem] leading-none">Import complete</h3>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">
                     <strong className="text-foreground">{result.success} successful</strong>
-                    {result.failed > 0 ? <> · <strong className="text-[#e25b33]">{result.failed} failed</strong></> : null}
+                    {result.failed > 0 ? (
+                      <>
+                        {" "}· <strong className="text-[#e25b33]">{result.failed} failed</strong>
+                      </>
+                    ) : null}
                   </p>
                   {result.errors.length > 0 && (
                     <div className="mt-4 rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4 text-sm leading-6 text-muted-foreground">
@@ -241,17 +355,23 @@ export default function BulkImport() {
     "note": "Personal note",
     "tags": "comma,separated,tags"
   }
-]` : `[
-  {
-    "term": "Word or phrase",
-    "partOfSpeech": "noun",
-    "definition": "Definition text",
-    "etymology": "Word origin",
-    "origin": "Language",
-    "sourceType": "Book",
-    "notes": "Additional notes"
-  }
-]`}</pre>
+]` : `{
+  "meta": {
+    "name": "Clavis Aurea",
+    "total_entries": 354
+  },
+  "entries": [
+    {
+      "term": "Word or phrase",
+      "pos": "noun",
+      "definition": "Definition text",
+      "origin": "Language or origin note",
+      "source_type": "Book or app",
+      "image_num": "114",
+      "notes": "Additional notes"
+    }
+  ]
+}`}</pre>
               </div>
             </div>
           </Card>
@@ -259,9 +379,9 @@ export default function BulkImport() {
           <Card className="dev-card rounded-[1.5rem] p-5 shadow-none">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Import notes</p>
             <div className="space-y-3 text-sm leading-6 text-muted-foreground">
-              <p>Use an array of objects, even if you are importing a single record.</p>
+              <p>Drag-and-drop and manual file selection both load the file into the editor so you can inspect it before import.</p>
               <p>Unknown fields are ignored, while failed rows do not interrupt the rest of the import job.</p>
-              <p>For Clavis Aurea, the importer explicitly supports the provided payload structure with meta and entries, including the 354-entry glossary dataset.</p>
+              <p>Clavis Aurea explicitly supports the provided payload structure with meta and entries, including the 354-entry glossary dataset.</p>
             </div>
           </Card>
         </aside>

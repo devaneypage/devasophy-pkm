@@ -84,3 +84,10 @@
 - [x] Add reusable decorative pattern utilities inspired by the uploaded Devanomy assets
 - [x] Verify contrast, responsiveness, and visual consistency after the redesign
 - [x] Run tests and save a new checkpoint for the UI refresh
+
+## Follow-up Enhancements — Devanomy Icons and File Drop Import
+- [x] Add custom SVG Devanomy icons for every module tile and related navigation surfaces
+- [x] Add drag-and-drop import for the Clavis Aurea JSON workflow
+- [x] Add drag-and-drop import for the Quotes JSON workflow
+- [x] Test the new icon system and drag-and-drop import behavior
+- [ ] Save a checkpoint for the follow-up enhancements

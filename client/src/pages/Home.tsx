@@ -1,16 +1,13 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ArrowRight, Compass, Plus, Search } from "lucide-react";
 import {
-  ArrowRight,
-  BookOpen,
-  Compass,
-  Library,
-  PenSquare,
-  Plus,
-  Quote,
-  Search,
-} from "lucide-react";
+  EssaysIcon,
+  NotesIcon,
+  QuotationsIcon,
+  VocabularyIcon,
+} from "@/components/DevanomyIcons";
 import { useLocation } from "wouter";
 
 const stats = [
@@ -45,7 +42,7 @@ const modules = [
     id: "notebook",
     title: "Commonplace Notebook",
     description: "Capture quotations, passages, annotations, and source metadata in a richly structured notebook.",
-    icon: Quote,
+    icon: QuotationsIcon,
     route: "/notebook",
     accent: "#efb93a",
     pattern: "dev-pattern-waves",
@@ -55,7 +52,7 @@ const modules = [
     id: "lexicon",
     title: "Clavis Aurea",
     description: "Browse, define, and connect your personal lexicon through concordance and etymological detail.",
-    icon: Library,
+    icon: VocabularyIcon,
     route: "/lexicon",
     accent: "#56c5ea",
     pattern: "dev-pattern-dots",
@@ -65,7 +62,7 @@ const modules = [
     id: "documents",
     title: "Research & Writing Studio",
     description: "Organize research projects, build essays, and pull linked references directly into your drafts.",
-    icon: PenSquare,
+    icon: EssaysIcon,
     route: "/documents",
     accent: "#e25b33",
     pattern: "dev-pattern-diamonds",
@@ -202,7 +199,7 @@ export default function Home() {
                   className={`dev-module-banner ${module.pattern} flex min-h-[9rem] items-end justify-between border-b-2 border-black px-5 py-5`}
                   style={{ backgroundColor: module.accent }}
                 >
-                  <Icon className="h-9 w-9 text-black" />
+                  <Icon className="h-11 w-11" />
                   <span className="rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black">
                     {module.id}
                   </span>
@@ -249,7 +246,7 @@ export default function Home() {
         <div className="dev-soft-card p-5">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#56c5ea]">
-              <Compass className="h-5 w-5 text-black" />
+              <NotesIcon className="h-8 w-8" />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Knowledge rhythm</p>

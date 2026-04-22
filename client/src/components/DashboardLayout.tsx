@@ -23,30 +23,25 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
+import { Download, FolderOpen, Grid2x2, LogOut, PanelLeft, Search, Settings2, Upload } from "lucide-react";
 import {
-  BookOpen,
-  Download,
-  FolderOpen,
-  Grid2x2,
-  Library,
-  LogOut,
-  PanelLeft,
-  PenSquare,
-  Search,
-  Settings2,
-  Upload,
-} from "lucide-react";
+  CategoriesIcon,
+  EssaysIcon,
+  NotesIcon,
+  QuotationsIcon,
+  VocabularyIcon,
+} from "./DevanomyIcons";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import TaxonomySidebar from "./TaxonomySidebar";
 
 const menuItems = [
-  { icon: Grid2x2, label: "Dashboard", path: "/", accent: "#efb93a" },
-  { icon: FolderOpen, label: "Projects", path: "/documents", accent: "#e25b33" },
-  { icon: Library, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
-  { icon: BookOpen, label: "Notes", path: "/notebook", accent: "#efb93a" },
-  { icon: PenSquare, label: "Clavis Aurea", path: "/lexicon", accent: "#b55af3" },
+  { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
+  { icon: EssaysIcon, label: "Projects", path: "/documents", accent: "#e25b33" },
+  { icon: NotesIcon, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
+  { icon: QuotationsIcon, label: "Notes", path: "/notebook", accent: "#efb93a" },
+  { icon: VocabularyIcon, label: "Clavis Aurea", path: "/lexicon", accent: "#b55af3" },
   { icon: Upload, label: "Import", path: "/bulk-import", accent: "#bfd73d" },
   { icon: Download, label: "Export", path: "/export", accent: "#56c5ea" },
 ];
@@ -243,7 +238,7 @@ function DashboardLayoutContent({
                           className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-black/10 bg-white text-black"
                           style={{ backgroundColor: isActive ? item.accent : "rgba(255,255,255,0.96)" }}
                         >
-                          <item.icon className="h-4 w-4" />
+                          <item.icon className="h-5 w-5" />
                         </span>
                         <span className="font-medium">{item.label}</span>
                       </SidebarMenuButton>

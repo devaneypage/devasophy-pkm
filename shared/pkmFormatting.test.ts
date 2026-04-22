@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildLexiconReferenceInsert,
   buildNotebookReferenceInsert,
+  detectImportPayloadType,
   extractClavisAureaEntries,
   normalizeLexiconImportItem,
   normalizeNotebookImportItem,
@@ -50,6 +51,10 @@ describe("Clavis Aurea payload helpers", () => {
     expect(result.declaredTotal).toBe(354);
   });
 
+  it("detects the Clavis Aurea payload type for drag-and-drop mode switching", () => {
+    expect(detectImportPayloadType(clavisSample)).toBe("lexicon");
+  });
+
   it("normalizes the provided Clavis Aurea entry schema", () => {
     const normalized = normalizeLexiconImportItem(clavisSample.entries[0]);
     expect(normalized).toEqual({
@@ -93,6 +98,17 @@ describe("generic import normalization", () => {
   it("returns null for malformed import records", () => {
     expect(normalizeLexiconImportItem({ definition: "Missing term" })).toBeNull();
     expect(normalizeNotebookImportItem({ note: "Missing text" })).toBeNull();
+  });
+
+  it("detects quote payloads for drag-and-drop mode switching", () => {
+    expect(
+      detectImportPayloadType([
+        {
+          quote: "A commonplace note is a future paragraph.",
+          by: "Devaney",
+        },
+      ])
+    ).toBe("quotes");
   });
 });
 
