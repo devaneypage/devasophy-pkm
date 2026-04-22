@@ -31,14 +31,14 @@
 - [x] Create alphabetical index browser
 - [x] Build search and filter UI (by term, POS, source type, date)
 - [x] Create entry detail view with definition, etymology, origin, notes
-- [ ] Implement bulk import from Clavis_Aurea_Complete.json (ready in UI)
+- [x] Implement bulk import from Clavis_Aurea_Complete.json
 
 ## Phase 6: Module 3 — Research & Writing Studio
 - [x] Create database table for documents
 - [x] Build Markdown editor component
 - [x] Create document CRUD procedures
-- [ ] Build linked references panel (ready for implementation)
-- [ ] Implement inline reference pulling (lexicon terms, notebook entries)
+- [x] Build linked references panel
+- [x] Implement inline reference pulling (lexicon terms, notebook entries)
 - [x] Create document organization by project and folder
 
 ## Phase 7: Cross-Module Semantic Linking

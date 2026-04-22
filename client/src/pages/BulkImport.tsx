@@ -5,6 +5,12 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, CheckCircle, Upload } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import {
+  extractClavisAureaEntries,
+  normalizeLexiconImportItem,
+  normalizeNotebookImportItem,
+  validateClavisAureaPayload,
+} from "@shared/pkmFormatting";
 
 interface ImportResult {
   success: number;
@@ -49,46 +55,61 @@ export default function BulkImport() {
 
     try {
       const data = JSON.parse(jsonInput);
-      const items = Array.isArray(data) ? data : [data];
+      const items = importType === "lexicon" ? extractClavisAureaEntries(data) : Array.isArray(data) ? data : [data];
 
       if (importType === "quotes") {
         for (const item of items) {
           try {
+            const normalized = normalizeNotebookImportItem(item);
+            if (!normalized) {
+              throw new Error("Missing required quote text");
+            }
+
             await notebookCreateMutation.mutateAsync({
-              text: item.text || item.quote || "",
-              author: item.author || item.by || "",
-              work: item.work || item.source || "",
-              sourceType: item.sourceType || "quote",
-              location: item.location || item.page || "",
-              note: item.note || item.notes || "",
-              tags: Array.isArray(item.tags) ? item.tags.join(",") : item.tags || "",
-              collections: item.collection || item.collections || "",
-              favorite: item.favorite || false,
+              text: normalized.text,
+              author: normalized.author || "",
+              work: normalized.work || "",
+              sourceType: normalized.sourceType || "quote",
+              location: normalized.location || "",
+              note: normalized.note || "",
+              tags: normalized.tags || "",
+              collections: normalized.collections || "",
+              favorite: normalized.favorite || false,
               uuid: uuidv4(),
             });
             success++;
           } catch {
             failed++;
-            errors.push(`Failed to import quote: "${(item.text || item.quote || "").substring(0, 50)}..."`);
+            errors.push("Failed to import quote entry from the provided JSON payload.");
           }
         }
       } else {
+        const payloadCheck = validateClavisAureaPayload(data);
+        if (payloadCheck.declaredTotal && payloadCheck.declaredTotal !== payloadCheck.totalEntries) {
+          errors.push(`Warning: payload declares ${payloadCheck.declaredTotal} entries but contains ${payloadCheck.totalEntries}.`);
+        }
+
         for (const item of items) {
           try {
+            const normalized = normalizeLexiconImportItem(item);
+            if (!normalized) {
+              throw new Error("Missing required term field");
+            }
+
             await lexiconCreateMutation.mutateAsync({
-              term: item.term || item.word || "",
-              partOfSpeech: item.partOfSpeech || item.part_of_speech || "",
-              definition: item.definition || item.meaning || "",
-              etymology: item.etymology || "",
-              origin: item.origin || "",
-              sourceType: item.sourceType || item.source_type || "",
-              imageNum: item.imageNum || item.image_num || "",
-              notes: item.notes || "",
+              term: normalized.term,
+              partOfSpeech: normalized.partOfSpeech || "",
+              definition: normalized.definition || "",
+              etymology: normalized.etymology || "",
+              origin: normalized.origin || "",
+              sourceType: normalized.sourceType || "",
+              imageNum: normalized.imageNum || "",
+              notes: normalized.notes || "",
             });
             success++;
           } catch {
             failed++;
-            errors.push(`Failed to import term: "${item.term || item.word || ""}"`);
+            errors.push("Failed to import Clavis Aurea term from the provided JSON payload.");
           }
         }
       }
@@ -240,7 +261,7 @@ export default function BulkImport() {
             <div className="space-y-3 text-sm leading-6 text-muted-foreground">
               <p>Use an array of objects, even if you are importing a single record.</p>
               <p>Unknown fields are ignored, while failed rows do not interrupt the rest of the import job.</p>
-              <p>For Clavis Aurea, the interface is ready for the full 354-entry JSON payload you provided.</p>
+              <p>For Clavis Aurea, the importer explicitly supports the provided payload structure with meta and entries, including the 354-entry glossary dataset.</p>
             </div>
           </Card>
         </aside>

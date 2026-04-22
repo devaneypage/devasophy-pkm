@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronRight, FileText, Plus, Search, Trash2 } from "lucide-react";
+import { BookOpen, ChevronRight, FileText, Library, Link2, Plus, Search, Trash2 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import { buildLexiconReferenceInsert, buildNotebookReferenceInsert } from "@shared/pkmFormatting";
 
 const statusColors: Record<string, string> = {
   draft: "#efb93a",
@@ -14,10 +15,15 @@ const statusColors: Record<string, string> = {
   archived: "#b55af3",
 };
 
+type ReferenceMode = "notebook" | "lexicon";
+
 export default function Documents() {
+  const utils = trpc.useUtils();
   const [showForm, setShowForm] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [referenceMode, setReferenceMode] = useState<ReferenceMode>("notebook");
+  const [referenceSearch, setReferenceSearch] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     project: "",
@@ -32,6 +38,20 @@ export default function Documents() {
 
   const { data: selectedDoc } = trpc.documents.get.useQuery(
     { id: selectedDocId! },
+    { enabled: selectedDocId !== null }
+  );
+
+  const { data: notebookEntries } = trpc.notebook.list.useQuery({
+    search: referenceSearch || undefined,
+    sortBy: "recent",
+  });
+
+  const { data: lexiconEntries } = trpc.lexicon.list.useQuery({
+    search: referenceSearch || undefined,
+  });
+
+  const { data: documentLinks } = trpc.links.list.useQuery(
+    { sourceType: "document", sourceId: selectedDocId! },
     { enabled: selectedDocId !== null }
   );
 
@@ -66,6 +86,14 @@ export default function Documents() {
     },
   });
 
+  const createLinkMutation = trpc.links.create.useMutation({
+    onSuccess: async () => {
+      if (selectedDocId) {
+        await utils.links.list.invalidate({ sourceType: "document", sourceId: selectedDocId });
+      }
+    },
+  });
+
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
@@ -88,6 +116,62 @@ export default function Documents() {
   const filteredDocs = documents?.filter((doc) =>
     doc.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const notebookReferences = useMemo(
+    () =>
+      (notebookEntries || []).slice(0, 8).map((entry) => ({
+        id: entry.id,
+        title: entry.author ? `${entry.author}${entry.work ? ` — ${entry.work}` : ""}` : entry.work || "Notebook entry",
+        preview: entry.text,
+        type: "notebook" as const,
+        insertText: buildNotebookReferenceInsert({
+          text: entry.text,
+          author: entry.author,
+          work: entry.work,
+          note: entry.note,
+        }),
+      })),
+    [notebookEntries]
+  );
+
+  const lexiconReferences = useMemo(
+    () =>
+      (lexiconEntries || []).slice(0, 8).map((entry) => ({
+        id: entry.id,
+        title: entry.term,
+        preview: entry.definition || entry.notes || "No definition available.",
+        type: "lexicon" as const,
+        insertText: buildLexiconReferenceInsert({
+          term: entry.term,
+          partOfSpeech: entry.partOfSpeech,
+          definition: entry.definition,
+          notes: entry.notes,
+        }),
+      })),
+    [lexiconEntries]
+  );
+
+  const activeReferences = referenceMode === "notebook" ? notebookReferences : lexiconReferences;
+
+  const handleInsertReference = async (reference: {
+    id: number;
+    title: string;
+    preview: string;
+    type: "notebook" | "lexicon";
+    insertText: string;
+  }) => {
+    if (!selectedDocId) return;
+
+    setEditContent((current) => `${current.trim()}${current.trim() ? "\n\n" : ""}${reference.insertText}`);
+
+    await createLinkMutation.mutateAsync({
+      sourceType: "document",
+      sourceId: selectedDocId,
+      targetType: reference.type,
+      targetId: reference.id,
+      linkType: reference.type === "notebook" ? "supports" : "defines",
+    });
+  };
 
   return (
     <div className="grid min-h-[calc(100vh-9rem)] gap-6 xl:grid-cols-[20rem_minmax(0,1fr)]">
@@ -216,6 +300,7 @@ export default function Documents() {
                   {selectedDoc.project && <span className="dev-chip">{selectedDoc.project}</span>}
                   {selectedDoc.folder && <span className="dev-chip">{selectedDoc.folder}</span>}
                   <span className="dev-chip">{(selectedDoc.status || "draft").replace("_", " ")}</span>
+                  <span className="dev-chip">{documentLinks?.length || 0} links</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -237,7 +322,7 @@ export default function Documents() {
               </div>
             </div>
 
-            <div className="grid min-h-[32rem] gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="grid min-h-[32rem] gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
               <Card className="dev-card rounded-[1.6rem] p-0 shadow-none">
                 <div className="border-b-2 border-black px-5 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Markdown editor</p>
@@ -252,27 +337,106 @@ export default function Documents() {
                 </div>
               </Card>
 
-              <aside className="dev-card rounded-[1.6rem] p-5 shadow-none">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#56c5ea]">
-                    <FileText className="h-5 w-5 text-black" />
+              <aside className="space-y-6">
+                <Card className="dev-card rounded-[1.6rem] p-5 shadow-none">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#56c5ea]">
+                      <Link2 className="h-5 w-5 text-black" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Reference lane</p>
+                      <p className="text-lg font-semibold text-foreground">Inline source pulling</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Reference lane</p>
-                    <p className="text-lg font-semibold text-foreground">Linked writing context</p>
+
+                  <div className="mb-4 flex gap-2">
+                    <button
+                      onClick={() => setReferenceMode("notebook")}
+                      className={`flex-1 rounded-full border-2 border-black px-3 py-2 text-sm font-semibold transition ${referenceMode === "notebook" ? "bg-[#efb93a] text-black" : "bg-white text-black hover:bg-[#f6f3ec]"}`}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <BookOpen className="h-4 w-4" /> Notebook
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setReferenceMode("lexicon")}
+                      className={`flex-1 rounded-full border-2 border-black px-3 py-2 text-sm font-semibold transition ${referenceMode === "lexicon" ? "bg-[#56c5ea] text-black" : "bg-white text-black hover:bg-[#f6f3ec]"}`}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Library className="h-4 w-4" /> Lexicon
+                      </span>
+                    </button>
                   </div>
-                </div>
-                <div className="space-y-3 text-sm leading-6 text-muted-foreground">
-                  <div className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4">
-                    Pull notebook excerpts, Clavis Aurea terms, and project notes into the editor as you draft.
+
+                  <div className="relative mb-4">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder={`Search ${referenceMode === "notebook" ? "notebook" : "Clavis Aurea"} references`}
+                      value={referenceSearch}
+                      onChange={(e) => setReferenceSearch(e.target.value)}
+                      className="h-11 rounded-full border-2 border-black/85 bg-white pl-10 shadow-none"
+                    />
                   </div>
-                  <div className="rounded-[1.1rem] border border-black/10 bg-white p-4">
-                    Project: <span className="font-semibold text-foreground">{selectedDoc.project || "General research"}</span>
+
+                  <div className="space-y-3">
+                    {activeReferences.length > 0 ? (
+                      activeReferences.map((reference, index) => (
+                        <div key={`${reference.type}-${reference.id}`} className="overflow-hidden rounded-[1.2rem] border-2 border-black bg-white">
+                          <div
+                            className={`${index % 2 === 0 ? "dev-pattern-dots" : "dev-pattern-waves"} h-4 w-full`}
+                            style={{ backgroundColor: reference.type === "notebook" ? "#efb93a" : "#56c5ea" }}
+                          />
+                          <div className="space-y-3 p-4">
+                            <div>
+                              <p className="text-base font-bold leading-tight text-foreground">{reference.title}</p>
+                              <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">{reference.preview}</p>
+                            </div>
+                            <Button
+                              type="button"
+                              onClick={() => void handleInsertReference(reference)}
+                              className="h-10 w-full rounded-full border-2 border-black bg-white text-black shadow-none hover:bg-[#f6f3ec]"
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Insert and link
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4 text-sm leading-6 text-muted-foreground">
+                        No references match the current search. Try another keyword or switch source panels.
+                      </div>
+                    )}
                   </div>
-                  <div className="rounded-[1.1rem] border border-black/10 bg-white p-4">
-                    Folder: <span className="font-semibold text-foreground">{selectedDoc.folder || "Working drafts"}</span>
+                </Card>
+
+                <Card className="dev-card rounded-[1.6rem] p-5 shadow-none">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Bi-directional links</p>
+                  <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+                    {documentLinks && documentLinks.length > 0 ? (
+                      documentLinks.slice(0, 8).map((link, index) => (
+                        <div key={link.id ?? index} className="rounded-[1.1rem] border border-black/10 bg-white p-4">
+                          <p className="font-semibold capitalize text-foreground">
+                            {link.linkType || "related"} → {link.targetType}
+                          </p>
+                          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                            Linked record #{link.targetId}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4">
+                        Insert a notebook excerpt or Clavis Aurea term to create a semantic backlink from this document.
+                      </div>
+                    )}
+                    <div className="rounded-[1.1rem] border border-black/10 bg-white p-4">
+                      Project: <span className="font-semibold text-foreground">{selectedDoc.project || "General research"}</span>
+                    </div>
+                    <div className="rounded-[1.1rem] border border-black/10 bg-white p-4">
+                      Folder: <span className="font-semibold text-foreground">{selectedDoc.folder || "Working drafts"}</span>
+                    </div>
                   </div>
-                </div>
+                </Card>
               </aside>
             </div>
           </>
