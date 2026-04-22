@@ -59,6 +59,7 @@ const mockState = vi.hoisted(() => ({
       updatedAt: new Date(),
     },
   ],
+  notebookCreateSpy: vi.fn(),
   notebookUpdateSpy: vi.fn(),
   lexiconUpdateSpy: vi.fn(),
   notebookRefetchSpy: vi.fn(),
@@ -80,8 +81,11 @@ vi.mock("@/lib/trpc", () => ({
         }),
       },
       create: {
-        useMutation: () => ({
-          mutate: vi.fn(),
+        useMutation: (options?: { onSuccess?: () => void }) => ({
+          mutate: (payload: unknown) => {
+            mockState.notebookCreateSpy(payload);
+            options?.onSuccess?.();
+          },
           isPending: false,
         }),
       },
@@ -147,6 +151,7 @@ describe("PKM inline editing UI", () => {
   });
 
   beforeEach(() => {
+    mockState.notebookCreateSpy.mockReset();
     mockState.notebookUpdateSpy.mockReset();
     mockState.lexiconUpdateSpy.mockReset();
     mockState.notebookRefetchSpy.mockReset();
@@ -171,6 +176,50 @@ describe("PKM inline editing UI", () => {
 
     fireEvent.change(select, { target: { value: "" } });
     expect(onChange).toHaveBeenCalledWith(undefined);
+  });
+
+  it("switches the notebook creator into general-note mode and submits note-oriented defaults", () => {
+    render(<Notebook />);
+
+    fireEvent.click(screen.getByText("New entry"));
+    fireEvent.click(screen.getByText("General note"));
+
+    expect(screen.getByText("Create general note")).toBeTruthy();
+    expect(screen.getByText(/without forcing it into quotation-style metadata/i)).toBeTruthy();
+    expect(screen.getByText("General note *")).toBeTruthy();
+    expect(screen.getByDisplayValue("General note")).toBeTruthy();
+
+    fireEvent.change(screen.getByPlaceholderText("Capture the original note, synthesis, observation, or research fragment you want to keep"), {
+      target: { value: "Working synthesis about rhetoric and memory." },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Project, reading session, lecture, client matter"), {
+      target: { value: "Rhetoric chapter notes" },
+    });
+    fireEvent.click(screen.getByText("Create note"));
+
+    expect(mockState.notebookCreateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "Working synthesis about rhetoric and memory.",
+        work: "Rhetoric chapter notes",
+        sourceType: "General note",
+        categoryId: 102,
+        uuid: "fixed-uuid",
+      }),
+    );
+    expect(mockState.notebookRefetchSpy).toHaveBeenCalled();
+  });
+
+  it("returns the notebook creator to quote mode with quote-specific copy after toggling back", () => {
+    render(<Notebook />);
+
+    fireEvent.click(screen.getByText("New entry"));
+    fireEvent.click(screen.getByText("General note"));
+    fireEvent.click(screen.getByText("Quote"));
+
+    expect(screen.getByText("Create quotation entry")).toBeTruthy();
+    expect(screen.getByText(/preserving a sourced passage/i)).toBeTruthy();
+    expect(screen.getByText("Quote or passage *")).toBeTruthy();
+    expect(screen.queryByDisplayValue("General note")).toBeNull();
   });
 
   it("saves notebook inline edits with the selected Johnny Decimal category", () => {

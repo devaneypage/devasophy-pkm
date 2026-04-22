@@ -121,3 +121,9 @@
 - [x] Verify quotation editing workflows in the current quote browser UI
 - [x] Add tests for category seeding, category selection, and inline editing flows
 - [x] Save a checkpoint for the Johnny Decimal and inline editing feature set
+
+## Follow-up Enhancement — Clearer General Note Creation Mode
+- [x] Add a clearer general-note creation mode in the notebook
+- [x] Update notebook UI copy and form behavior to distinguish general notes from quotations
+- [x] Add tests covering the general-note creation workflow
+- [x] Save a checkpoint for the general-note creation enhancement

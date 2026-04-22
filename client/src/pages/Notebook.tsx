@@ -11,6 +11,7 @@ import CategorySelect from "@/components/CategorySelect";
 export default function Notebook() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [entryMode, setEntryMode] = useState<"quote" | "note">("quote");
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     text: "",
@@ -42,6 +43,8 @@ export default function Notebook() {
   });
 
   const { data: taxonomyTree } = trpc.taxonomy.getTree.useQuery();
+  const quoteCategory = taxonomyTree?.find((area) => area.areaNumber === 10)?.categories.find((category) => category.categoryNumber === "11");
+  const noteCategory = taxonomyTree?.find((area) => area.areaNumber === 10)?.categories.find((category) => category.categoryNumber === "12");
 
   const createMutation = trpc.notebook.create.useMutation({
     onSuccess: () => {
@@ -73,12 +76,46 @@ export default function Notebook() {
     onSuccess: () => refetch(),
   });
 
+  const handleModeChange = (mode: "quote" | "note") => {
+    setEntryMode(mode);
+    setFormData((current) => ({
+      ...current,
+      categoryId:
+        mode === "note"
+          ? current.categoryId === undefined || current.categoryId === quoteCategory?.id
+            ? noteCategory?.id
+            : current.categoryId
+          : current.categoryId === undefined || current.categoryId === noteCategory?.id
+            ? quoteCategory?.id
+            : current.categoryId,
+      sourceType:
+        mode === "note"
+          ? current.sourceType || "General note"
+          : current.sourceType === "General note"
+            ? ""
+            : current.sourceType,
+      author: mode === "note" ? "" : current.author,
+      location: mode === "note" ? "" : current.location,
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.text.trim()) return;
 
     createMutation.mutate({
       ...formData,
+      sourceType:
+        entryMode === "note"
+          ? formData.sourceType?.trim() || "General note"
+          : formData.sourceType || undefined,
+      author: formData.author || undefined,
+      work: formData.work || undefined,
+      location: formData.location || undefined,
+      note: formData.note || undefined,
+      tags: formData.tags || undefined,
+      collections: formData.collections || undefined,
+      categoryId: formData.categoryId ?? (entryMode === "note" ? noteCategory?.id : quoteCategory?.id),
       uuid: uuidv4(),
     });
   };
@@ -133,7 +170,16 @@ export default function Notebook() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Button
-              onClick={() => setShowForm((current) => !current)}
+              onClick={() => {
+                if (!showForm) {
+                  setEntryMode("quote");
+                  setFormData((current) => ({
+                    ...current,
+                    categoryId: current.categoryId ?? quoteCategory?.id,
+                  }));
+                }
+                setShowForm((current) => !current);
+              }}
               className="h-11 rounded-full border-2 border-black bg-[#e25b33] px-5 text-white shadow-none hover:bg-[#d6522d]"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -166,77 +212,125 @@ export default function Notebook() {
 
       {showForm && (
         <Card className="dev-card rounded-[1.5rem] p-6 shadow-none sm:p-7">
-          <div className="mb-6 flex items-center justify-between gap-3 border-b border-black/10 pb-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Quick capture</p>
-              <h2 className="mt-1 text-[2rem] leading-none">Create notebook entry</h2>
+          <div className="mb-6 border-b border-black/10 pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Quick capture</p>
+                <h2 className="mt-1 text-[2rem] leading-none">{entryMode === "quote" ? "Create quotation entry" : "Create general note"}</h2>
+              </div>
+              <div className={`rounded-full border-2 border-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black ${entryMode === "quote" ? "bg-[#efb93a]" : "bg-[#56c5ea]"}`}>
+                {entryMode === "quote" ? "11 / Quotes" : "12 / Observations"}
+              </div>
             </div>
-            <div className="rounded-full border-2 border-black bg-[#efb93a] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black">
-              11 / Quotes
+            <div className="mt-5 inline-flex rounded-full border-2 border-black bg-white p-1">
+              <button
+                type="button"
+                onClick={() => handleModeChange("quote")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${entryMode === "quote" ? "bg-[#e25b33] text-white" : "text-black hover:bg-[#f6f3ec]"}`}
+              >
+                Quote
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange("note")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${entryMode === "note" ? "bg-[#116d6d] text-white" : "text-black hover:bg-[#f6f3ec]"}`}
+              >
+                General note
+              </button>
             </div>
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
+              {entryMode === "quote"
+                ? "Use quote mode when you are preserving a sourced passage and want to retain author, work, and location metadata."
+                : "Use general note mode when you want to capture an original observation, synthesis, or research note without forcing it into quotation-style metadata."}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-foreground">Quote or passage *</label>
+              <label className="mb-2 block text-sm font-semibold text-foreground">{entryMode === "quote" ? "Quote or passage *" : "General note *"}</label>
               <Textarea
                 value={formData.text}
                 onChange={(e) => setFormData({ ...formData, text: e.target.value })}
-                placeholder="Enter the quotation, passage, or observation you want to preserve"
+                placeholder={entryMode === "quote" ? "Enter the quotation, passage, or observation you want to preserve" : "Capture the original note, synthesis, observation, or research fragment you want to keep"}
                 rows={5}
                 className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
                 required
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">Author</label>
-                <Input
-                  value={formData.author}
-                  onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                  placeholder="Author name"
-                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">Work or source</label>
-                <Input
-                  value={formData.work}
-                  onChange={(e) => setFormData({ ...formData, work: e.target.value })}
-                  placeholder="Book, article, lecture, archive"
-                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
-                />
-              </div>
-            </div>
+            {entryMode === "quote" ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-foreground">Author</label>
+                    <Input
+                      value={formData.author}
+                      onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                      placeholder="Author name"
+                      className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-foreground">Work or source</label>
+                    <Input
+                      value={formData.work}
+                      onChange={(e) => setFormData({ ...formData, work: e.target.value })}
+                      placeholder="Book, article, lecture, archive"
+                      className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                    />
+                  </div>
+                </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">Source type</label>
-                <Input
-                  value={formData.sourceType}
-                  onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
-                  placeholder="Book, article, web, video"
-                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
-                />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-foreground">Source type</label>
+                    <Input
+                      value={formData.sourceType}
+                      onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
+                      placeholder="Book, article, web, video"
+                      className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-foreground">Location</label>
+                    <Input
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="Page, chapter, timestamp, URL"
+                      className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">Context or source</label>
+                  <Input
+                    value={formData.work}
+                    onChange={(e) => setFormData({ ...formData, work: e.target.value })}
+                    placeholder="Project, reading session, lecture, client matter"
+                    className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">Note type</label>
+                  <Input
+                    value={formData.sourceType}
+                    onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
+                    placeholder="General note, synthesis, reflection, research note"
+                    className="rounded-full border-2 border-black/85 bg-white shadow-none"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">Location</label>
-                <Input
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="Page, chapter, timestamp, URL"
-                  className="rounded-full border-2 border-black/85 bg-white shadow-none"
-                />
-              </div>
-            </div>
+            )}
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-foreground">Personal note</label>
+              <label className="mb-2 block text-sm font-semibold text-foreground">{entryMode === "quote" ? "Personal note" : "Analytic follow-up"}</label>
               <Textarea
                 value={formData.note}
                 onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                placeholder="Add a reflection, interpretation, or semantic link prompt"
+                placeholder={entryMode === "quote" ? "Add a reflection, interpretation, or semantic link prompt" : "Add commentary, implications, next questions, or link prompts"}
                 rows={4}
                 className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
               />
@@ -246,7 +340,7 @@ export default function Notebook() {
               label="Johnny Decimal category"
               value={formData.categoryId}
               tree={taxonomyTree}
-              placeholder="Assign this entry to a seeded notebook category"
+              placeholder={entryMode === "quote" ? "Assign this entry to a seeded notebook category" : "Assign this note to a seeded notebook category"}
               onChange={(categoryId) => setFormData({ ...formData, categoryId })}
             />
 
@@ -256,7 +350,7 @@ export default function Notebook() {
                 <Input
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="epistemology, rhetoric, commonplace"
+                  placeholder={entryMode === "quote" ? "epistemology, rhetoric, commonplace" : "concepts, themes, open questions"}
                   className="rounded-full border-2 border-black/85 bg-white shadow-none"
                 />
               </div>
@@ -265,7 +359,7 @@ export default function Notebook() {
                 <Input
                   value={formData.collections}
                   onChange={(e) => setFormData({ ...formData, collections: e.target.value })}
-                  placeholder="Reading log, research file, lecture notes"
+                  placeholder={entryMode === "quote" ? "Reading log, research file, lecture notes" : "Thinking log, project notes, synthesis file"}
                   className="rounded-full border-2 border-black/85 bg-white shadow-none"
                 />
               </div>
@@ -277,7 +371,7 @@ export default function Notebook() {
                 disabled={createMutation.isPending}
                 className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
               >
-                {createMutation.isPending ? "Creating..." : "Create entry"}
+                {createMutation.isPending ? "Creating..." : entryMode === "quote" ? "Create quotation" : "Create note"}
               </Button>
               <Button
                 type="button"
