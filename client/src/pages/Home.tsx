@@ -68,6 +68,16 @@ const modules = [
     pattern: "dev-pattern-diamonds",
     chips: ["Projects", "Drafts", "Essays"],
   },
+  {
+    id: "glossary",
+    title: "Clavis Aurea Glossary",
+    description: "Explore philosophical and literary vocabulary with AI-powered composition and thematic organization.",
+    icon: VocabularyIcon,
+    route: "/glossary",
+    accent: "#b55af3",
+    pattern: "dev-pattern-stripes",
+    chips: ["Lexicon", "Scribe", "Themes"],
+  },
 ];
 
 const knowledgeHighlights = [

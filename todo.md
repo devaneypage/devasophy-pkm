@@ -182,10 +182,10 @@
 - [ ] Save checkpoint for Phase 1 completion
 
 ## Clavis Aurea Glossary Integration — Featured Component
-- [ ] Adapt the Clavis Aurea glossary component for the PKM application
-- [ ] Create a new Glossary.tsx page component
-- [ ] Integrate glossary navigation into the DashboardLayout sidebar
-- [ ] Connect glossary to the lexicon module for data synchronization
-- [ ] Add glossary as a featured module on the home page
-- [ ] Test glossary functionality and search
-- [ ] Save checkpoint for glossary integration
+- [x] Adapt the Clavis Aurea glossary component for the PKM application
+- [x] Create a new Glossary.tsx page component
+- [x] Integrate glossary navigation into the DashboardLayout sidebar
+- [x] Connect glossary to the lexicon module for data synchronization
+- [x] Add glossary as a featured module on the home page
+- [x] Test glossary functionality and search
+- [x] Save checkpoint for glossary integration
