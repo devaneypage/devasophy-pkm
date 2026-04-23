@@ -112,9 +112,12 @@ export default function Home() {
   return (
     <div className="space-y-8">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="dev-soft-card p-6 sm:p-8">
+        <div className="dev-soft-card p-6 sm:p-8" style={{ backgroundColor: '#F5F3F0' }}>
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
+              <div className="mb-5 flex items-center gap-4">
+                <img src="/manus-storage/primary-logo-full_013d703c.png" alt="Devanomy" className="h-16 w-auto" />
+              </div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.26em] text-muted-foreground">
                 Devanomy workspace
               </p>
@@ -146,7 +149,7 @@ export default function Home() {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => (
-              <div key={stat.label} className="dev-stat-card">
+              <div key={stat.label} className="dev-stat-card" style={{ backgroundColor: '#F5F3F0' }}>
                 <div className={`${stat.pattern} h-3 w-full`} style={{ backgroundColor: stat.tone }} />
                 <div className="space-y-2 px-5 py-4">
                   <div className="text-5xl font-black tracking-tight text-foreground">{stat.value}</div>
@@ -157,13 +160,13 @@ export default function Home() {
           </div>
         </div>
 
-        <aside className="dev-card overflow-hidden">
+        <aside className="dev-card overflow-hidden" style={{ backgroundColor: '#F5F3F0' }}>
           <div className="border-b-2 border-black px-5 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Upcoming tasks</p>
           </div>
           <div className="space-y-4 p-5">
             {tasks.map((task) => (
-              <div key={task.label} className="rounded-2xl border border-black/10 bg-white p-4">
+              <div key={task.label} className="rounded-2xl border border-black/10 p-4" style={{ backgroundColor: '#F5F3F0' }}>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <span className="text-sm font-semibold text-foreground">{task.date}</span>
                   <StatusShape shape={task.shape as "circle" | "square" | "diamond"} color={task.color} />
@@ -233,7 +236,7 @@ export default function Home() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid gap-6 lg:grid-cols-2">
           {knowledgeHighlights.map((item) => (
-            <div key={item.title} className="dev-card overflow-hidden">
+            <div key={item.title} className="dev-card overflow-hidden" style={{ backgroundColor: '#F5F3F0' }}>
               <div className={`${item.pattern} h-5 w-full`} style={{ backgroundColor: item.accent }} />
               <div className="space-y-3 p-5">
                 <h3 className="text-[2rem] leading-none">{item.title}</h3>
@@ -243,7 +246,7 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="dev-soft-card p-5">
+        <div className="dev-soft-card p-5" style={{ backgroundColor: '#F5F3F0' }}>
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#56c5ea]">
               <NotesIcon className="h-8 w-8" />

@@ -129,8 +129,8 @@
 - [x] Save a checkpoint for the general-note creation enhancement
 
 ## Follow-up Feedback — Attached Priority UI/UX Changes
-- [ ] Review attached branding and homepage UI feedback
-- [ ] Decide whether to prioritize naming consistency, logo treatment, background warmth, ambient background texture, or OAuth button loading state next
+- [x] Review attached branding and homepage UI feedback
+- [x] Decide whether to prioritize naming consistency, logo treatment, background warmth, ambient background texture, or OAuth button loading state next (naming consistency completed first)
 
 ## Naming Consistency — Standardize to Devanomy
 - [x] Update browser tab title to "Devanomy" in index.html
@@ -138,3 +138,10 @@
 - [x] Update all button labels and visible branding text to use Devanomy (verified in Home.tsx and Search.tsx)
 - [x] Verify naming consistency across all pages and components
 - [x] Save a checkpoint for the naming-consistency update
+
+## Logo & Card Warmth — Visual Branding Enhancement
+- [x] Upload the primary Devanomy logo (primary-logo-full.png) to S3
+- [x] Add the logo to the home card above the greeting
+- [x] Update the card background color to an off-white (#F5F3F0 or similar warm tone)
+- [x] Verify the logo displays correctly and the card warmth complements the dark sidebar
+- [x] Save a checkpoint for the logo and card-warmth enhancement

@@ -22,5 +22,12 @@ export default defineConfig({
       "shared/**/*.test.ts",
       "shared/**/*.test.tsx",
     ],
+    setupFiles: [],
+    globals: true,
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
 });
