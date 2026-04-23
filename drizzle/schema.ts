@@ -62,6 +62,7 @@ export const notebookEntries = mysqlTable("notebook_entries", {
   userId: int("userId").notNull(),
   categoryId: int("categoryId"), // Johnny Decimal category
   uuid: varchar("uuid", { length: 64 }).notNull().unique(),
+  zettelkastenId: varchar("zettelkasten_id", { length: 50 }).unique(), // Format: AC.ID-YYYYMMDD-Seq
   text: text("text").notNull(), // The quote or passage
   author: varchar("author", { length: 255 }),
   work: varchar("work", { length: 255 }), // Book, article, source title
@@ -86,6 +87,7 @@ export const lexiconEntries = mysqlTable("lexicon_entries", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   categoryId: int("categoryId"), // Johnny Decimal category
+  zettelkastenId: varchar("zettelkasten_id", { length: 50 }).unique(), // Format: AC.ID-YYYYMMDD-Seq
   term: varchar("term", { length: 255 }).notNull(),
   partOfSpeech: varchar("partOfSpeech", { length: 100 }), // noun, verb, adjective, phrase, etc.
   definition: text("definition"),

@@ -29,6 +29,10 @@ import {
   seedJohnnyDecimalTaxonomy,
   searchAllModules,
 } from "./db";
+import {
+  generateNotebookZettelkastenId,
+  generateLexiconZettelkastenId,
+} from "./zettelkasten";
 
 export const appRouter = router({
   system: systemRouter,
@@ -329,6 +333,67 @@ export const appRouter = router({
       }),
   }),
 
+  // ============================================================================
+  // ZETTELKASTEN ID GENERATION
+  // ============================================================================
+  zettelkasten: router({
+    generateNotebookId: protectedProcedure
+      .input(
+        z.object({
+          categoryNumber: z.string(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const id = await generateNotebookZettelkastenId(ctx.user.id, input.categoryNumber);
+        return { zettelkastenId: id };
+      }),
+
+    generateLexiconId: protectedProcedure
+      .input(
+        z.object({
+          categoryNumber: z.string(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const id = await generateLexiconZettelkastenId(ctx.user.id, input.categoryNumber);
+        return { zettelkastenId: id };
+      }),
+  }),
+
+  // ============================================================================
+  // GLOSSARY
+  // ============================================================================
+  glossary: router({
+    composeWithScribe: protectedProcedure
+      .input(
+        z.object({
+          prompt: z.string(),
+          glossaryContext: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { invokeLLM } = await import("./_core/llm");
+        const systemPrompt = `You are a sophisticated writing assistant inspired by the Clavis Aurea lexicon. Your task is to compose elegant, philosophical prose that naturally weaves in vocabulary from the provided lexicon. The composition should be polished, evocative, and intellectually rigorous. Respond with only the composition itself, no preamble.`;
+        
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt,
+            },
+            {
+              role: "user",
+              content: `Lexicon context: ${input.glossaryContext}
+
+Composition request: ${input.prompt}`,
+            },
+          ],
+        });
+        
+        const composition = response.choices[0]?.message?.content || "";
+        return { composition };
+      }),
+  }),
   // ============================================================================
   // SEARCH
   // ============================================================================

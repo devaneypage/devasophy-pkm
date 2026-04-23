@@ -1,0 +1,27 @@
+
+  // ============================================================================
+  // ZETTELKASTEN ID GENERATION
+  // ============================================================================
+  zettelkasten: router({
+    generateNotebookId: protectedProcedure
+      .input(
+        z.object({
+          categoryNumber: z.string(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const id = await generateNotebookZettelkastenId(ctx.user.id, input.categoryNumber);
+        return { zettelkastenId: id };
+      }),
+
+    generateLexiconId: protectedProcedure
+      .input(
+        z.object({
+          categoryNumber: z.string(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const id = await generateLexiconZettelkastenId(ctx.user.id, input.categoryNumber);
+        return { zettelkastenId: id };
+      }),
+  }),

@@ -14,6 +14,7 @@ import Search from "./pages/Search";
 import NotebookDetail from "./pages/NotebookDetail";
 import LexiconDetail from "./pages/LexiconDetail";
 import Export from "./pages/Export";
+import Glossary from "./pages/Glossary";
 
 function Router() {
   return (
@@ -71,6 +72,13 @@ function Router() {
         {() => (
           <DashboardLayout currentModule="lexicon">
             <LexiconDetail />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/glossary"}>
+        {() => (
+          <DashboardLayout currentModule="glossary">
+            <Glossary />
           </DashboardLayout>
         )}
       </Route>

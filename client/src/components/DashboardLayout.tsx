@@ -41,7 +41,8 @@ const menuItems = [
   { icon: EssaysIcon, label: "Projects", path: "/documents", accent: "#e25b33" },
   { icon: NotesIcon, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
   { icon: QuotationsIcon, label: "Notes", path: "/notebook", accent: "#efb93a" },
-  { icon: VocabularyIcon, label: "Clavis Aurea", path: "/lexicon", accent: "#b55af3" },
+  { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#b55af3" },
+  { icon: VocabularyIcon, label: "Lexicon", path: "/lexicon", accent: "#9b7e8f" },
   { icon: Upload, label: "Import", path: "/bulk-import", accent: "#bfd73d" },
   { icon: Download, label: "Export", path: "/export", accent: "#56c5ea" },
 ];
@@ -53,7 +54,7 @@ const DEFAULT_WIDTH = 292;
 const MIN_WIDTH = 240;
 const MAX_WIDTH = 420;
 
-type ModuleKey = "home" | "notebook" | "lexicon" | "documents";
+type ModuleKey = "home" | "notebook" | "lexicon" | "documents" | "glossary";
 
 export default function DashboardLayout({
   children,

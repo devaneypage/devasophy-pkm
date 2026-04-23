@@ -145,3 +145,47 @@
 - [x] Update the card background color to an off-white (#F5F3F0 or similar warm tone)
 - [x] Verify the logo displays correctly and the card warmth complements the dark sidebar
 - [x] Save a checkpoint for the logo and card-warmth enhancement
+
+
+## Integration Analysis — Devanomy PKM Reference Site
+- [x] Analyze the other Devanomy PKM website (https://devanomy.manus.space)
+- [x] Document the Four-Layer PKM Framework
+- [x] Document the Zettelkasten ID system specification
+- [x] Document enhanced linking semantics with directional symbols
+- [x] Create comprehensive integration roadmap with prioritized features
+- [x] Save analysis to docs/analysis/devanomy-pkm-integration-analysis.md
+
+## Recommended Features for Future Implementation
+- [ ] Phase 1: Implement Zettelkasten ID system (AC.ID-YYYYMMDD-Seq format)
+- [ ] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
+- [ ] Phase 3: Implement Goals module (Action Layer)
+- [ ] Phase 4: Implement Projects module (Action Layer)
+- [ ] Phase 5: Implement Tasks module (Action Layer)
+- [ ] Phase 6: Implement Ideas module (Synthesis Layer)
+
+
+## Phase 1: Zettelkasten ID System Implementation
+- [ ] Add zettelkastenId field to notebookEntries table schema
+- [ ] Add zettelkastenId field to lexiconEntries table schema
+- [ ] Generate and apply database migration SQL
+- [ ] Implement ID generation procedure (AC.ID-YYYYMMDD-Seq format)
+- [ ] Create tRPC procedure to generate Zettelkasten ID for new entries
+- [ ] Update notebook create form to display generated ID
+- [ ] Update lexicon create form to display generated ID
+- [ ] Update notebook detail view to show Zettelkasten ID
+- [ ] Update lexicon detail view to show Zettelkasten ID
+- [ ] Add copy-to-clipboard functionality for IDs
+- [ ] Update export functionality to include Zettelkasten IDs
+- [ ] Add tests for ID generation logic
+- [ ] Add tests for ID uniqueness constraints
+- [ ] Verify UI displays IDs correctly
+- [ ] Save checkpoint for Phase 1 completion
+
+## Clavis Aurea Glossary Integration — Featured Component
+- [ ] Adapt the Clavis Aurea glossary component for the PKM application
+- [ ] Create a new Glossary.tsx page component
+- [ ] Integrate glossary navigation into the DashboardLayout sidebar
+- [ ] Connect glossary to the lexicon module for data synchronization
+- [ ] Add glossary as a featured module on the home page
+- [ ] Test glossary functionality and search
+- [ ] Save checkpoint for glossary integration
