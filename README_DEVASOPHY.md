@@ -1,10 +1,10 @@
-# Devasophy PKM — Scholarly Personal Knowledge Management System
+# Devanomy PKM — Scholarly Personal Knowledge Management System
 
 A sophisticated, dark-themed personal knowledge management application designed for capturing, organizing, and connecting intellectual work across three integrated modules.
 
 ## Overview
 
-Devasophy is a comprehensive knowledge management system built for scholars, researchers, and intellectuals who need to organize quotes, vocabulary, and writing in a unified, interconnected workspace. The application features a dark scholarly aesthetic inspired by antiquarian design, with deep navy and charcoal backgrounds, warm gold accents, and serif typography.
+Devanomy is a comprehensive knowledge management system built for scholars, researchers, and intellectuals who need to organize quotes, vocabulary, and writing in a unified, interconnected workspace. The application features a dark scholarly aesthetic inspired by antiquarian design, with deep navy and charcoal backgrounds, warm gold accents, and serif typography.
 
 ## Core Modules
 

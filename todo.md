@@ -127,3 +127,14 @@
 - [x] Update notebook UI copy and form behavior to distinguish general notes from quotations
 - [x] Add tests covering the general-note creation workflow
 - [x] Save a checkpoint for the general-note creation enhancement
+
+## Follow-up Feedback — Attached Priority UI/UX Changes
+- [ ] Review attached branding and homepage UI feedback
+- [ ] Decide whether to prioritize naming consistency, logo treatment, background warmth, ambient background texture, or OAuth button loading state next
+
+## Naming Consistency — Standardize to Devanomy
+- [x] Update browser tab title to "Devanomy" in index.html
+- [x] Update workspace heading from "DEVASOPHY WORKSPACE" to "DEVANOMY WORKSPACE" (already present in Home.tsx)
+- [x] Update all button labels and visible branding text to use Devanomy (verified in Home.tsx and Search.tsx)
+- [x] Verify naming consistency across all pages and components
+- [x] Save a checkpoint for the naming-consistency update
