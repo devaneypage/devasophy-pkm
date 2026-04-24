@@ -227,3 +227,57 @@ export const searchIndex = mysqlTable("search_index", {
 
 export type SearchIndex = typeof searchIndex.$inferSelect;
 export type InsertSearchIndex = typeof searchIndex.$inferInsert;
+
+
+/**
+ * Phase 4: Projects Module (Action Layer)
+ * Tracks long-term projects and initiatives
+ */
+export const projects = mysqlTable("projects", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  categoryId: int("categoryId"), // Johnny Decimal category
+  uuid: varchar("uuid", { length: 64 }).notNull().unique(),
+  zettelkastenId: varchar("zettelkasten_id", { length: 50 }).unique(), // Format: AC.ID-YYYYMMDD-Seq
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  status: mysqlEnum("status", ["active", "completed", "archived", "on-hold"]).default("active"),
+  startDate: timestamp("startDate"),
+  endDate: timestamp("endDate"),
+  tags: text("tags"), // Comma-separated or JSON array
+  linkedEntries: text("linkedEntries"), // JSON array of {type, id} for notebook/lexicon links
+  favorite: boolean("favorite").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = typeof projects.$inferInsert;
+
+/**
+ * Phase 5: Tasks Module (Action Layer)
+ * Tracks actionable items and todos
+ */
+export const tasks = mysqlTable("tasks", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  categoryId: int("categoryId"), // Johnny Decimal category
+  projectId: int("projectId"), // Optional: link to a project
+  uuid: varchar("uuid", { length: 64 }).notNull().unique(),
+  zettelkastenId: varchar("zettelkasten_id", { length: 50 }).unique(), // Format: AC.ID-YYYYMMDD-Seq
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  status: mysqlEnum("status", ["todo", "in-progress", "completed", "blocked"]).default("todo"),
+  priority: mysqlEnum("priority", ["low", "medium", "high", "urgent"]).default("medium"),
+  dueDate: timestamp("dueDate"),
+  completedDate: timestamp("completedDate"),
+  tags: text("tags"), // Comma-separated or JSON array
+  linkedEntries: text("linkedEntries"), // JSON array of {type, id} for notebook/lexicon links
+  linkedProjectId: int("linkedProjectId"), // Reference to project
+  favorite: boolean("favorite").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = typeof tasks.$inferInsert;

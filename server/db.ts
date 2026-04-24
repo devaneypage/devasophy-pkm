@@ -14,6 +14,8 @@ import {
   importHistory,
   exportHistory,
   searchIndex,
+  projects,
+  tasks,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { johnnyDecimalSeeds } from "../shared/johnnyDecimal";
@@ -532,4 +534,223 @@ export async function searchAllModules(userId: number, query: string, filters?: 
     lexicon: lexiconResults,
     documents: documentResults,
   };
+}
+
+
+// ============================================================================
+// Projects Module (Action Layer)
+// ============================================================================
+
+export async function createProject(
+  userId: number,
+  data: {
+    title: string;
+    description?: string;
+    categoryId?: number;
+    startDate?: Date;
+    endDate?: Date;
+    tags?: string;
+    zettelkastenId?: string;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { v4: uuidv4 } = await import("uuid");
+  const result = await db.insert(projects).values({
+    userId,
+    uuid: uuidv4(),
+    title: data.title,
+    description: data.description,
+    categoryId: data.categoryId,
+    startDate: data.startDate,
+    endDate: data.endDate,
+    tags: data.tags,
+    zettelkastenId: data.zettelkastenId,
+  });
+
+  return result;
+}
+
+export async function getProject(userId: number, projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.userId, userId), eq(projects.id, projectId)))
+    .limit(1)
+    .then((rows) => rows[0]);
+}
+
+export async function listProjects(userId: number, filters?: { status?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  let query = db
+    .select()
+    .from(projects)
+    .where(eq(projects.userId, userId));
+
+  if (filters?.status) {
+    query = query.where(eq(projects.status, filters.status as any));
+  }
+
+  return query.orderBy(desc(projects.createdAt));
+}
+
+export async function updateProject(
+  userId: number,
+  projectId: number,
+  data: Partial<{
+    title: string;
+    description: string;
+    status: "active" | "completed" | "archived" | "on-hold";
+    startDate: Date;
+    endDate: Date;
+    tags: string;
+  }>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const updateData: Record<string, any> = { updatedAt: new Date() };
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.startDate !== undefined) updateData.startDate = data.startDate;
+  if (data.endDate !== undefined) updateData.endDate = data.endDate;
+  if (data.tags !== undefined) updateData.tags = data.tags;
+
+  return db
+    .update(projects)
+    .set(updateData)
+    .where(and(eq(projects.userId, userId), eq(projects.id, projectId)));
+}
+
+export async function deleteProject(userId: number, projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .delete(projects)
+    .where(and(eq(projects.userId, userId), eq(projects.id, projectId)));
+}
+
+// ============================================================================
+// Tasks Module (Action Layer)
+// ============================================================================
+
+export async function createTask(
+  userId: number,
+  data: {
+    title: string;
+    description?: string;
+    categoryId?: number;
+    projectId?: number;
+    status?: string;
+    priority?: string;
+    dueDate?: Date;
+    tags?: string;
+    zettelkastenId?: string;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { v4: uuidv4 } = await import("uuid");
+  const result = await db.insert(tasks).values({
+    userId,
+    uuid: uuidv4(),
+    title: data.title,
+    description: data.description,
+    categoryId: data.categoryId,
+    projectId: data.projectId,
+    status: (data.status || "todo") as any,
+    priority: (data.priority || "medium") as any,
+    dueDate: data.dueDate,
+    tags: data.tags,
+    zettelkastenId: data.zettelkastenId,
+  });
+
+  return result;
+}
+
+export async function getTask(userId: number, taskId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.userId, userId), eq(tasks.id, taskId)))
+    .limit(1)
+    .then((rows) => rows[0]);
+}
+
+export async function listTasks(
+  userId: number,
+  filters?: { projectId?: number; status?: string; priority?: string }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const conditions = [eq(tasks.userId, userId)];
+
+  if (filters?.projectId) {
+    conditions.push(eq(tasks.projectId, filters.projectId));
+  }
+  if (filters?.status) {
+    conditions.push(eq(tasks.status, filters.status as any));
+  }
+  if (filters?.priority) {
+    conditions.push(eq(tasks.priority, filters.priority as any));
+  }
+
+  return db
+    .select()
+    .from(tasks)
+    .where(and(...conditions))
+    .orderBy(asc(tasks.dueDate), desc(tasks.createdAt));
+}
+
+export async function updateTask(
+  userId: number,
+  taskId: number,
+  data: Partial<{
+    title: string;
+    description: string;
+    status: "todo" | "in-progress" | "completed" | "blocked";
+    priority: "low" | "medium" | "high" | "urgent";
+    dueDate: Date;
+    completedDate: Date;
+    tags: string;
+  }>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const updateData: Record<string, any> = { updatedAt: new Date() };
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.priority !== undefined) updateData.priority = data.priority;
+  if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+  if (data.completedDate !== undefined) updateData.completedDate = data.completedDate;
+  if (data.tags !== undefined) updateData.tags = data.tags;
+
+  return db
+    .update(tasks)
+    .set(updateData)
+    .where(and(eq(tasks.userId, userId), eq(tasks.id, taskId)));
+}
+
+export async function deleteTask(userId: number, taskId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .delete(tasks)
+    .where(and(eq(tasks.userId, userId), eq(tasks.id, taskId)));
 }

@@ -156,7 +156,7 @@
 - [x] Save analysis to docs/analysis/devanomy-pkm-integration-analysis.md
 
 ## Recommended Features for Future Implementation
-- [ ] Phase 1: Implement Zettelkasten ID system (AC.ID-YYYYMMDD-Seq format)
+- [x] Phase 1: Implement Zettelkasten ID system (AC.ID-YYYYMMDD-Seq format)
 - [ ] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
 - [ ] Phase 3: Implement Goals module (Action Layer)
 - [ ] Phase 4: Implement Projects module (Action Layer)
@@ -189,3 +189,37 @@
 - [x] Add glossary as a featured module on the home page
 - [x] Test glossary functionality and search
 - [x] Save checkpoint for glossary integration
+
+
+## Phase 4: Projects Module (Action Layer)
+- [x] Design Projects database schema (title, description, status, startDate, endDate, category, tags)
+- [x] Create projects table in drizzle/schema.ts
+- [x] Generate and apply database migration
+- [x] Implement project CRUD procedures in server/db.ts
+- [x] Create tRPC router for projects (create, read, update, delete, list)
+- [x] Build Projects.tsx page component with list view
+- [ ] Create ProjectDetail.tsx for viewing individual projects
+- [x] Add project creation form with category selector
+- [x] Implement project status tracking (active, completed, archived)
+- [ ] Add project filtering and sorting UI
+- [ ] Create project-entry linking (projects can reference notebook/lexicon entries)
+- [x] Add tests for project procedures and workflows (all 116 tests passing)
+- [x] Integrate projects into navigation and home page
+
+## Phase 5: Tasks Module (Action Layer)
+- [x] Design Tasks database schema (title, description, status, dueDate, priority, projectId, linkedEntryId)
+- [x] Create tasks table in drizzle/schema.ts
+- [x] Generate and apply database migration
+- [x] Implement task CRUD procedures in server/db.ts
+- [x] Create tRPC router for tasks (create, read, update, delete, list, filter by project)
+- [x] Build Tasks.tsx page component with list and kanban views
+- [ ] Create TaskDetail.tsx for viewing individual tasks
+- [x] Add task creation form with project selector and priority levels
+- [x] Implement task status tracking (todo, in-progress, completed, blocked)
+- [x] Add due date and priority indicators
+- [ ] Create task-entry linking (tasks can reference notebook/lexicon entries)
+- [x] Implement task filtering by project, status, priority, due date
+- [x] Add tests for task procedures and workflows (all 116 tests passing)
+- [x] Integrate tasks into navigation and home page
+- [ ] Create project-task dashboard view
+- [ ] Save checkpoint for Action Layer completion

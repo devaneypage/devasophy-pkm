@@ -28,7 +28,16 @@ import {
   getTaxonomyTree,
   seedJohnnyDecimalTaxonomy,
   searchAllModules,
-} from "./db";
+  createProject,
+  getProject,
+  listProjects,
+  updateProject,
+  deleteProject,
+  createTask,
+  getTask,
+  listTasks,
+  updateTask,
+  deleteTask} from "./db";
 import {
   generateNotebookZettelkastenId,
   generateLexiconZettelkastenId,
@@ -409,6 +418,123 @@ Composition request: ${input.prompt}`,
       )
       .query(async ({ ctx, input }) => {
         return await searchAllModules(ctx.user.id, input.query, input);
+      }),
+  }),
+
+  // ============================================================================
+  // PROJECTS (Action Layer - Phase 4)
+  // ============================================================================
+  projects: router({
+    create: protectedProcedure
+      .input(
+        z.object({
+          title: z.string(),
+          description: z.string().optional(),
+          categoryId: z.number().optional(),
+          startDate: z.date().optional(),
+          endDate: z.date().optional(),
+          tags: z.string().optional(),
+          zettelkastenId: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await createProject(ctx.user.id, input);
+      }),
+    list: protectedProcedure
+      .input(
+        z.object({
+          status: z.enum(["active", "completed", "archived", "on-hold"]).optional(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        return await listProjects(ctx.user.id, { status: input.status });
+      }),
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return await getProject(ctx.user.id, input.id);
+      }),
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().optional(),
+          description: z.string().optional(),
+          status: z.enum(["active", "completed", "archived", "on-hold"]).optional(),
+          startDate: z.date().optional(),
+          endDate: z.date().optional(),
+          tags: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        return await updateProject(ctx.user.id, id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return await deleteProject(ctx.user.id, input.id);
+      }),
+  }),
+
+  // ============================================================================
+  // TASKS (Action Layer - Phase 5)
+  // ============================================================================
+  tasks: router({
+    create: protectedProcedure
+      .input(
+        z.object({
+          title: z.string(),
+          description: z.string().optional(),
+          categoryId: z.number().optional(),
+          projectId: z.number().optional(),
+          status: z.enum(["todo", "in-progress", "completed", "blocked"]).optional(),
+          priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+          dueDate: z.date().optional(),
+          tags: z.string().optional(),
+          zettelkastenId: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await createTask(ctx.user.id, input);
+      }),
+    list: protectedProcedure
+      .input(
+        z.object({
+          projectId: z.number().optional(),
+          status: z.enum(["todo", "in-progress", "completed", "blocked"]).optional(),
+          priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        return await listTasks(ctx.user.id, input);
+      }),
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return await getTask(ctx.user.id, input.id);
+      }),
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().optional(),
+          description: z.string().optional(),
+          status: z.enum(["todo", "in-progress", "completed", "blocked"]).optional(),
+          priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+          dueDate: z.date().optional(),
+          completedDate: z.date().optional(),
+          tags: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        return await updateTask(ctx.user.id, id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return await deleteTask(ctx.user.id, input.id);
       }),
   }),
 });
