@@ -91,14 +91,14 @@ export default function Export() {
           content = notebookEntries
             .map(
               (entry) =>
-                `# “${entry.text}”\n\n**Author:** ${entry.author || "Unknown"}\n**Work:** ${entry.work || "Unknown"}\n**Source Type:** ${entry.sourceType || "Unknown"}\n**Location:** ${entry.location || "N/A"}\n\n${entry.note ? `**Notes:** ${entry.note}\n\n` : ""}---\n\n`
+                `# "${entry.text}"\n\n**ID:** ${entry.zettelkastenId || "N/A"}\n**Author:** ${entry.author || "Unknown"}\n**Work:** ${entry.work || "Unknown"}\n**Source Type:** ${entry.sourceType || "Unknown"}\n**Location:** ${entry.location || "N/A"}\n\n${entry.note ? `**Notes:** ${entry.note}\n\n` : ""}---\n\n`
             )
             .join("");
           filename = `notebook-export-${dateStamp}.md`;
           mimeType = "text/markdown";
         } else {
           content = notebookEntries
-            .map((entry) => `“${entry.text}”\n— ${entry.author || "Unknown"}, ${entry.work || "Unknown"}\n\n`)
+            .map((entry) => `[${entry.zettelkastenId || "N/A"}] "${entry.text}"\n— ${entry.author || "Unknown"}, ${entry.work || "Unknown"}\n\n`)
             .join("");
           filename = `notebook-export-${dateStamp}.txt`;
         }
@@ -111,14 +111,14 @@ export default function Export() {
           content = lexiconTerms
             .map(
               (term) =>
-                `## ${term.term}\n\n**Part of Speech:** ${term.partOfSpeech || "N/A"}\n\n**Definition:** ${term.definition || "N/A"}\n\n**Etymology:** ${term.etymology || "N/A"}\n\n**Origin:** ${term.origin || "N/A"}\n\n${term.notes ? `**Notes:** ${term.notes}\n\n` : ""}---\n\n`
+                `## ${term.term}\n\n**ID:** ${term.zettelkastenId || "N/A"}\n**Part of Speech:** ${term.partOfSpeech || "N/A"}\n\n**Definition:** ${term.definition || "N/A"}\n\n**Etymology:** ${term.etymology || "N/A"}\n\n**Origin:** ${term.origin || "N/A"}\n\n${term.notes ? `**Notes:** ${term.notes}\n\n` : ""}---\n\n`
             )
             .join("");
           filename = `lexicon-export-${dateStamp}.md`;
           mimeType = "text/markdown";
         } else {
           content = lexiconTerms
-            .map((term) => `${term.term} (${term.partOfSpeech || "N/A"})\n${term.definition || "No definition"}\n\n`)
+            .map((term) => `[${term.zettelkastenId || "N/A"}] ${term.term} (${term.partOfSpeech || "N/A"})\n${term.definition || "No definition"}\n\n`)
             .join("");
           filename = `lexicon-export-${dateStamp}.txt`;
         }

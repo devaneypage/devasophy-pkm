@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Edit2, Trash2, Link2 } from "lucide-react";
+import ZettelkastenIdDisplay from "@/components/ZettelkastenIdDisplay";
 
 export default function NotebookDetail() {
   const [, params] = useRoute("/notebook/:id");
@@ -180,6 +181,12 @@ export default function NotebookDetail() {
               {entry.author && (
                 <p className="text-sm text-muted-foreground">— {entry.author}</p>
               )}
+            </Card>
+
+            {/* Zettelkasten ID */}
+            <Card className="bg-card border-border p-6">
+              <h2 className="text-lg font-bold mb-4">Identifier</h2>
+              <ZettelkastenIdDisplay zettelkastenId={entry.zettelkastenId} />
             </Card>
 
             {/* Metadata */}

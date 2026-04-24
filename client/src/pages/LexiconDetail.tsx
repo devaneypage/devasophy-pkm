@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Edit2, Trash2, Link2 } from "lucide-react";
+import ZettelkastenIdDisplay from "@/components/ZettelkastenIdDisplay";
 
 export default function LexiconDetail() {
   const [, params] = useRoute("/lexicon/:id");
@@ -180,6 +181,12 @@ export default function LexiconDetail() {
                 <p className="text-sm text-muted-foreground italic">{term.partOfSpeech}</p>
               )}
             </div>
+
+            {/* Zettelkasten ID */}
+            <Card className="bg-card border-border p-6">
+              <h2 className="text-lg font-bold mb-4">Identifier</h2>
+              <ZettelkastenIdDisplay zettelkastenId={term.zettelkastenId} />
+            </Card>
 
             {/* Definition */}
             {term.definition && (

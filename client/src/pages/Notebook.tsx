@@ -7,12 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Heart, Pencil, Plus, Quote, Search, Trash2, X } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import CategorySelect from "@/components/CategorySelect";
+import ZettelkastenIdDisplay from "@/components/ZettelkastenIdDisplay";
 
 export default function Notebook() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [entryMode, setEntryMode] = useState<"quote" | "note">("quote");
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
+  const [generatedZettelkastenId, setGeneratedZettelkastenId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     text: "",
     author: "",
@@ -46,6 +48,23 @@ export default function Notebook() {
   const quoteCategory = taxonomyTree?.find((area) => area.areaNumber === 10)?.categories.find((category) => category.categoryNumber === "11");
   const noteCategory = taxonomyTree?.find((area) => area.areaNumber === 10)?.categories.find((category) => category.categoryNumber === "12");
 
+  // Get category number for Zettelkasten ID generation
+  const selectedCategoryId = formData.categoryId ?? (entryMode === "note" ? noteCategory?.id : quoteCategory?.id);
+  const selectedCategory = taxonomyTree?.flatMap(a => a.categories).find(c => c.id === selectedCategoryId);
+  const categoryNumber = selectedCategory?.categoryNumber || "";
+
+  // Generate Zettelkasten ID when category changes
+  const { data: zettelkastenIdData, isLoading: isGeneratingId } = trpc.zettelkasten?.generateNotebookId?.useQuery?.(
+    { categoryNumber },
+    { enabled: showForm && !!categoryNumber }
+  ) || { data: undefined, isLoading: false };
+
+  React.useEffect(() => {
+    if (zettelkastenIdData?.zettelkastenId) {
+      setGeneratedZettelkastenId(zettelkastenIdData.zettelkastenId);
+    }
+  }, [zettelkastenIdData?.zettelkastenId]);
+
   const createMutation = trpc.notebook.create.useMutation({
     onSuccess: () => {
       refetch();
@@ -77,6 +96,7 @@ export default function Notebook() {
   });
 
   const handleModeChange = (mode: "quote" | "note") => {
+    setGeneratedZettelkastenId(null);
     setEntryMode(mode);
     setFormData((current) => ({
       ...current,
@@ -117,6 +137,7 @@ export default function Notebook() {
       collections: formData.collections || undefined,
       categoryId: formData.categoryId ?? (entryMode === "note" ? noteCategory?.id : quoteCategory?.id),
       uuid: uuidv4(),
+      zettelkastenId: generatedZettelkastenId || undefined,
     });
   };
 
@@ -365,11 +386,21 @@ export default function Notebook() {
               </div>
             </div>
 
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Zettelkasten ID</label>
+                <ZettelkastenIdDisplay
+                  zettelkastenId={generatedZettelkastenId}
+                  isLoading={isGeneratingId}
+                />
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-3 pt-1">
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-                className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
+                className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {createMutation.isPending ? "Creating..." : entryMode === "quote" ? "Create quotation" : "Create note"}
               </Button>

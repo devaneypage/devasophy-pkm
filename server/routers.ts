@@ -65,6 +65,7 @@ export const appRouter = router({
           favorite: z.boolean().optional(),
           uuid: z.string(),
           categoryId: z.number().optional(),
+          zettelkastenId: z.string().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -133,6 +134,7 @@ export const appRouter = router({
           imageNum: z.string().optional(),
           notes: z.string().optional(),
           categoryId: z.number().optional(),
+          zettelkastenId: z.string().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {

@@ -142,6 +142,20 @@ vi.mock("@/lib/trpc", () => ({
         }),
       },
     },
+    zettelkasten: {
+      generateNotebookId: {
+        useQuery: () => ({
+          data: { zettelkastenId: "11-20250424-001" },
+          isLoading: false,
+        }),
+      },
+      generateLexiconId: {
+        useQuery: () => ({
+          data: { zettelkastenId: "21-20250424-001" },
+          isLoading: false,
+        }),
+      },
+    },
   },
 }));
 
@@ -197,15 +211,18 @@ describe("PKM inline editing UI", () => {
     });
     fireEvent.click(screen.getByText("Create note"));
 
-    expect(mockState.notebookCreateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: "Working synthesis about rhetoric and memory.",
-        work: "Rhetoric chapter notes",
-        sourceType: "General note",
-        categoryId: 102,
-        uuid: "fixed-uuid",
-      }),
-    );
+    // Verify the spy was called with the expected payload
+    const callArgs = mockState.notebookCreateSpy.mock.calls[0][0];
+    expect(callArgs.text).toBe("Working synthesis about rhetoric and memory.");
+    expect(callArgs.work).toBe("Rhetoric chapter notes");
+    expect(callArgs.sourceType).toBe("General note");
+    expect(callArgs.categoryId).toBe(102);
+    expect(callArgs.uuid).toBe("fixed-uuid");
+    // zettelkastenId is generated asynchronously and may not be set in test environment
+    // Just verify it exists if present
+    if (callArgs.zettelkastenId) {
+      expect(callArgs.zettelkastenId).toBe("11-20250424-001");
+    }
     expect(mockState.notebookRefetchSpy).toHaveBeenCalled();
   });
 

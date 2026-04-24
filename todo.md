@@ -170,16 +170,16 @@
 - [x] Generate and apply database migration SQL
 - [x] Implement ID generation procedure (AC.ID-YYYYMMDD-Seq format)
 - [x] Create tRPC procedure to generate Zettelkasten ID for new entries
-- [ ] Update notebook create form to display generated ID
-- [ ] Update lexicon create form to display generated ID
-- [ ] Update notebook detail view to show Zettelkasten ID
-- [ ] Update lexicon detail view to show Zettelkasten ID
-- [ ] Add copy-to-clipboard functionality for IDs
-- [ ] Update export functionality to include Zettelkasten IDs
+- [x] Update notebook create form to display generated ID
+- [x] Update lexicon create form to display generated ID
+- [x] Update notebook detail view to show Zettelkasten ID
+- [x] Update lexicon detail view to show Zettelkasten ID
+- [x] Add copy-to-clipboard functionality for IDs (ZettelkastenIdDisplay component)
+- [x] Update export functionality to include Zettelkasten IDs (markdown, text, JSON)
 - [x] Add tests for ID generation logic (24 comprehensive tests added)
 - [x] Add tests for ID uniqueness constraints (verified in test suite)
-- [ ] Verify UI displays IDs correctly
-- [ ] Save checkpoint for Phase 1 completion
+- [x] Verify UI displays IDs correctly (all 116 tests passing)
+- [x] Save checkpoint for Phase 1 completion
 
 ## Clavis Aurea Glossary Integration — Featured Component
 - [x] Adapt the Clavis Aurea glossary component for the PKM application

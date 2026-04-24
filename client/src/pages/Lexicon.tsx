@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronDown, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import CategorySelect from "@/components/CategorySelect";
+import ZettelkastenIdDisplay from "@/components/ZettelkastenIdDisplay";
 
 export default function Lexicon() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
+  const [generatedZettelkastenId, setGeneratedZettelkastenId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     term: "",
     partOfSpeech: "",
@@ -289,6 +291,13 @@ export default function Lexicon() {
               placeholder="Assign this term to a seeded lexicon category"
               onChange={(categoryId) => setFormData({ ...formData, categoryId })}
             />
+
+            {generatedZettelkastenId && (
+              <div className="rounded-lg border border-border bg-card p-4">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Zettelkasten ID</label>
+                <ZettelkastenIdDisplay zettelkastenId={generatedZettelkastenId} />
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-3">
               <Button
