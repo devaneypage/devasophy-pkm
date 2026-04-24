@@ -1,0 +1,1 @@
+ALTER TABLE `lexicon_entries` ADD `dikw_tier` varchar(20) DEFAULT 'information';

@@ -83,7 +83,9 @@ export type InsertNotebookEntry = typeof notebookEntries.$inferInsert;
  * Module 2: Clavis Aurea — Personal Lexicon and Concordance
  * Stores vocabulary entries with definitions, etymology, and metadata
  */
-export const lexiconEntries = mysqlTable("lexicon_entries", {
+export const lexiconEntries = mysqlTable(
+  "lexicon_entries",
+  {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   categoryId: int("categoryId"), // Johnny Decimal category
@@ -92,6 +94,7 @@ export const lexiconEntries = mysqlTable("lexicon_entries", {
   partOfSpeech: varchar("partOfSpeech", { length: 100 }), // noun, verb, adjective, phrase, etc.
   definition: text("definition"),
   etymology: text("etymology"),
+  dikwTier: varchar("dikw_tier", { length: 20 }).default("information"), // wisdom, knowledge, information, data
   origin: varchar("origin", { length: 255 }), // Language origin (Latin, Greek, French, etc.)
   sourceType: varchar("sourceType", { length: 100 }), // "Dictionary", "Word of the Day", "Decorative art", etc.
   imageNum: varchar("imageNum", { length: 50 }), // Reference to source image
@@ -281,3 +284,10 @@ export const tasks = mysqlTable("tasks", {
 
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = typeof tasks.$inferInsert;
+
+// Enhanced DIKW Lexicon fields
+export const lexiconEnhancements = {
+  dikwTier: varchar('dikw_tier', { length: 20 }).default('information'), // wisdom, knowledge, information, data
+  partOfSpeech: varchar('part_of_speech', { length: 50 }), // noun, verb, adjective, adverb, phrase
+  etymology: text('etymology'), // word origins and linguistic history
+};
