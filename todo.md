@@ -165,19 +165,19 @@
 
 
 ## Phase 1: Zettelkasten ID System Implementation
-- [ ] Add zettelkastenId field to notebookEntries table schema
-- [ ] Add zettelkastenId field to lexiconEntries table schema
-- [ ] Generate and apply database migration SQL
-- [ ] Implement ID generation procedure (AC.ID-YYYYMMDD-Seq format)
-- [ ] Create tRPC procedure to generate Zettelkasten ID for new entries
+- [x] Add zettelkastenId field to notebookEntries table schema
+- [x] Add zettelkastenId field to lexiconEntries table schema
+- [x] Generate and apply database migration SQL
+- [x] Implement ID generation procedure (AC.ID-YYYYMMDD-Seq format)
+- [x] Create tRPC procedure to generate Zettelkasten ID for new entries
 - [ ] Update notebook create form to display generated ID
 - [ ] Update lexicon create form to display generated ID
 - [ ] Update notebook detail view to show Zettelkasten ID
 - [ ] Update lexicon detail view to show Zettelkasten ID
 - [ ] Add copy-to-clipboard functionality for IDs
 - [ ] Update export functionality to include Zettelkasten IDs
-- [ ] Add tests for ID generation logic
-- [ ] Add tests for ID uniqueness constraints
+- [x] Add tests for ID generation logic (24 comprehensive tests added)
+- [x] Add tests for ID uniqueness constraints (verified in test suite)
 - [ ] Verify UI displays IDs correctly
 - [ ] Save checkpoint for Phase 1 completion
 
