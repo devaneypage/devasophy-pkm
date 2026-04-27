@@ -331,3 +331,17 @@
   - [x] 10 UI component tests for conflict resolver
   - [x] 231 total tests passing (no regressions)
 - [x] Save checkpoint for duplicate detection feature
+
+## Bulk Import Debugging — Alternative Migration Path
+- [x] Investigate non-UI method to apply pending schema changes for bulk import
+- [x] Apply pending schema changes without Management UI SQL runner
+- [x] Verify notebook, lexicon, and bulk import queries succeed after schema update
+- [x] Mark duplicate detection and bulk import flow revalidated after fix
+  - [x] Applied pending Drizzle SQL directly through a scripted mysql2 migration runner
+  - [x] Added missing notebook_entries.zettelkasten_id column and unique constraint
+  - [x] Added missing lexicon_entries.dikw_tier column
+  - [x] Created missing projects and tasks tables
+  - [x] Verified previously failing notebook.list and lexicon.list queries now execute successfully
+  - [x] Re-ran full test suite: 231 tests passing
+
+
