@@ -238,6 +238,7 @@ export function normalizeNotebookImportItem(input: unknown): NormalizedNotebookI
   const record = asRecord(input);
   if (!record) return null;
 
+  const sourceRecord = asRecord(record.source);
   const text = asString(record.text) ?? asString(record.quote);
   if (!text) return null;
 
@@ -248,15 +249,72 @@ export function normalizeNotebookImportItem(input: unknown): NormalizedNotebookI
 
   return enrichNotebookImportWithCategories({
     text,
-    author: asString(record.author) ?? asString(record.by),
-    work: asString(record.work) ?? asString(record.source),
-    sourceType: asString(record.sourceType),
+    author: asString(record.author) ?? asString(record.authors) ?? asString(record.by) ?? asString(sourceRecord?.authors),
+    work: asString(record.work) ?? asString(record.source) ?? asString(sourceRecord?.title),
+    sourceType: asString(record.sourceType) ?? asString(sourceRecord?.sourceType) ?? asString(sourceRecord?.format),
     location: asString(record.location) ?? asString(record.page),
     note: asString(record.note) ?? asString(record.notes),
     tags,
     collections: asString(record.collection) ?? asString(record.collections),
     favorite: asBoolean(record.favorite),
   });
+}
+
+export function normalizeNotebookImportPayload(input: unknown): NormalizedNotebookImport[] {
+  const items = Array.isArray(input) ? input : [input];
+  return items
+    .map((item) => normalizeNotebookImportItem(item))
+    .filter((item): item is NormalizedNotebookImport => item !== null);
+}
+
+export function normalizeLexiconImportPayload(input: unknown): NormalizedLexiconImport[] {
+  const items = extractClavisAureaEntries(input);
+  const source = items.length > 0 ? items : Array.isArray(input) ? input : [input];
+
+  return source
+    .map((item) => normalizeLexiconImportItem(item))
+    .filter((item): item is NormalizedLexiconImport => item !== null);
+}
+
+export function inferCsvColumnMapping(
+  headerRow: string[],
+  importType: "quotes" | "lexicon"
+): Record<string, number> {
+  const normalizedHeaders = headerRow.map((value) => value.trim().toLowerCase().replace(/^"|"$/g, ""));
+  const synonymMap: Record<string, string[]> = importType === "quotes"
+    ? {
+        text: ["text", "quote", "quotation", "content"],
+        author: ["author", "authors", "by"],
+        work: ["work", "source", "title"],
+        sourceType: ["sourcetype", "source_type", "format"],
+        location: ["location", "page"],
+        note: ["note", "notes"],
+        tags: ["tags"],
+        collections: ["collections", "collection"],
+        favorite: ["favorite"],
+      }
+    : {
+        term: ["term", "word"],
+        partOfSpeech: ["partofspeech", "part_of_speech", "pos"],
+        definition: ["definition", "meaning"],
+        etymology: ["etymology"],
+        origin: ["origin"],
+        sourceType: ["sourcetype", "source_type", "format"],
+        imageNum: ["imagenum", "image_num"],
+        notes: ["notes", "note"],
+        dikwTier: ["dikwtier", "dikw_tier"],
+      };
+
+  const mapping: Record<string, number> = {};
+
+  for (const [field, synonyms] of Object.entries(synonymMap)) {
+    const index = normalizedHeaders.findIndex((header) => synonyms.includes(header));
+    if (index >= 0) {
+      mapping[field] = index;
+    }
+  }
+
+  return mapping;
 }
 
 export function buildNotebookReferenceInsert(input: {

@@ -4,12 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, CheckCircle, FileJson2, Sparkles, Upload, UploadCloud } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
 import {
-  extractClavisAureaEntries,
-  normalizeLexiconImportItem,
-  normalizeNotebookImportItem,
-  validateClavisAureaPayload,
+  inferCsvColumnMapping,
+  normalizeLexiconImportPayload,
+  normalizeNotebookImportPayload,
 } from "@shared/pkmFormatting";
 import { buildAutofillErrorMessage, buildAutofillLoadState } from "@shared/importAutofill";
 
@@ -73,13 +71,21 @@ export default function BulkImport() {
       : "Recommended: Quotes-All_with_notes_with_metadata.json";
   }, [importType, loadedFileName]);
 
-  // Parse CSV and return preview
-  const parseCSVPreview = (csv: string, limit = 5) => {
-    const lines = csv.split("\n").slice(0, limit + 1);
-    return lines.filter(l => l.trim());
+  const detectFileFormat = (fileName: string, text: string): FileFormat => {
+    const lowered = fileName.toLowerCase();
+    if (lowered.endsWith(".csv")) return "csv";
+    if (lowered.endsWith(".txt")) return "text";
+    if (lowered.endsWith(".json")) return "json";
+
+    try {
+      JSON.parse(text);
+      return "json";
+    } catch {
+      return text.includes(",") ? "csv" : "text";
+    }
   };
 
-  // Bulk import using new backend procedures
+  // Bulk import using normalized payload preparation
   const handleBulkImport = async () => {
     if (!jsonInput.trim()) {
       setResult({ successful: 0, failed: 1, errors: ["Please provide data to import."] });
@@ -92,51 +98,54 @@ export default function BulkImport() {
 
       if (fileFormat === "json") {
         const data = JSON.parse(jsonInput);
-        const entries = Array.isArray(data) ? data : [data];
 
         if (importType === "quotes") {
+          const entries = normalizeNotebookImportPayload(data);
+          if (entries.length === 0) {
+            throw new Error("No valid notebook entries were found in the provided JSON payload.");
+          }
+
           result = await notebookJSONMutation.mutateAsync({
-            entries: entries.map((e: any) => ({
-              text: e.text || "",
-              author: e.author,
-              work: e.work,
-              sourceType: e.sourceType,
-              location: e.location,
-              note: e.note,
-              tags: e.tags,
-              collections: e.collections,
-              favorite: e.favorite,
-            })),
+            entries,
             autoCategory,
           });
         } else {
+          const entries = normalizeLexiconImportPayload(data);
+          if (entries.length === 0) {
+            throw new Error("No valid lexicon entries were found in the provided JSON payload.");
+          }
+
           result = await lexiconJSONMutation.mutateAsync({
-            entries: entries.map((e: any) => ({
-              term: e.term || "",
-              partOfSpeech: e.partOfSpeech,
-              definition: e.definition,
-              etymology: e.etymology,
-              origin: e.origin,
-              sourceType: e.sourceType,
-              imageNum: e.imageNum,
-              notes: e.notes,
-              dikwTier: e.dikwTier,
-            })),
+            entries,
             autoCategory,
           });
         }
       } else if (fileFormat === "csv") {
+        const previewLines = jsonInput.split(/\r?\n/).filter((line) => line.trim().length > 0);
+        const headerRow = previewLines[0]?.split(",") ?? [];
+        const resolvedMapping = Object.keys(columnMapping).length > 0
+          ? columnMapping
+          : inferCsvColumnMapping(headerRow, importType);
+
         if (importType === "quotes") {
+          if (resolvedMapping.text === undefined) {
+            throw new Error("Unable to infer the text column from the CSV header. Please include a 'text' or 'quote' column.");
+          }
+
           result = await notebookCSVMutation.mutateAsync({
             csvContent: jsonInput,
-            columnMapping,
+            columnMapping: resolvedMapping,
             autoCategory,
             skipHeader,
           });
         } else {
+          if (resolvedMapping.term === undefined) {
+            throw new Error("Unable to infer the term column from the CSV header. Please include a 'term' or 'word' column.");
+          }
+
           result = await lexiconCSVMutation.mutateAsync({
             csvContent: jsonInput,
-            columnMapping,
+            columnMapping: resolvedMapping,
             autoCategory,
             skipHeader,
           });
@@ -184,6 +193,7 @@ export default function BulkImport() {
 
   const handleFile = async (file: File) => {
     const text = await file.text();
+    setFileFormat(detectFileFormat(file.name, text));
     handleLoadedText(text, file.name, importType);
   };
 

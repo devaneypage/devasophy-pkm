@@ -4,8 +4,11 @@ import {
   buildNotebookReferenceInsert,
   detectImportPayloadType,
   extractClavisAureaEntries,
+  inferCsvColumnMapping,
   normalizeLexiconImportItem,
+  normalizeLexiconImportPayload,
   normalizeNotebookImportItem,
+  normalizeNotebookImportPayload,
   validateClavisAureaPayload,
 } from "./pkmFormatting";
 
@@ -92,6 +95,65 @@ describe("generic import normalization", () => {
       tags: "knowledge, patterns, Knowledge & Learning, Books & Reading",
       collections: "Knowledge & Learning",
       favorite: true,
+    });
+  });
+
+  it("normalizes the real quotes export payload shape used by the bulk import tool", () => {
+    const normalized = normalizeNotebookImportPayload([
+      {
+        text: "We cannot solve our problems with the same thinking we used when we created them.",
+        authors: "Albert Einstein",
+        collections: "Mantra",
+        source: null,
+      },
+      {
+        text: "Do not quench your inspiration and your imagination.",
+        authors: "",
+        collections: "Poetical",
+        source: {
+          sourceType: "Book",
+          title: "Letter to Theo Van Gogh (1882)",
+          authors: "Vincent Van Gogh",
+        },
+      },
+    ]);
+
+    expect(normalized).toHaveLength(2);
+    expect(normalized[0]).toMatchObject({
+      author: "Albert Einstein",
+      collections: "Mantra, General Reflections",
+    });
+    expect(normalized[1]).toMatchObject({
+      author: "Vincent Van Gogh",
+      work: "Letter to Theo Van Gogh (1882)",
+      sourceType: "Book",
+    });
+  });
+
+  it("normalizes the wrapped Clavis Aurea payload shape used by the bulk import tool", () => {
+    const normalized = normalizeLexiconImportPayload(clavisSample);
+
+    expect(normalized).toHaveLength(2);
+    expect(normalized[0]).toMatchObject({
+      term: "Abecedarianism",
+      partOfSpeech: "noun",
+      sourceType: "Dictionary app",
+    });
+  });
+
+  it("infers CSV column mappings from common notebook and lexicon headers", () => {
+    expect(inferCsvColumnMapping(["text", "authors", "source_type", "collections"], "quotes")).toMatchObject({
+      text: 0,
+      author: 1,
+      sourceType: 2,
+      collections: 3,
+    });
+
+    expect(inferCsvColumnMapping(["term", "pos", "definition", "image_num"], "lexicon")).toMatchObject({
+      term: 0,
+      partOfSpeech: 1,
+      definition: 2,
+      imageNum: 3,
     });
   });
 

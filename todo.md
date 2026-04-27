@@ -345,3 +345,32 @@
   - [x] Re-ran full test suite: 231 tests passing
 
 
+## Bulk Import Verification After Schema Repair
+- [x] Review the current bulk import execution path and test inputs for retry
+- [x] Retry notebook and lexicon bulk import against the repaired database schema
+- [x] Validate logs and database results to confirm the previous failures are resolved
+  - [x] Live retry succeeded for notebook import: 1 successful, 0 failed
+  - [x] Live retry succeeded for lexicon import: 1 successful, 0 failed
+  - [x] Verification rows were cleaned up after the test
+  - [x] No new import-related runtime errors appeared in recent server logs
+- [x] Report bulk import verification outcome to user
+
+## Bulk Import Live Failure Investigation
+- [x] Reproduce the current live bulk import failure from the actual page workflow
+- [x] Capture the exact UI, network, and server-side error for the failing import attempt
+- [x] Identify the confirmed root cause in the real user-facing path
+  - [x] The BulkImport page was not using the real JSON normalization helpers for the uploaded Quotes and Clavis Aurea file shapes
+  - [x] Wrapped lexicon payloads with `meta` + `entries` were being treated like a single object instead of an entry list
+  - [x] Notebook quote exports with `authors` and nested `source` metadata were not being normalized before import
+  - [x] CSV imports still depended on a missing/empty column mapping UI state
+- [x] Implement the minimal fix for the confirmed cause
+  - [x] Wired BulkImport.tsx to normalize notebook and lexicon JSON payloads before mutation
+  - [x] Added automatic file-format detection when a file is dropped or selected
+  - [x] Added automatic CSV header-to-field mapping inference for common notebook and lexicon headers
+- [x] Re-test the live bulk import workflow end to end after the fix
+  - [x] Real uploaded Quotes source file imported successfully in verification run
+  - [x] Real uploaded Clavis Aurea source file imported successfully in verification run
+  - [x] Verification rows cleaned up after the test run
+  - [x] Full test suite passing: 234 tests
+- [ ] Save a checkpoint for the repaired bulk import workflow
+
