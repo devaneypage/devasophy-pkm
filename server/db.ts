@@ -754,3 +754,349 @@ export async function deleteTask(userId: number, taskId: number) {
     .delete(tasks)
     .where(and(eq(tasks.userId, userId), eq(tasks.id, taskId)));
 }
+
+
+// ============================================================================
+// BULK IMPORT PROCEDURES
+// ============================================================================
+
+/**
+ * Auto-categorize entries based on content analysis
+ * Maps content keywords to Johnny Decimal categories
+ */
+export function categorizeEntryContent(text: string, entryType: 'notebook' | 'lexicon'): number | null {
+  // Simple keyword-based categorization
+  // In production, this could use ML or more sophisticated NLP
+  
+  const lowerText = text.toLowerCase();
+  
+  if (entryType === 'notebook') {
+    // 11 = Quotes & Passages
+    if (lowerText.includes('quote') || lowerText.includes('passage') || lowerText.includes('excerpt')) {
+      return 11;
+    }
+    // 12 = Observations
+    if (lowerText.includes('observation') || lowerText.includes('note') || lowerText.includes('thought')) {
+      return 12;
+    }
+    // 13 = Insights
+    if (lowerText.includes('insight') || lowerText.includes('discovery') || lowerText.includes('realization')) {
+      return 13;
+    }
+    // Default to 11 (Quotes & Passages)
+    return 11;
+  } else if (entryType === 'lexicon') {
+    // 22 = Etymology (check first since "word" might appear in etymology definitions)
+    if (lowerText.includes('etymology') || lowerText.includes('origin') || lowerText.includes('root')) {
+      return 22;
+    }
+    // 21 = Terms
+    if (lowerText.includes('term') || lowerText.includes('word') || lowerText.includes('vocabulary')) {
+      return 21;
+    }
+    // 23 = Concordance
+    if (lowerText.includes('concordance') || lowerText.includes('reference') || lowerText.includes('index')) {
+      return 23;
+    }
+    // Default to 21 (Terms)
+    return 21;
+  }
+  
+  return null;
+}
+
+/**
+ * Bulk import notebook entries from JSON
+ */
+export async function bulkImportNotebookEntries(
+  userId: number,
+  entries: Array<{
+    text: string;
+    author?: string;
+    work?: string;
+    sourceType?: string;
+    location?: string;
+    note?: string;
+    tags?: string;
+    collections?: string;
+    favorite?: boolean;
+  }>,
+  options?: {
+    autoCategory?: boolean;
+    generateIds?: boolean;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const results = {
+    successful: 0,
+    failed: 0,
+    errors: [] as string[],
+  };
+
+  for (const entry of entries) {
+    try {
+      if (!entry.text) {
+        results.failed++;
+        results.errors.push("Entry text is required");
+        continue;
+      }
+
+      const uuid = `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const categoryId = options?.autoCategory ? categorizeEntryContent(entry.text, 'notebook') : undefined;
+
+      await db.insert(notebookEntries).values({
+        userId,
+        uuid,
+        categoryId: categoryId || undefined,
+        text: entry.text,
+        author: entry.author,
+        work: entry.work,
+        sourceType: entry.sourceType,
+        location: entry.location,
+        note: entry.note,
+        tags: entry.tags,
+        collections: entry.collections,
+        favorite: entry.favorite || false,
+      });
+
+      results.successful++;
+    } catch (error) {
+      results.failed++;
+      results.errors.push(`Failed to import entry: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Bulk import lexicon entries from JSON
+ */
+export async function bulkImportLexiconEntries(
+  userId: number,
+  entries: Array<{
+    term: string;
+    partOfSpeech?: string;
+    definition?: string;
+    etymology?: string;
+    origin?: string;
+    sourceType?: string;
+    imageNum?: string;
+    notes?: string;
+    dikwTier?: string;
+  }>,
+  options?: {
+    autoCategory?: boolean;
+    generateIds?: boolean;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const results = {
+    successful: 0,
+    failed: 0,
+    errors: [] as string[],
+  };
+
+  for (const entry of entries) {
+    try {
+      if (!entry.term) {
+        results.failed++;
+        results.errors.push("Term is required");
+        continue;
+      }
+
+      const categoryId = options?.autoCategory ? categorizeEntryContent(entry.definition || entry.term, 'lexicon') : undefined;
+
+      await db.insert(lexiconEntries).values({
+        userId,
+        categoryId: categoryId || undefined,
+        term: entry.term,
+        partOfSpeech: entry.partOfSpeech,
+        definition: entry.definition,
+        etymology: entry.etymology,
+        origin: entry.origin,
+        sourceType: entry.sourceType,
+        imageNum: entry.imageNum,
+        notes: entry.notes,
+        dikwTier: entry.dikwTier || 'information',
+      });
+
+      results.successful++;
+    } catch (error) {
+      results.failed++;
+      results.errors.push(`Failed to import term: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Parse CSV data into rows
+ */
+export function parseCSV(csvContent: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
+  let insideQuotes = false;
+
+  for (let i = 0; i < csvContent.length; i++) {
+    const char = csvContent[i];
+    const nextChar = csvContent[i + 1];
+
+    if (char === '"') {
+      if (insideQuotes && nextChar === '"') {
+        currentField += '"';
+        i++; // Skip next quote
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (char === ',' && !insideQuotes) {
+      currentRow.push(currentField.trim());
+      currentField = '';
+    } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+      if (currentField || currentRow.length > 0) {
+        currentRow.push(currentField.trim());
+        if (currentRow.some(field => field)) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        currentField = '';
+      }
+      if (char === '\r' && nextChar === '\n') {
+        i++; // Skip \n in \r\n
+      }
+    } else {
+      currentField += char;
+    }
+  }
+
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField.trim());
+    if (currentRow.some(field => field)) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
+}
+
+/**
+ * Bulk import notebook entries from CSV
+ */
+export async function bulkImportNotebookFromCSV(
+  userId: number,
+  csvContent: string,
+  columnMapping: Record<string, number>,
+  options?: {
+    autoCategory?: boolean;
+    skipHeader?: boolean;
+  }
+) {
+  const rows = parseCSV(csvContent);
+  const startRow = options?.skipHeader ? 1 : 0;
+  const entries: Parameters<typeof bulkImportNotebookEntries>[1] = [];
+
+  for (let i = startRow; i < rows.length; i++) {
+    const row = rows[i];
+    const entry: Parameters<typeof bulkImportNotebookEntries>[1][0] = {
+      text: row[columnMapping.text] || '',
+      author: row[columnMapping.author] || undefined,
+      work: row[columnMapping.work] || undefined,
+      sourceType: row[columnMapping.sourceType] || undefined,
+      location: row[columnMapping.location] || undefined,
+      note: row[columnMapping.note] || undefined,
+      tags: row[columnMapping.tags] || undefined,
+      collections: row[columnMapping.collections] || undefined,
+      favorite: row[columnMapping.favorite]?.toLowerCase() === 'true',
+    };
+    entries.push(entry);
+  }
+
+  return bulkImportNotebookEntries(userId, entries, options);
+}
+
+/**
+ * Bulk import lexicon entries from CSV
+ */
+export async function bulkImportLexiconFromCSV(
+  userId: number,
+  csvContent: string,
+  columnMapping: Record<string, number>,
+  options?: {
+    autoCategory?: boolean;
+    skipHeader?: boolean;
+  }
+) {
+  const rows = parseCSV(csvContent);
+  const startRow = options?.skipHeader ? 1 : 0;
+  const entries: Parameters<typeof bulkImportLexiconEntries>[1] = [];
+
+  for (let i = startRow; i < rows.length; i++) {
+    const row = rows[i];
+    const entry: Parameters<typeof bulkImportLexiconEntries>[1][0] = {
+      term: row[columnMapping.term] || '',
+      partOfSpeech: row[columnMapping.partOfSpeech] || undefined,
+      definition: row[columnMapping.definition] || undefined,
+      etymology: row[columnMapping.etymology] || undefined,
+      origin: row[columnMapping.origin] || undefined,
+      sourceType: row[columnMapping.sourceType] || undefined,
+      imageNum: row[columnMapping.imageNum] || undefined,
+      notes: row[columnMapping.notes] || undefined,
+      dikwTier: row[columnMapping.dikwTier] || 'information',
+    };
+    entries.push(entry);
+  }
+
+  return bulkImportLexiconEntries(userId, entries, options);
+}
+
+/**
+ * Parse plain text entries (one per line)
+ */
+export function parseTextLines(textContent: string, delimiter: string = '\n'): string[] {
+  return textContent
+    .split(delimiter)
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+}
+
+/**
+ * Bulk import notebook entries from plain text
+ */
+export async function bulkImportNotebookFromText(
+  userId: number,
+  textContent: string,
+  options?: {
+    autoCategory?: boolean;
+  }
+) {
+  const lines = parseTextLines(textContent);
+  const entries: Parameters<typeof bulkImportNotebookEntries>[1] = lines.map(line => ({
+    text: line,
+  }));
+
+  return bulkImportNotebookEntries(userId, entries, options);
+}
+
+/**
+ * Bulk import lexicon entries from plain text
+ */
+export async function bulkImportLexiconFromText(
+  userId: number,
+  textContent: string,
+  options?: {
+    autoCategory?: boolean;
+  }
+) {
+  const lines = parseTextLines(textContent);
+  const entries: Parameters<typeof bulkImportLexiconEntries>[1] = lines.map(line => ({
+    term: line,
+  }));
+
+  return bulkImportLexiconEntries(userId, entries, options);
+}

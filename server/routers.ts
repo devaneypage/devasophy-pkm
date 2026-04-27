@@ -38,6 +38,12 @@ import {
   listTasks,
   updateTask,
   deleteTask,
+  bulkImportNotebookEntries,
+  bulkImportLexiconEntries,
+  bulkImportNotebookFromCSV,
+  bulkImportLexiconFromCSV,
+  bulkImportNotebookFromText,
+  bulkImportLexiconFromText,
 } from "./db";
 import {
   generateNotebookZettelkastenId,
@@ -532,12 +538,134 @@ Composition request: ${input.prompt}`,
         const { id, ...data } = input;
         return await updateTask(ctx.user.id, id, data);
       }),
-    delete: protectedProcedure
+     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         return await deleteTask(ctx.user.id, input.id);
       }),
   }),
-});
 
+  // ============================================================================
+  // BULK IMPORT MODULE
+  // ============================================================================
+  bulkImport: router({
+    notebookJSON: protectedProcedure
+      .input(
+        z.object({
+          entries: z.array(
+            z.object({
+              text: z.string(),
+              author: z.string().optional(),
+              work: z.string().optional(),
+              sourceType: z.string().optional(),
+              location: z.string().optional(),
+              note: z.string().optional(),
+              tags: z.string().optional(),
+              collections: z.string().optional(),
+              favorite: z.boolean().optional(),
+            })
+          ),
+          autoCategory: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await bulkImportNotebookEntries(ctx.user.id, input.entries, {
+          autoCategory: input.autoCategory,
+        });
+      }),
+
+    lexiconJSON: protectedProcedure
+      .input(
+        z.object({
+          entries: z.array(
+            z.object({
+              term: z.string(),
+              partOfSpeech: z.string().optional(),
+              definition: z.string().optional(),
+              etymology: z.string().optional(),
+              origin: z.string().optional(),
+              sourceType: z.string().optional(),
+              imageNum: z.string().optional(),
+              notes: z.string().optional(),
+              dikwTier: z.string().optional(),
+            })
+          ),
+          autoCategory: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await bulkImportLexiconEntries(ctx.user.id, input.entries, {
+          autoCategory: input.autoCategory,
+        });
+      }),
+
+    notebookCSV: protectedProcedure
+      .input(
+        z.object({
+          csvContent: z.string(),
+          columnMapping: z.record(z.string(), z.number()),
+          autoCategory: z.boolean().optional(),
+          skipHeader: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await bulkImportNotebookFromCSV(
+          ctx.user.id,
+          input.csvContent,
+          input.columnMapping,
+          {
+            autoCategory: input.autoCategory,
+            skipHeader: input.skipHeader,
+          }
+        );
+      }),
+
+    lexiconCSV: protectedProcedure
+      .input(
+        z.object({
+          csvContent: z.string(),
+          columnMapping: z.record(z.string(), z.number()),
+          autoCategory: z.boolean().optional(),
+          skipHeader: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await bulkImportLexiconFromCSV(
+          ctx.user.id,
+          input.csvContent,
+          input.columnMapping,
+          {
+            autoCategory: input.autoCategory,
+            skipHeader: input.skipHeader,
+          }
+        );
+      }),
+
+    notebookText: protectedProcedure
+      .input(
+        z.object({
+          textContent: z.string(),
+          autoCategory: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await bulkImportNotebookFromText(ctx.user.id, input.textContent, {
+          autoCategory: input.autoCategory,
+        });
+      }),
+
+    lexiconText: protectedProcedure
+      .input(
+        z.object({
+          textContent: z.string(),
+          autoCategory: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await bulkImportLexiconFromText(ctx.user.id, input.textContent, {
+          autoCategory: input.autoCategory,
+        });
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;

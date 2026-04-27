@@ -57,9 +57,9 @@ export default function Export() {
   const [format, setFormat] = useState<"json" | "markdown" | "text">("json");
   const [isExporting, setIsExporting] = useState(false);
 
-  const { data: notebookEntries } = trpc.notebook.list.useQuery({});
-  const { data: lexiconTerms } = trpc.lexicon.list.useQuery({});
-  const { data: documents } = trpc.documents.list.useQuery({});
+  const { data: notebookEntries, isLoading: notebookLoading, error: notebookError } = trpc.notebook.list.useQuery({});
+  const { data: lexiconTerms, isLoading: lexiconLoading, error: lexiconError } = trpc.lexicon.list.useQuery({});
+  const { data: documents, isLoading: docsLoading, error: docsError } = trpc.documents.list.useQuery({});
 
   const downloadFile = (content: string, filename: string, type: string) => {
     const blob = new Blob([content], { type });
@@ -152,6 +152,10 @@ export default function Export() {
 
   const selectedExportMeta = exportTypes[exportType];
   const selectedFormatMeta = formatMeta[format];
+  
+  const isLoading = notebookLoading || lexiconLoading || docsLoading;
+  const hasError = !!notebookError || !!lexiconError || !!docsError;
+  const errorMessage = notebookError?.message || lexiconError?.message || docsError?.message;
 
   return (
     <div className="space-y-6">
@@ -162,6 +166,13 @@ export default function Export() {
           Export any major Devanomy collection as structured JSON, editorial Markdown, or universal plain text.
         </p>
       </section>
+
+      {hasError && (
+        <section className="dev-soft-card border-l-4 border-red-500 bg-red-50 p-6 sm:p-8">
+          <p className="text-sm font-semibold text-red-700">Database Connection Error</p>
+          <p className="mt-2 text-sm text-red-600">{errorMessage || "Unable to load entries from database. Please try again later."}</p>
+        </section>
+      )}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
@@ -221,12 +232,12 @@ export default function Export() {
           <div className="flex flex-wrap gap-3">
             <Button
               onClick={handleExport}
-              disabled={isExporting}
-              className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
+              disabled={isExporting || isLoading || hasError}
+              className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959] disabled:opacity-50 disabled:cursor-not-allowed"
               size="lg"
             >
               <Download className="mr-2 h-4 w-4" />
-              {isExporting ? "Exporting..." : "Export now"}
+              {isExporting ? "Exporting..." : isLoading ? "Loading..." : "Export now"}
             </Button>
           </div>
         </div>

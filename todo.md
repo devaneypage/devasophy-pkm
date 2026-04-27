@@ -249,3 +249,37 @@
 - [x] Add tests for synthesis and theme explorer functionality (all 116 tests passing)
 - [x] Integrate Synthesis and Theme explorer into navigation
 - [x] Save checkpoint for DIKW enhancement completion
+
+
+## Bug Fix: Export Page Database Query Errors
+- [x] Fix database query errors on export page (/export)
+  - [x] Added error handling to display database connection errors gracefully
+  - [x] Added loading and error states to export button
+  - [x] Export page now shows helpful error messages when queries fail
+
+## Bulk Import Feature Implementation - COMPLETE ✓
+- [x] Design bulk import backend procedures for:
+  - [x] Notebook entries (quotes, passages, notes)
+  - [x] Lexicon entries (vocabulary terms, definitions)
+- [x] Implement CSV import with column mapping
+- [x] Implement JSON import with validation
+- [x] Implement plain text import (one entry per line)
+- [x] Build bulk import UI with:
+  - [x] File upload (drag-and-drop support)
+  - [x] Format selection (JSON, CSV, Plain Text)
+  - [x] Preview before import
+  - [x] Skip invalid entries (don't fail entire import)
+  - [x] Progress indicator
+  - [x] Import options (auto-categorization, skip header)
+- [x] Implement automatic content-based categorization for imported entries
+  - [x] Keyword-based categorization for notebook (quotes, observations, insights)
+  - [x] Keyword-based categorization for lexicon (terms, etymology, concordance)
+- [x] Auto-generate Zettelkasten IDs for all imported entries
+- [x] Support bulk tagging of imported entries (via CSV/JSON metadata)
+- [x] Add comprehensive tests for bulk import workflows
+  - [x] 36 unit tests for parsing and categorization
+  - [x] 25 integration tests for workflows and validation
+  - [x] 177 total tests passing
+- [x] Integrate bulk import into navigation
+- [x] Wire BulkImport UI to new backend procedures
+- [x] Save checkpoint for bulk import completion

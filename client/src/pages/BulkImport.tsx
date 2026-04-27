@@ -14,12 +14,17 @@ import {
 import { buildAutofillErrorMessage, buildAutofillLoadState } from "@shared/importAutofill";
 
 interface ImportResult {
-  success: number;
+  successful: number;
   failed: number;
   errors: string[];
 }
 
 type ImportType = "quotes" | "lexicon";
+type FileFormat = "json" | "csv" | "text";
+
+interface ColumnMapping {
+  [key: string]: number; // column name -> column index
+}
 
 const importModes = {
   quotes: {
@@ -27,28 +32,36 @@ const importModes = {
     description: "Import quotations, passages, observations, metadata, and tags into your notebook.",
     accent: "#efb93a",
     pattern: "dev-pattern-waves",
-    prompt: "Drop your Quotes JSON file here",
+    prompt: "Drop your Quotes file here",
   },
   lexicon: {
     title: "Clavis Aurea",
     description: "Import glossary entries, etymologies, definitions, and concordance notes.",
     accent: "#56c5ea",
     pattern: "dev-pattern-dots",
-    prompt: "Drop your Clavis Aurea JSON file here",
+    prompt: "Drop your Clavis Aurea file here",
   },
 } as const;
 
 export default function BulkImport() {
   const [importType, setImportType] = useState<ImportType>("quotes");
+  const [fileFormat, setFileFormat] = useState<FileFormat>("json");
   const [jsonInput, setJsonInput] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
+  const [autoCategory, setAutoCategory] = useState(true);
+  const [skipHeader, setSkipHeader] = useState(true);
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const notebookCreateMutation = trpc.notebook.create.useMutation();
-  const lexiconCreateMutation = trpc.lexicon.create.useMutation();
+  const notebookJSONMutation = trpc.bulkImport.notebookJSON.useMutation();
+  const lexiconJSONMutation = trpc.bulkImport.lexiconJSON.useMutation();
+  const notebookCSVMutation = trpc.bulkImport.notebookCSV.useMutation();
+  const lexiconCSVMutation = trpc.bulkImport.lexiconCSV.useMutation();
+  const notebookTextMutation = trpc.bulkImport.notebookText.useMutation();
+  const lexiconTextMutation = trpc.bulkImport.lexiconText.useMutation();
   const autofillMutation = trpc.autofill.loadUploadedFile.useMutation();
 
   const mode = importModes[importType];
@@ -60,91 +73,96 @@ export default function BulkImport() {
       : "Recommended: Quotes-All_with_notes_with_metadata.json";
   }, [importType, loadedFileName]);
 
-  const importParsedData = async (data: unknown) => {
-    const errors: string[] = [];
-    let success = 0;
-    let failed = 0;
-
-    if (importType === "quotes") {
-      const items = Array.isArray(data) ? data : [data];
-      for (const item of items) {
-        try {
-          const normalized = normalizeNotebookImportItem(item);
-          if (!normalized) {
-            throw new Error("Missing required quote text");
-          }
-
-          await notebookCreateMutation.mutateAsync({
-            text: normalized.text,
-            author: normalized.author || "",
-            work: normalized.work || "",
-            sourceType: normalized.sourceType || "quote",
-            location: normalized.location || "",
-            note: normalized.note || "",
-            tags: normalized.tags || "",
-            collections: normalized.collections || "",
-            favorite: normalized.favorite || false,
-            uuid: uuidv4(),
-          });
-          success++;
-        } catch {
-          failed++;
-          errors.push("Failed to import quote entry from the provided JSON payload.");
-        }
-      }
-    } else {
-      const payloadCheck = validateClavisAureaPayload(data);
-      if (!payloadCheck.isValid) {
-        throw new Error("The dropped or pasted file does not match the Clavis Aurea payload structure.");
-      }
-      if (payloadCheck.declaredTotal && payloadCheck.declaredTotal !== payloadCheck.totalEntries) {
-        errors.push(`Warning: payload declares ${payloadCheck.declaredTotal} entries but contains ${payloadCheck.totalEntries}.`);
-      }
-
-      const items = extractClavisAureaEntries(data);
-      for (const item of items) {
-        try {
-          const normalized = normalizeLexiconImportItem(item);
-          if (!normalized) {
-            throw new Error("Missing required term field");
-          }
-
-          await lexiconCreateMutation.mutateAsync({
-            term: normalized.term,
-            partOfSpeech: normalized.partOfSpeech || "",
-            definition: normalized.definition || "",
-            etymology: normalized.etymology || "",
-            origin: normalized.origin || "",
-            sourceType: normalized.sourceType || "",
-            imageNum: normalized.imageNum || "",
-            notes: normalized.notes || "",
-          });
-          success++;
-        } catch {
-          failed++;
-          errors.push("Failed to import Clavis Aurea term from the provided JSON payload.");
-        }
-      }
-    }
-
-    setResult({ success, failed, errors: errors.slice(0, 10) });
+  // Parse CSV and return preview
+  const parseCSVPreview = (csv: string, limit = 5) => {
+    const lines = csv.split("\n").slice(0, limit + 1);
+    return lines.filter(l => l.trim());
   };
 
-  const handleImport = async () => {
+  // Bulk import using new backend procedures
+  const handleBulkImport = async () => {
     if (!jsonInput.trim()) {
-      setResult({ success: 0, failed: 1, errors: ["Please paste JSON data or drop a file."] });
+      setResult({ successful: 0, failed: 1, errors: ["Please provide data to import."] });
       return;
     }
 
     setIsImporting(true);
     try {
-      const data = JSON.parse(jsonInput);
-      await importParsedData(data);
+      let result: ImportResult;
+
+      if (fileFormat === "json") {
+        const data = JSON.parse(jsonInput);
+        const entries = Array.isArray(data) ? data : [data];
+
+        if (importType === "quotes") {
+          result = await notebookJSONMutation.mutateAsync({
+            entries: entries.map((e: any) => ({
+              text: e.text || "",
+              author: e.author,
+              work: e.work,
+              sourceType: e.sourceType,
+              location: e.location,
+              note: e.note,
+              tags: e.tags,
+              collections: e.collections,
+              favorite: e.favorite,
+            })),
+            autoCategory,
+          });
+        } else {
+          result = await lexiconJSONMutation.mutateAsync({
+            entries: entries.map((e: any) => ({
+              term: e.term || "",
+              partOfSpeech: e.partOfSpeech,
+              definition: e.definition,
+              etymology: e.etymology,
+              origin: e.origin,
+              sourceType: e.sourceType,
+              imageNum: e.imageNum,
+              notes: e.notes,
+              dikwTier: e.dikwTier,
+            })),
+            autoCategory,
+          });
+        }
+      } else if (fileFormat === "csv") {
+        if (importType === "quotes") {
+          result = await notebookCSVMutation.mutateAsync({
+            csvContent: jsonInput,
+            columnMapping,
+            autoCategory,
+            skipHeader,
+          });
+        } else {
+          result = await lexiconCSVMutation.mutateAsync({
+            csvContent: jsonInput,
+            columnMapping,
+            autoCategory,
+            skipHeader,
+          });
+        }
+      } else {
+        if (importType === "quotes") {
+          result = await notebookTextMutation.mutateAsync({
+            textContent: jsonInput,
+            autoCategory,
+          });
+        } else {
+          result = await lexiconTextMutation.mutateAsync({
+            textContent: jsonInput,
+            autoCategory,
+          });
+        }
+      }
+
+      setResult(result);
+      setJsonInput("");
+      setLoadedFileName(null);
     } catch (error) {
       setResult({
-        success: 0,
+        successful: 0,
         failed: 1,
-        errors: [`Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`],
+        errors: [`Import failed: ${error instanceof Error ? error.message : "Unknown error"}`],
       });
     } finally {
       setIsImporting(false);
@@ -155,7 +173,7 @@ export default function BulkImport() {
     const state = buildAutofillLoadState({
       preferredSource: preferredSource ?? importType,
       text,
-      fileName: fileName || loadedFileName || "Imported JSON",
+      fileName: fileName || loadedFileName || "Imported file",
     });
 
     setJsonInput(state.jsonInput);
@@ -175,7 +193,7 @@ export default function BulkImport() {
       handleLoadedText(payload.text, payload.fileName, source);
     } catch {
       setResult({
-        success: 0,
+        successful: 0,
         failed: 1,
         errors: [buildAutofillErrorMessage(source)],
       });
@@ -188,7 +206,7 @@ export default function BulkImport() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Ingestion and archive tools</p>
         <h1 className="mb-4">Bulk Import</h1>
         <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
-          Paste structured JSON or drag a source file directly into the workspace to ingest quotations or Clavis Aurea entries in a single pass. Imported quotes are now categorized automatically from their content and merged into their tags and collections.
+          Import multiple entries at once from JSON, CSV, or plain text files. Entries are automatically categorized, assigned unique identifiers, and organized through your taxonomy.
         </p>
       </section>
 
@@ -198,7 +216,7 @@ export default function BulkImport() {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-[2rem] leading-none">Select import mode</h2>
               <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                One-click autofill ready
+                Auto-categorization ready
               </span>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -226,12 +244,43 @@ export default function BulkImport() {
           </Card>
 
           <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+            <h2 className="mb-4 text-[2rem] leading-none">Choose file format</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              {(["json", "csv", "text"] as const).map((fmt) => {
+                const titles = { json: "JSON", csv: "CSV", text: "Plain Text" };
+                const descriptions = {
+                  json: "Structured data with full metadata",
+                  csv: "Spreadsheet format with column mapping",
+                  text: "Simple text, one entry per line",
+                };
+                const selected = fileFormat === fmt;
+                return (
+                  <button
+                    key={fmt}
+                    onClick={() => {
+                      setFileFormat(fmt);
+                      setResult(null);
+                    }}
+                    className={`rounded-[1.3rem] border-2 border-black bg-white p-4 text-left transition ${selected ? "-translate-y-1" : "hover:-translate-y-1"}`}
+                  >
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#56c5ea]">
+                      <FileJson2 className="h-5 w-5 text-black" />
+                    </div>
+                    <p className="text-lg font-bold text-foreground">{titles[fmt]}</p>
+                    <p className="mt-3 text-sm leading-6 text-muted-foreground">{descriptions[fmt]}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
             <div className="mb-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] xl:items-start">
               <div>
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="text-[2rem] leading-none">Drag-and-drop import</h2>
+                  <h2 className="text-[2rem] leading-none">Upload or paste data</h2>
                   <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                    JSON files
+                    {fileFormat === "json" ? "JSON files" : fileFormat === "csv" ? "CSV files" : "Text files"}
                   </span>
                 </div>
                 <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -261,7 +310,7 @@ export default function BulkImport() {
                   </Button>
                 </div>
                 <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                  These buttons load the previously uploaded source files directly into the import workspace without requiring a new file drop.
+                  These buttons load the previously uploaded source files directly into the import workspace.
                 </p>
               </div>
             </div>
@@ -297,7 +346,7 @@ export default function BulkImport() {
                 </div>
                 <p className="text-lg font-semibold text-foreground">{mode.prompt}</p>
                 <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
-                  Drop a JSON file to auto-load it into the editor below. If the file structure is recognized, the workspace will automatically switch to the correct import mode.
+                  Drop a file to auto-load it into the editor below. The workspace will automatically detect the format and switch to the correct import mode.
                 </p>
                 <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                   {autofillMutation.isPending ? "Loading uploaded file..." : fileHint}
@@ -305,7 +354,7 @@ export default function BulkImport() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".json,.txt,application/json,text/plain"
+                  accept={fileFormat === "json" ? ".json" : fileFormat === "csv" ? ".csv" : ".txt"}
                   className="hidden"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
@@ -327,17 +376,25 @@ export default function BulkImport() {
           </Card>
 
           <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
-            <h2 className="mb-4 text-[2rem] leading-none">Paste or review JSON</h2>
+            <h2 className="mb-4 text-[2rem] leading-none">
+              {fileFormat === "json" ? "Paste or review JSON" : fileFormat === "csv" ? "Paste or review CSV" : "Paste or review text"}
+            </h2>
             <Textarea
               value={jsonInput}
               onChange={(e) => setJsonInput(e.target.value)}
-              placeholder="Paste your JSON array or dropped file content here..."
+              placeholder={
+                fileFormat === "json"
+                  ? "Paste your JSON array or dropped file content here..."
+                  : fileFormat === "csv"
+                    ? "Paste your CSV data here (with or without header)..."
+                    : "Paste your text here, one entry per line..."
+              }
               rows={14}
               className="rounded-[1.3rem] border-2 border-black/85 bg-white font-mono text-sm shadow-none"
             />
             <div className="mt-4 flex flex-wrap gap-3">
               <Button
-                onClick={handleImport}
+                onClick={handleBulkImport}
                 disabled={isImporting || !jsonInput.trim()}
                 className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
               >
@@ -358,6 +415,32 @@ export default function BulkImport() {
             </div>
           </Card>
 
+          <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+            <h2 className="mb-4 text-[2rem] leading-none">Import options</h2>
+            <div className="space-y-4">
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={autoCategory}
+                  onChange={(e) => setAutoCategory(e.target.checked)}
+                  className="h-4 w-4 rounded border-2 border-black"
+                />
+                <span className="text-sm font-medium">Auto-categorize entries based on content</span>
+              </label>
+              {fileFormat === "csv" && (
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={skipHeader}
+                    onChange={(e) => setSkipHeader(e.target.checked)}
+                    className="h-4 w-4 rounded border-2 border-black"
+                  />
+                  <span className="text-sm font-medium">Skip first row (header)</span>
+                </label>
+              )}
+            </div>
+          </Card>
+
           {result && (
             <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
               <div className="flex items-start gap-4">
@@ -370,7 +453,7 @@ export default function BulkImport() {
                 <div className="flex-1">
                   <h3 className="text-[1.8rem] leading-none">Import complete</h3>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                    <strong className="text-foreground">{result.success} successful</strong>
+                    <strong className="text-foreground">{result.successful} successful</strong>
                     {result.failed > 0 ? (
                       <>
                         {" "}· <strong className="text-[#e25b33]">{result.failed} failed</strong>
@@ -378,10 +461,18 @@ export default function BulkImport() {
                     ) : null}
                   </p>
                   {result.errors.length > 0 && (
-                    <div className="mt-4 rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4 text-sm leading-6 text-muted-foreground">
-                      {result.errors.map((error, index) => (
-                        <p key={index}>{error}</p>
-                      ))}
+                    <div className="mt-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Errors:</p>
+                      <ul className="space-y-1">
+                        {result.errors.slice(0, 5).map((error, i) => (
+                          <li key={i} className="text-xs text-muted-foreground">
+                            • {error}
+                          </li>
+                        ))}
+                        {result.errors.length > 5 && (
+                          <li className="text-xs text-muted-foreground">• ... and {result.errors.length - 5} more</li>
+                        )}
+                      </ul>
                     </div>
                   )}
                 </div>
@@ -392,48 +483,36 @@ export default function BulkImport() {
 
         <aside className="space-y-6">
           <Card className="dev-card overflow-hidden rounded-[1.5rem] p-0 shadow-none">
-            <div className={`${mode.pattern} h-5 w-full`} style={{ backgroundColor: mode.accent }} />
+            <div className="h-5 w-full bg-[#56c5ea]" />
             <div className="p-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Expected format</p>
-              <div className="rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4 font-mono text-xs leading-6 text-muted-foreground">
-                <pre className="overflow-x-auto whitespace-pre-wrap">{importType === "quotes" ? `[
-  {
-    "text": "Quote or passage text",
-    "author": "Author name",
-    "work": "Book or source title",
-    "sourceType": "Book",
-    "location": "Page number or timestamp",
-    "note": "Personal note",
-    "tags": "comma,separated,tags"
-  }
-]` : `{
-  "meta": {
-    "name": "Clavis Aurea",
-    "total_entries": 354
-  },
-  "entries": [
-    {
-      "term": "Word or phrase",
-      "pos": "noun",
-      "definition": "Definition text",
-      "origin": "Language or origin note",
-      "source_type": "Book or app",
-      "image_num": "114",
-      "notes": "Additional notes"
-    }
-  ]
-}`}</pre>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Import guide</p>
+              <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+                <div>
+                  <p className="font-semibold text-foreground">JSON Format</p>
+                  <p>Array of objects with entry fields. Best for preserving all metadata.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">CSV Format</p>
+                  <p>Spreadsheet data. Map columns to entry fields during import.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">Plain Text</p>
+                  <p>One entry per line. Ideal for quick bulk imports of simple entries.</p>
+                </div>
               </div>
             </div>
           </Card>
 
           <Card className="dev-card rounded-[1.5rem] p-5 shadow-none">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Import notes</p>
-            <div className="space-y-3 text-sm leading-6 text-muted-foreground">
-              <p>Drag-and-drop and manual file selection both load the file into the editor so you can inspect it before import.</p>
-              <p>Unknown fields are ignored, while failed rows do not interrupt the rest of the import job.</p>
-              <p>Clavis Aurea explicitly supports the provided payload structure with meta and entries, including the 354-entry glossary dataset.</p>
-            </div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Features</p>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>✓ Auto-categorization</li>
+              <li>✓ Unique ID generation</li>
+              <li>✓ Error handling</li>
+              <li>✓ Progress tracking</li>
+              <li>✓ Batch processing</li>
+              <li>✓ Multiple formats</li>
+            </ul>
           </Card>
         </aside>
       </section>
