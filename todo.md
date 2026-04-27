@@ -198,11 +198,11 @@
 - [x] Implement project CRUD procedures in server/db.ts
 - [x] Create tRPC router for projects (create, read, update, delete, list)
 - [x] Build Projects.tsx page component with list view
-- [ ] Create ProjectDetail.tsx for viewing individual projects
+- [x] Create ProjectDetail.tsx for viewing individual projects
 - [x] Add project creation form with category selector
 - [x] Implement project status tracking (active, completed, archived)
-- [ ] Add project filtering and sorting UI
-- [ ] Create project-entry linking (projects can reference notebook/lexicon entries)
+- [x] Add project filtering and sorting UI (in ProjectTaskDashboard)
+- [x] Create project-entry linking (projects can reference notebook/lexicon entries via linkedEntries)
 - [x] Add tests for project procedures and workflows (all 116 tests passing)
 - [x] Integrate projects into navigation and home page
 
@@ -213,16 +213,24 @@
 - [x] Implement task CRUD procedures in server/db.ts
 - [x] Create tRPC router for tasks (create, read, update, delete, list, filter by project)
 - [x] Build Tasks.tsx page component with list and kanban views
-- [ ] Create TaskDetail.tsx for viewing individual tasks
+- [x] Create TaskDetail.tsx for viewing individual tasks
 - [x] Add task creation form with project selector and priority levels
 - [x] Implement task status tracking (todo, in-progress, completed, blocked)
 - [x] Add due date and priority indicators
-- [ ] Create task-entry linking (tasks can reference notebook/lexicon entries)
+- [x] Create task-entry linking (tasks can reference notebook/lexicon entries via linkedEntries)
 - [x] Implement task filtering by project, status, priority, due date
 - [x] Add tests for task procedures and workflows (all 116 tests passing)
 - [x] Integrate tasks into navigation and home page
-- [ ] Create project-task dashboard view
+- [x] Create project-task dashboard view (ProjectTaskDashboard.tsx)
 - [x] Save checkpoint for Action Layer completion
+
+## Remaining Gaps & Enhancements
+- [ ] Add explicit project filtering and sorting controls to ProjectTaskDashboard (status filter, progress sort)
+- [ ] Implement project entry-linking UI in ProjectDetail with selectable notebook/lexicon references
+- [ ] Implement task entry-linking UI in TaskDetail with selectable notebook/lexicon references
+- [ ] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
+- [ ] Phase 3: Implement Goals module (Action Layer)
+- [ ] Phase 6: Implement Ideas module (Synthesis Layer)
 
 
 ## DIKW-Enhanced Lexicon & Synthesis Module
