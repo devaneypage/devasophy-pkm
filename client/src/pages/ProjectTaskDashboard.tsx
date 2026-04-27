@@ -6,12 +6,35 @@ import { BarChart3, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 
 export default function ProjectTaskDashboard() {
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("progress");
 
   const { data: projects } = trpc.projects.list.useQuery({});
   const { data: tasks } = trpc.tasks.list.useQuery({});
 
   // Calculate project statistics
-  const projectStats = projects?.map((project) => {
+  // Apply filtering and sorting
+  let filteredProjects = projects || [];
+  if (statusFilter !== "all") {
+    filteredProjects = filteredProjects.filter((p) => p.status === statusFilter);
+  }
+  
+  // Apply sorting
+  if (sortBy === "progress") {
+    filteredProjects = [...filteredProjects].sort((a, b) => {
+      const aProgress = a.taskCount > 0 ? (a.completed / a.taskCount) * 100 : 0;
+      const bProgress = b.taskCount > 0 ? (b.completed / b.taskCount) * 100 : 0;
+      return bProgress - aProgress;
+    });
+  } else if (sortBy === "tasks") {
+    filteredProjects = [...filteredProjects].sort((a, b) => b.taskCount - a.taskCount);
+  } else if (sortBy === "date") {
+    filteredProjects = [...filteredProjects].sort((a, b) => 
+      new Date(b.updatedAt as any).getTime() - new Date(a.updatedAt as any).getTime()
+    );
+  }
+
+  const projectStats = filteredProjects.map((project) => {
     const projectTasks = tasks?.filter((t) => t.projectId === project.id) || [];
     const completed = projectTasks.filter((t) => t.status === "completed").length;
     const inProgress = projectTasks.filter((t) => t.status === "in-progress").length;
@@ -84,6 +107,34 @@ export default function ProjectTaskDashboard() {
         <div className="lg:col-span-1">
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4 text-gray-900">Projects</h2>
+        <div className="mb-4 space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-gray-600 uppercase">Filter by Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
+              <option value="on-hold">On Hold</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 uppercase">Sort by</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              <option value="progress">Progress (High to Low)</option>
+              <option value="tasks">Task Count (High to Low)</option>
+              <option value="date">Recently Updated</option>
+            </select>
+          </div>
+        </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {projectStats.length === 0 ? (
                 <p className="text-gray-500 text-sm">No projects yet</p>

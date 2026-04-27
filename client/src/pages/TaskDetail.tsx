@@ -46,7 +46,7 @@ export default function TaskDetail() {
       await updateMutation.mutateAsync({
         id: taskId,
         ...formData,
-        dueDate: formData.dueDate ? new Date(formData.dueDate).getTime() as any : undefined,
+        dueDate: formData.dueDate ? formData.dueDate ? new Date(formData.dueDate).getTime() : null : undefined,
       });
       setIsEditing(false);
     }

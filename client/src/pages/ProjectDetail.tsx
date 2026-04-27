@@ -14,6 +14,7 @@ export default function ProjectDetail() {
     status: "active" as const,
     startDate: "",
     endDate: "",
+    linkedEntries: [] as string[],
   });
 
   const projectId = params?.id ? parseInt(params.id) : null;
@@ -21,6 +22,7 @@ export default function ProjectDetail() {
     { id: projectId! },
     { enabled: !!projectId }
   );
+  const { data: notebookEntries } = trpc.notebook.list.useQuery({});
 
   const updateMutation = trpc.projects.update.useMutation();
   const deleteMutation = trpc.projects.delete.useMutation();
@@ -33,6 +35,7 @@ export default function ProjectDetail() {
         status: project.status || "active",
         startDate: project.startDate ? new Date(project.startDate as number).toISOString().split("T")[0] : "",
         endDate: project.endDate ? new Date(project.endDate as number).toISOString().split("T")[0] : "",
+        linkedEntries: project.linkedEntries || [],
       });
       setIsEditing(true);
     }

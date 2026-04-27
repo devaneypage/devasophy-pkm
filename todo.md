@@ -225,9 +225,9 @@
 - [x] Save checkpoint for Action Layer completion
 
 ## Remaining Gaps & Enhancements
-- [ ] Add explicit project filtering and sorting controls to ProjectTaskDashboard (status filter, progress sort)
-- [ ] Implement project entry-linking UI in ProjectDetail with selectable notebook/lexicon references
-- [ ] Implement task entry-linking UI in TaskDetail with selectable notebook/lexicon references
+- [x] Add explicit project filtering and sorting controls to ProjectTaskDashboard (status filter, progress sort)
+- [x] Implement project entry-linking UI in ProjectDetail with selectable notebook/lexicon references
+- [x] Implement task entry-linking UI in TaskDetail with selectable notebook/lexicon references
 - [ ] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
 - [ ] Phase 3: Implement Goals module (Action Layer)
 - [ ] Phase 6: Implement Ideas module (Synthesis Layer)
