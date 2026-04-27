@@ -588,7 +588,7 @@ export async function listProjects(userId: number, filters?: { status?: string }
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  let query = db
+  let query: any = db
     .select()
     .from(projects)
     .where(eq(projects.userId, userId));

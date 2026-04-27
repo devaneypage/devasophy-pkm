@@ -8,13 +8,20 @@ import { ArrowLeft, Edit2, Trash2, CheckCircle2, Circle } from "lucide-react";
 export default function ProjectDetail() {
   const [, params] = useRoute("/projects/:id");
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    status: "active" | "completed" | "archived" | "on-hold";
+    startDate: string;
+    endDate: string;
+    linkedEntries: string[];
+  }>({
     title: "",
     description: "",
-    status: "active" as const,
+    status: "active",
     startDate: "",
     endDate: "",
-    linkedEntries: [] as string[],
+    linkedEntries: [],
   });
 
   const projectId = params?.id ? parseInt(params.id) : null;
@@ -32,10 +39,10 @@ export default function ProjectDetail() {
       setFormData({
         title: project.title,
         description: project.description || "",
-        status: project.status || "active",
-        startDate: project.startDate ? new Date(project.startDate as number).toISOString().split("T")[0] : "",
-        endDate: project.endDate ? new Date(project.endDate as number).toISOString().split("T")[0] : "",
-        linkedEntries: project.linkedEntries || [],
+        status: (project.status as any) || "active",
+        startDate: project.startDate ? new Date(project.startDate as unknown as number).toISOString().split("T")[0] : "",
+        endDate: project.endDate ? new Date(project.endDate as unknown as number).toISOString().split("T")[0] : "",
+        linkedEntries: (Array.isArray(project.linkedEntries) ? project.linkedEntries : []) as string[],
       });
       setIsEditing(true);
     }
@@ -46,8 +53,8 @@ export default function ProjectDetail() {
       await updateMutation.mutateAsync({
         id: projectId,
         ...formData,
-        startDate: formData.startDate ? new Date(formData.startDate).getTime() : undefined,
-        endDate: formData.endDate ? new Date(formData.endDate).getTime() : undefined,
+        startDate: formData.startDate ? new Date(formData.startDate).getTime() : (undefined as any),
+        endDate: formData.endDate ? new Date(formData.endDate).getTime() : (undefined as any),
       });
       setIsEditing(false);
     }

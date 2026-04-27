@@ -8,11 +8,18 @@ import { ArrowLeft, Edit2, Trash2, CheckCircle2, Circle, AlertCircle } from "luc
 export default function TaskDetail() {
   const [, params] = useRoute("/tasks/:id");
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    status: "todo" | "in-progress" | "completed" | "blocked";
+    priority: "low" | "medium" | "high" | "urgent";
+    dueDate: string;
+    projectId: number;
+  }>({
     title: "",
     description: "",
-    status: "todo" as const,
-    priority: "medium" as const,
+    status: "todo",
+    priority: "medium",
     dueDate: "",
     projectId: 0,
   });
@@ -32,9 +39,9 @@ export default function TaskDetail() {
       setFormData({
         title: task.title,
         description: task.description || "",
-        status: task.status || "todo",
-        priority: task.priority || "medium",
-        dueDate: task.dueDate ? new Date(task.dueDate as number).toISOString().split("T")[0] : "",
+        status: (task.status as any) || "todo",
+        priority: (task.priority as any) || "medium",
+        dueDate: task.dueDate ? new Date(task.dueDate as unknown as number).toISOString().split("T")[0] : "",
         projectId: task.projectId || 0,
       });
       setIsEditing(true);
@@ -46,7 +53,7 @@ export default function TaskDetail() {
       await updateMutation.mutateAsync({
         id: taskId,
         ...formData,
-        dueDate: formData.dueDate ? formData.dueDate ? new Date(formData.dueDate).getTime() : null : undefined,
+        dueDate: formData.dueDate ? new Date(formData.dueDate).getTime() : (undefined as any),
       });
       setIsEditing(false);
     }
@@ -208,7 +215,7 @@ export default function TaskDetail() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value={0}>No Project</option>
-                {projects?.map((p) => (
+                {projects?.map((p: any) => (
                   <option key={p.id} value={p.id}>
                     {p.title}
                   </option>
@@ -240,8 +247,8 @@ export default function TaskDetail() {
               >
                 {task.status?.replace("-", " ") || "todo"}
               </span>
-              <span className={`text-sm font-semibold ${priorityColors[task.priority || "medium"]}`}>
-                {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1) || "Medium"} Priority
+              <span className={`text-sm font-semibold ${priorityColors[(task.priority as string) || "medium"]}`}>
+                {(task.priority as string)?.charAt(0).toUpperCase() + (task.priority as string)?.slice(1) || "Medium"} Priority
               </span>
               {task.status === "completed" && (
                 <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -270,7 +277,7 @@ export default function TaskDetail() {
                   Due Date
                 </h3>
                 <p className="text-gray-900">
-                  {new Date(task.dueDate as number).toLocaleDateString()}
+                  {new Date(task.dueDate as unknown as number).toLocaleDateString()}
                 </p>
               </div>
             )}

@@ -16,7 +16,7 @@ export default function ProjectTaskDashboard() {
   // Apply filtering and sorting
   let filteredProjects = projects || [];
   if (statusFilter !== "all") {
-    filteredProjects = filteredProjects.filter((p) => p.status === statusFilter);
+    filteredProjects = filteredProjects.filter((p: any) => p.status === statusFilter);
   }
   
   // Apply sorting
@@ -34,7 +34,7 @@ export default function ProjectTaskDashboard() {
     );
   }
 
-  const projectStats = filteredProjects.map((project) => {
+  const projectStats = filteredProjects.map((project: any) => {
     const projectTasks = tasks?.filter((t) => t.projectId === project.id) || [];
     const completed = projectTasks.filter((t) => t.status === "completed").length;
     const inProgress = projectTasks.filter((t) => t.status === "in-progress").length;
@@ -53,9 +53,7 @@ export default function ProjectTaskDashboard() {
   }) || [];
 
   // Get tasks for selected project
-  const selectedProjectTasks = selectedProject
-    ? tasks?.filter((t) => t.projectId === selectedProject) || []
-    : [];
+  const selectedProjectTasks = tasks?.filter((t: any) => t.projectId === selectedProject) || [];
 
   const statusColors: Record<string, string> = {
     todo: "bg-gray-100 text-gray-800",
@@ -139,7 +137,7 @@ export default function ProjectTaskDashboard() {
               {projectStats.length === 0 ? (
                 <p className="text-gray-500 text-sm">No projects yet</p>
               ) : (
-                projectStats.map((project) => (
+                projectStats.map((project: any) => (
                   <button
                     key={project.id}
                     onClick={() => setSelectedProject(selectedProject === project.id ? null : project.id)}
@@ -171,7 +169,7 @@ export default function ProjectTaskDashboard() {
           {selectedProject ? (
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4 text-gray-900">
-                Tasks for {projectStats.find((p) => p.id === selectedProject)?.title}
+                Tasks for {projectStats.find((p: any) => p.id === selectedProject)?.title}
               </h2>
 
               {selectedProjectTasks.length === 0 ? (
@@ -208,13 +206,13 @@ export default function ProjectTaskDashboard() {
                         >
                           {task.status?.replace("-", " ") || "todo"}
                         </span>
-                        <span className={`text-xs font-semibold ${priorityColors[task.priority || "medium"]}`}>
-                          {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1) || "Medium"}
+                        <span className={`text-xs font-semibold ${priorityColors[(task.priority as string) || "medium"]}`}>
+                          {(task.priority as string)?.charAt(0).toUpperCase() + (task.priority as string)?.slice(1) || "Medium"}
                         </span>
                         {task.dueDate && (
                           <span className="text-xs text-gray-600 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(task.dueDate as number).toLocaleDateString()}
+                            {new Date(task.dueDate as unknown as number).toLocaleDateString()}
                           </span>
                         )}
                       </div>

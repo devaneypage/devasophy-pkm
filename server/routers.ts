@@ -37,7 +37,8 @@ import {
   getTask,
   listTasks,
   updateTask,
-  deleteTask} from "./db";
+  deleteTask,
+} from "./db";
 import {
   generateNotebookZettelkastenId,
   generateLexiconZettelkastenId,
