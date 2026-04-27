@@ -1100,3 +1100,318 @@ export async function bulkImportLexiconFromText(
 
   return bulkImportLexiconEntries(userId, entries, options);
 }
+
+
+/**
+ * Bulk import notebook entries with duplicate detection
+ */
+export async function bulkImportNotebookWithDuplicateDetection(
+  userId: number,
+  entries: Array<{
+    text: string;
+    author?: string;
+    work?: string;
+    sourceType?: string;
+    location?: string;
+    note?: string;
+    tags?: string;
+    collections?: string;
+    favorite?: boolean;
+  }>,
+  options?: {
+    autoCategory?: boolean;
+    generateIds?: boolean;
+    onDuplicate?: "skip" | "merge" | "replace";
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Import the duplicate detection functions
+  const { detectNotebookDuplicates, mergeNotebookEntries } = await import("./duplicateDetection");
+
+  // Get existing entries for comparison
+  const existingEntriesRaw = await db
+    .select({ id: notebookEntries.id, text: notebookEntries.text, author: notebookEntries.author })
+    .from(notebookEntries)
+    .where(eq(notebookEntries.userId, userId));
+
+  const existingEntries = existingEntriesRaw.map((e) => ({
+    id: e.id,
+    text: e.text,
+    author: e.author || undefined,
+  }));
+
+  const results = {
+    successful: 0,
+    failed: 0,
+    duplicatesFound: 0,
+    duplicatesMerged: 0,
+    errors: [] as string[],
+    duplicates: [] as Array<{
+      incomingIndex: number;
+      incomingText: string;
+      matchedEntryId: number;
+      matchedText: string;
+      similarity: number;
+      action: string;
+    }>,
+  };
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+
+    try {
+      if (!entry.text) {
+        results.failed++;
+        results.errors.push(`Entry ${i}: text is required`);
+        continue;
+      }
+
+      // Check for duplicates
+      const duplicates = detectNotebookDuplicates(
+        { text: entry.text, author: entry.author || undefined },
+        existingEntries
+      );
+
+      if (duplicates.length > 0) {
+        results.duplicatesFound++;
+        const duplicate = duplicates[0]; // Most similar match
+
+        results.duplicates.push({
+          incomingIndex: i,
+          incomingText: entry.text,
+          matchedEntryId: duplicate.existingId,
+          matchedText: duplicate.existingText,
+          similarity: duplicate.similarity,
+          action: options?.onDuplicate || "skip",
+        });
+
+        if (options?.onDuplicate === "merge") {
+          // Merge with existing entry
+          const existingEntry = existingEntries.find((e) => e.id === duplicate.existingId);
+          if (existingEntry) {
+            const merged = mergeNotebookEntries(
+              {
+                id: existingEntry.id,
+                text: existingEntry.text,
+                author: existingEntry.author,
+              },
+              entry,
+              "merge_fields"
+            );
+
+            // Update the existing entry with merged data
+            await db
+              .update(notebookEntries)
+              .set(merged.mergedEntry)
+              .where(eq(notebookEntries.id, existingEntry.id));
+
+            results.duplicatesMerged++;
+            results.successful++;
+          }
+        } else if (options?.onDuplicate === "replace") {
+          // Replace existing entry
+          await db
+            .update(notebookEntries)
+            .set(entry)
+            .where(eq(notebookEntries.id, duplicate.existingId));
+
+          results.duplicatesMerged++;
+          results.successful++;
+        } else {
+          // Skip (default)
+          results.failed++;
+          results.errors.push(`Entry ${i}: duplicate of entry ${duplicate.existingId} (similarity: ${(duplicate.similarity * 100).toFixed(1)}%)`);
+        }
+      } else {
+        // No duplicate, insert normally
+        const uuid = `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const categoryId = options?.autoCategory
+          ? categorizeEntryContent(entry.text, "notebook")
+          : undefined;
+
+        await db.insert(notebookEntries).values({
+          userId,
+          uuid,
+          categoryId: categoryId || undefined,
+          text: entry.text,
+          author: entry.author,
+          work: entry.work,
+          sourceType: entry.sourceType,
+          location: entry.location,
+          note: entry.note,
+          tags: entry.tags,
+          collections: entry.collections,
+          favorite: entry.favorite || false,
+        });
+
+        results.successful++;
+      }
+    } catch (error) {
+      results.failed++;
+      results.errors.push(
+        `Entry ${i}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Bulk import lexicon entries with duplicate detection
+ */
+export async function bulkImportLexiconWithDuplicateDetection(
+  userId: number,
+  entries: Array<{
+    term: string;
+    partOfSpeech?: string;
+    definition?: string;
+    etymology?: string;
+    origin?: string;
+    sourceType?: string;
+    imageNum?: string;
+    notes?: string;
+    dikwTier?: string;
+  }>,
+  options?: {
+    autoCategory?: boolean;
+    generateIds?: boolean;
+    onDuplicate?: "skip" | "merge" | "replace";
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Import the duplicate detection functions
+  const { detectLexiconDuplicates, mergeLexiconEntries } = await import("./duplicateDetection");
+
+  // Get existing entries for comparison
+  const existingEntriesRaw = await db
+    .select({ id: lexiconEntries.id, term: lexiconEntries.term, definition: lexiconEntries.definition })
+    .from(lexiconEntries)
+    .where(eq(lexiconEntries.userId, userId));
+
+  const existingEntries = existingEntriesRaw.map((e) => ({
+    id: e.id,
+    term: e.term,
+    definition: e.definition || undefined,
+  }));
+
+  const results = {
+    successful: 0,
+    failed: 0,
+    duplicatesFound: 0,
+    duplicatesMerged: 0,
+    errors: [] as string[],
+    duplicates: [] as Array<{
+      incomingIndex: number;
+      incomingTerm: string;
+      matchedEntryId: number;
+      matchedTerm: string;
+      similarity: number;
+      action: string;
+    }>,
+  };
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+
+    try {
+      if (!entry.term) {
+        results.failed++;
+        results.errors.push(`Entry ${i}: term is required`);
+        continue;
+      }
+
+      // Check for duplicates
+      const duplicates = detectLexiconDuplicates(
+        { term: entry.term, definition: entry.definition || undefined },
+        existingEntries
+      );
+
+      if (duplicates.length > 0) {
+        results.duplicatesFound++;
+        const duplicate = duplicates[0]; // Most similar match
+
+        results.duplicates.push({
+          incomingIndex: i,
+          incomingTerm: entry.term,
+          matchedEntryId: duplicate.existingId,
+          matchedTerm: duplicate.existingTerm,
+          similarity: duplicate.similarity,
+          action: options?.onDuplicate || "skip",
+        });
+
+        if (options?.onDuplicate === "merge") {
+          // Merge with existing entry
+          const existingEntry = existingEntries.find((e) => e.id === duplicate.existingId);
+          if (existingEntry) {
+            const merged = mergeLexiconEntries(
+              {
+                id: existingEntry.id,
+                term: existingEntry.term,
+                definition: existingEntry.definition || undefined,
+              },
+              entry,
+              "merge_fields"
+            );
+
+            // Update the existing entry with merged data
+            await db
+              .update(lexiconEntries)
+              .set(merged.mergedEntry)
+              .where(eq(lexiconEntries.id, existingEntry.id));
+
+            results.duplicatesMerged++;
+            results.successful++;
+          }
+        } else if (options?.onDuplicate === "replace") {
+          // Replace existing entry
+          await db
+            .update(lexiconEntries)
+            .set(entry)
+            .where(eq(lexiconEntries.id, duplicate.existingId));
+
+          results.duplicatesMerged++;
+          results.successful++;
+        } else {
+          // Skip (default)
+          results.failed++;
+          results.errors.push(
+            `Entry ${i}: duplicate of entry ${duplicate.existingId} (similarity: ${(duplicate.similarity * 100).toFixed(1)}%)`
+          );
+        }
+      } else {
+        // No duplicate, insert normally
+        const categoryId = options?.autoCategory
+          ? categorizeEntryContent(entry.definition || entry.term, "lexicon")
+          : undefined;
+
+        await db.insert(lexiconEntries).values({
+          userId,
+          categoryId: categoryId || undefined,
+          term: entry.term,
+          partOfSpeech: entry.partOfSpeech,
+          definition: entry.definition,
+          etymology: entry.etymology,
+          origin: entry.origin,
+          sourceType: entry.sourceType,
+          imageNum: entry.imageNum,
+          notes: entry.notes,
+          dikwTier: entry.dikwTier || "information",
+        });
+
+        results.successful++;
+      }
+    } catch (error) {
+      results.failed++;
+      results.errors.push(
+        `Entry ${i}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  return results;
+}

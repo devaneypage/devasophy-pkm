@@ -283,3 +283,51 @@
 - [x] Integrate bulk import into navigation
 - [x] Wire BulkImport UI to new backend procedures
 - [x] Save checkpoint for bulk import completion
+
+
+## Duplicate Detection System for Bulk Import
+- [ ] Implement similarity detection algorithms (Levenshtein distance, fuzzy matching)
+- [ ] Create duplicate detection engine for notebook entries
+- [ ] Create duplicate detection engine for lexicon entries
+- [ ] Implement merge strategies for combining duplicates
+- [ ] Add duplicate detection to bulk import procedures
+- [ ] Build conflict resolution UI showing detected duplicates
+- [ ] Add user controls for merge/skip/replace actions
+- [ ] Write tests for similarity algorithms (36+ tests)
+- [ ] Write tests for duplicate detection workflows
+- [ ] Write tests for merge strategies
+- [ ] Save checkpoint for duplicate detection completion
+
+
+## Duplicate Detection System — Bulk Import Enhancement
+- [x] Implement similarity detection algorithms
+  - [x] Levenshtein distance for character-level similarity
+  - [x] Jaro-Winkler for phonetic similarity
+  - [x] Word overlap for semantic similarity
+  - [x] Combined scoring with weighted metrics
+- [x] Create merge strategies for combining duplicate entries
+  - [x] Merge fields strategy (combine non-empty fields)
+  - [x] Skip strategy (keep existing, discard incoming)
+  - [x] Replace strategy (replace existing with incoming)
+- [x] Add duplicate detection to bulk import procedures
+  - [x] bulkImportNotebookWithDuplicateDetection function
+  - [x] bulkImportLexiconWithDuplicateDetection function
+  - [x] CSV/JSON/Text import with duplicate handling
+  - [x] Automatic duplicate reporting in import results
+- [x] Build conflict resolution UI
+  - [x] DuplicateConflictResolver component
+  - [x] Similarity score display with color coding (exact/very similar/similar/possible)
+  - [x] Individual resolution controls (skip/merge/replace)
+  - [x] Bulk action buttons (skip all/merge all)
+  - [x] Detail dialog for reviewing duplicate pairs
+  - [x] Progress bar for similarity visualization
+- [x] Add tRPC routes for duplicate detection
+  - [x] bulkImport.notebookWithDuplicateDetection mutation
+  - [x] bulkImport.lexiconWithDuplicateDetection mutation
+  - [x] bulkImport.detectNotebookDuplicates query
+  - [x] bulkImport.detectLexiconDuplicates query
+- [x] Comprehensive tests
+  - [x] 54 unit tests for similarity algorithms and edge cases
+  - [x] 10 UI component tests for conflict resolver
+  - [x] 231 total tests passing (no regressions)
+- [x] Save checkpoint for duplicate detection feature

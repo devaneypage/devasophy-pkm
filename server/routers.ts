@@ -44,11 +44,14 @@ import {
   bulkImportLexiconFromCSV,
   bulkImportNotebookFromText,
   bulkImportLexiconFromText,
+  bulkImportNotebookWithDuplicateDetection,
+  bulkImportLexiconWithDuplicateDetection,
 } from "./db";
 import {
   generateNotebookZettelkastenId,
   generateLexiconZettelkastenId,
 } from "./zettelkasten";
+import { duplicateDetectionRouter } from "./duplicateDetectionRoutes";
 
 export const appRouter = router({
   system: systemRouter,
@@ -666,6 +669,7 @@ Composition request: ${input.prompt}`,
           autoCategory: input.autoCategory,
         });
       }),
+    ...duplicateDetectionRouter._def.procedures,
   }),
 });
 export type AppRouter = typeof appRouter;
