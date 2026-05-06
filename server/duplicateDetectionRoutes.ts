@@ -108,7 +108,7 @@ export const duplicateDetectionRouter = router({
         ),
       })
     )
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -174,7 +174,7 @@ export const duplicateDetectionRouter = router({
         ),
       })
     )
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 

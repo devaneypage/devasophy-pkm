@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Edit2, Trash2, Link2 } from "lucide-react";
 import ZettelkastenIdDisplay from "@/components/ZettelkastenIdDisplay";
+import { formatSemanticLinkDisplay } from "@shared/linkSemantics";
 
 export default function NotebookDetail() {
   const [, params] = useRoute("/notebook/:id");
@@ -258,8 +259,8 @@ export default function NotebookDetail() {
                       key={link.id}
                       className="p-3 bg-background rounded border border-border hover:border-primary transition-colors"
                     >
-                      <p className="text-sm text-muted-foreground">{link.linkType}</p>
-                      <p className="font-medium">{link.targetType}</p>
+                      <p className="text-sm text-muted-foreground">Relationship</p>
+                      <p className="font-medium">{formatSemanticLinkDisplay(link.linkType, link.targetType)}</p>
                     </div>
                   ))}
                 </div>

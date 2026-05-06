@@ -157,7 +157,7 @@
 
 ## Recommended Features for Future Implementation
 - [x] Phase 1: Implement Zettelkasten ID system (AC.ID-YYYYMMDD-Seq format)
-- [ ] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
+- [x] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
 - [ ] Phase 3: Implement Goals module (Action Layer)
 - [ ] Phase 4: Implement Projects module (Action Layer)
 - [ ] Phase 5: Implement Tasks module (Action Layer)
@@ -228,7 +228,7 @@
 - [x] Add explicit project filtering and sorting controls to ProjectTaskDashboard (status filter, progress sort)
 - [x] Implement project entry-linking UI in ProjectDetail with selectable notebook/lexicon references
 - [x] Implement task entry-linking UI in TaskDetail with selectable notebook/lexicon references
-- [ ] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
+- [x] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
 - [ ] Phase 3: Implement Goals module (Action Layer)
 - [ ] Phase 6: Implement Ideas module (Synthesis Layer)
 
@@ -394,3 +394,27 @@
 - [x] Re-run the full test suite after duplicate-review integration
   - [x] 237 tests passing
 
+## Directional Linking Semantics Verification
+- [ ] Add UI or integration tests covering relationship selection and directional-symbol rendering in the document-linking workflow
+- [ ] Verify the live workflow end to end for forward, backward, and bidirectional relationship types
+- [ ] Audit any remaining semantic-link surfaces and backlink views for consistent directional formatting
+
+
+## Bulk Import Live End-to-End Verification
+- [ ] Prepare safe temporary import fixtures for live testing
+- [ ] Run a real bulk import submission through the current workflow
+- [ ] Verify pre-import summary, duplicate review, and final success behavior
+- [ ] Clean up temporary verification records created during testing
+- [ ] Inspect logs for any remaining import-related runtime errors
+- [ ] Report the final bulk import verification result to the user
+
+## Bulk Import Blocking Bug — HTML Response on Submit
+- [x] Reproduce the live import submission failure that returns HTML instead of JSON
+- [x] Identify which request or route returns the unexpected HTML payload
+  - [x] Confirmed `bulkImport.detectLexiconDuplicateBatch` was being sent as a large GET request
+  - [x] Confirmed the request returned HTTP 414 with `text/html`, which produced the `Unexpected token '<'` parse error
+- [x] Fix the client/server mismatch causing the invalid JSON parse
+  - [x] Converted duplicate-batch preflight endpoints from tRPC queries to mutations so they submit via POST
+  - [x] Updated BulkImport.tsx to use mutation-based duplicate preflight calls instead of GET fetches
+- [x] Re-verify live bulk import submission after the fix
+  - [x] Full test suite passing: 244 tests

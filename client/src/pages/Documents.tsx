@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, ChevronRight, FileText, Library, Link2, Plus, Search, Trash2 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { buildLexiconReferenceInsert, buildNotebookReferenceInsert } from "@shared/pkmFormatting";
+import { defaultSemanticLinkPresetByTarget, formatSemanticLinkDisplay, formatSemanticLinkLabel, semanticLinkPresets, type SemanticLinkPresetKey } from "@shared/linkSemantics";
 import CategorySelect from "@/components/CategorySelect";
 
 const statusColors: Record<string, string> = {
@@ -25,6 +26,7 @@ export default function Documents() {
   const [searchTerm, setSearchTerm] = useState("");
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>("notebook");
   const [referenceSearch, setReferenceSearch] = useState("");
+  const [selectedRelationship, setSelectedRelationship] = useState<SemanticLinkPresetKey>("supports");
   const [formData, setFormData] = useState({
     title: "",
     project: "",
@@ -98,6 +100,10 @@ export default function Documents() {
       }
     },
   });
+
+  useEffect(() => {
+    setSelectedRelationship(defaultSemanticLinkPresetByTarget[referenceMode]);
+  }, [referenceMode]);
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,7 +180,7 @@ export default function Documents() {
       sourceId: selectedDocId,
       targetType: reference.type,
       targetId: reference.id,
-      linkType: reference.type === "notebook" ? "supports" : "defines",
+      linkType: selectedRelationship,
     });
   };
 
@@ -380,14 +386,35 @@ export default function Documents() {
                     </button>
                   </div>
 
-                  <div className="relative mb-4">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      placeholder={`Search ${referenceMode === "notebook" ? "notebook" : "Clavis Aurea"} references`}
-                      value={referenceSearch}
-                      onChange={(e) => setReferenceSearch(e.target.value)}
-                      className="h-11 rounded-full border-2 border-black/85 bg-white pl-10 shadow-none"
-                    />
+                  <div className="mb-4 space-y-3">
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Relationship meaning</p>
+                      <div className="grid gap-2">
+                        {semanticLinkPresets.map((preset) => {
+                          const selected = selectedRelationship === preset.key;
+                          return (
+                            <button
+                              key={preset.key}
+                              type="button"
+                              onClick={() => setSelectedRelationship(preset.key)}
+                              className={`rounded-[1rem] border px-3 py-3 text-left transition ${selected ? "border-black bg-[#f6f3ec]" : "border-black/10 bg-white hover:border-black/40"}`}
+                            >
+                              <p className="font-semibold text-foreground">{formatSemanticLinkLabel(preset.key)}</p>
+                              <p className="mt-1 text-xs leading-5 text-muted-foreground">{preset.description}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder={`Search ${referenceMode === "notebook" ? "notebook" : "Clavis Aurea"} references`}
+                        value={referenceSearch}
+                        onChange={(e) => setReferenceSearch(e.target.value)}
+                        className="h-11 rounded-full border-2 border-black/85 bg-white pl-10 shadow-none"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -409,7 +436,7 @@ export default function Documents() {
                               className="h-10 w-full rounded-full border-2 border-black bg-white text-black shadow-none hover:bg-[#f6f3ec]"
                             >
                               <Plus className="mr-2 h-4 w-4" />
-                              Insert and link
+                              Insert as {formatSemanticLinkLabel(selectedRelationship)}
                             </Button>
                           </div>
                         </div>
@@ -428,8 +455,8 @@ export default function Documents() {
                     {documentLinks && documentLinks.length > 0 ? (
                       documentLinks.slice(0, 8).map((link, index) => (
                         <div key={link.id ?? index} className="rounded-[1.1rem] border border-black/10 bg-white p-4">
-                          <p className="font-semibold capitalize text-foreground">
-                            {link.linkType || "related"} → {link.targetType}
+                          <p className="font-semibold text-foreground">
+                            {formatSemanticLinkDisplay(link.linkType, link.targetType)}
                           </p>
                           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
                             Linked record #{link.targetId}

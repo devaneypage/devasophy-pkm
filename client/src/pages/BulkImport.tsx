@@ -79,7 +79,6 @@ export default function BulkImport() {
   const [isReviewingDuplicates, setIsReviewingDuplicates] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const utils = trpc.useUtils();
   const notebookJSONMutation = trpc.bulkImport.notebookJSON.useMutation();
   const lexiconJSONMutation = trpc.bulkImport.lexiconJSON.useMutation();
   const notebookCSVMutation = trpc.bulkImport.notebookCSV.useMutation();
@@ -88,6 +87,8 @@ export default function BulkImport() {
   const lexiconTextMutation = trpc.bulkImport.lexiconText.useMutation();
   const notebookDuplicateMutation = trpc.bulkImport.notebookWithDuplicateDetection.useMutation();
   const lexiconDuplicateMutation = trpc.bulkImport.lexiconWithDuplicateDetection.useMutation();
+  const notebookDuplicateBatchMutation = trpc.bulkImport.detectNotebookDuplicateBatch.useMutation();
+  const lexiconDuplicateBatchMutation = trpc.bulkImport.detectLexiconDuplicateBatch.useMutation();
   const autofillMutation = trpc.autofill.loadUploadedFile.useMutation();
 
   const mode = importModes[importType];
@@ -248,10 +249,10 @@ export default function BulkImport() {
       if (fileFormat === "json") {
         const payload = prepareJsonPayload();
         const duplicateMatches = payload.importType === "quotes"
-          ? await utils.bulkImport.detectNotebookDuplicateBatch.fetch({
+          ? await notebookDuplicateBatchMutation.mutateAsync({
               entries: payload.entries.map((entry) => ({ text: entry.text, author: entry.author })),
             })
-          : await utils.bulkImport.detectLexiconDuplicateBatch.fetch({
+          : await lexiconDuplicateBatchMutation.mutateAsync({
               entries: payload.entries.map((entry) => ({ term: entry.term, definition: entry.definition })),
             });
 

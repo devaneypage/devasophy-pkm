@@ -13,6 +13,10 @@ import {
   detectImportPayloadType,
   normalizeLexiconImportItem,
 } from "../shared/pkmFormatting";
+import {
+  formatSemanticLinkDisplay,
+  formatSemanticLinkLabel,
+} from "../shared/linkSemantics";
 
 describe("follow-up UI helpers", () => {
   it("detects the provided Clavis Aurea payload structure for drag-and-drop imports", () => {
@@ -74,5 +78,17 @@ describe("follow-up UI helpers", () => {
         definition: "An index of thematic relations.",
       })
     ).toContain("**Concordance** (noun): An index of thematic relations.");
+  });
+
+  it("formats directional semantic relationship labels for the document linking workflow", () => {
+    expect(formatSemanticLinkLabel("supports")).toBe("Supports →");
+    expect(formatSemanticLinkLabel("defines")).toBe("Defines ←");
+    expect(formatSemanticLinkLabel("related")).toBe("Related ↔");
+  });
+
+  it("formats directional link displays for notebook, lexicon, and document views", () => {
+    expect(formatSemanticLinkDisplay("supports", "lexicon")).toBe("Supports → lexicon");
+    expect(formatSemanticLinkDisplay("defines", "document")).toBe("document ← Defines");
+    expect(formatSemanticLinkDisplay("contradicts", "notebook")).toBe("Contradicts ↔ notebook");
   });
 });
