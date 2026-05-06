@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  analyzePreImportInput,
   buildLexiconReferenceInsert,
   buildNotebookReferenceInsert,
   detectImportPayloadType,
@@ -171,6 +172,60 @@ describe("generic import normalization", () => {
         },
       ])
     ).toBe("quotes");
+  });
+});
+
+describe("pre-import analysis", () => {
+  it("builds a balanced summary for the real quotes payload shape", () => {
+    const summary = analyzePreImportInput({
+      rawText: JSON.stringify([
+        {
+          text: "We cannot solve our problems with the same thinking we used when we created them.",
+          authors: "Albert Einstein",
+          collections: "Mantra",
+        },
+        {
+          text: "Do not quench your inspiration and your imagination.",
+          source: {
+            sourceType: "Book",
+            title: "Letter to Theo Van Gogh (1882)",
+            authors: "Vincent Van Gogh",
+          },
+        },
+      ]),
+      importType: "quotes",
+      fileFormat: "json",
+    });
+
+    expect(summary.validEntries).toBe(2);
+    expect(summary.invalidEntries).toBe(0);
+    expect(summary.samplePreviews).toHaveLength(2);
+    expect(summary.detectedSource).toBe("JSON");
+  });
+
+  it("reports inferred mappings and blocking errors for malformed CSV imports", () => {
+    const summary = analyzePreImportInput({
+      rawText: "author,work\nDevaney,Notebook",
+      importType: "quotes",
+      fileFormat: "csv",
+      skipHeader: true,
+    });
+
+    expect(summary.inferredMapping).toMatchObject({ author: 0, work: 1 });
+    expect(summary.validEntries).toBe(0);
+    expect(summary.issues.some((issue) => issue.severity === "error")).toBe(true);
+  });
+
+  it("detects duplicate groups inside a plain-text batch before import", () => {
+    const summary = analyzePreImportInput({
+      rawText: "Aporia\nAporia\nKairos",
+      importType: "lexicon",
+      fileFormat: "text",
+    });
+
+    expect(summary.validEntries).toBe(3);
+    expect(summary.duplicateCandidateCount).toBe(1);
+    expect(summary.issues.some((issue) => issue.rowLabel === "Duplicates")).toBe(true);
   });
 });
 

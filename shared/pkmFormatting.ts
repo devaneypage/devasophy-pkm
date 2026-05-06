@@ -317,6 +317,295 @@ export function inferCsvColumnMapping(
   return mapping;
 }
 
+export type PreImportValidationIssue = {
+  severity: "error" | "warning";
+  rowLabel: string;
+  message: string;
+  preview?: string;
+};
+
+export type PreImportSummary = {
+  importType: "quotes" | "lexicon";
+  fileFormat: "json" | "csv" | "text";
+  totalInputRows: number;
+  candidateRows: number;
+  validEntries: number;
+  invalidEntries: number;
+  warningCount: number;
+  duplicateCandidateCount: number;
+  inferredMapping: Record<string, number>;
+  detectedSource: string;
+  samplePreviews: string[];
+  issues: PreImportValidationIssue[];
+};
+
+function parseCsvRows(input: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentValue = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input[index];
+    const next = input[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        currentValue += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      currentRow.push(currentValue.trim());
+      currentValue = "";
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') {
+        index += 1;
+      }
+      currentRow.push(currentValue.trim());
+      if (currentRow.some((cell) => cell.length > 0)) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentValue = "";
+      continue;
+    }
+
+    currentValue += char;
+  }
+
+  if (currentValue.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentValue.trim());
+    if (currentRow.some((cell) => cell.length > 0)) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
+}
+
+function buildCsvRecords(
+  rows: string[][],
+  importType: "quotes" | "lexicon",
+  providedMapping: Record<string, number>,
+  skipHeader: boolean
+): { records: Record<string, string>[]; mapping: Record<string, number>; totalRows: number } {
+  if (rows.length === 0) {
+    return { records: [], mapping: {}, totalRows: 0 };
+  }
+
+  const headerRow = rows[0];
+  const mapping = Object.keys(providedMapping).length > 0
+    ? providedMapping
+    : inferCsvColumnMapping(headerRow, importType);
+  const startIndex = skipHeader ? 1 : 0;
+  const records = rows.slice(startIndex).map((row) => {
+    const record: Record<string, string> = {};
+    for (const [field, columnIndex] of Object.entries(mapping)) {
+      record[field] = row[columnIndex] ?? "";
+    }
+    return record;
+  });
+
+  return {
+    records,
+    mapping,
+    totalRows: rows.length,
+  };
+}
+
+function buildTextRecords(input: string, importType: "quotes" | "lexicon"): Record<string, string>[] {
+  return input
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => (importType === "quotes"
+      ? ({ text: line } as Record<string, string>)
+      : ({ term: line } as Record<string, string>)));
+}
+
+function countIncomingDuplicates(
+  entries: Array<NormalizedNotebookImport | NormalizedLexiconImport>,
+  importType: "quotes" | "lexicon"
+): number {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+
+  entries.forEach((entry) => {
+    const key = importType === "quotes"
+      ? `${(entry as NormalizedNotebookImport).text.trim().toLowerCase()}::${((entry as NormalizedNotebookImport).author ?? "").trim().toLowerCase()}`
+      : `${(entry as NormalizedLexiconImport).term.trim().toLowerCase()}::${((entry as NormalizedLexiconImport).definition ?? "").trim().toLowerCase()}`;
+
+    if (seen.has(key)) {
+      duplicates.add(key);
+    } else {
+      seen.add(key);
+    }
+  });
+
+  return duplicates.size;
+}
+
+export function analyzePreImportInput(input: {
+  rawText: string;
+  importType: "quotes" | "lexicon";
+  fileFormat: "json" | "csv" | "text";
+  columnMapping?: Record<string, number>;
+  skipHeader?: boolean;
+}): PreImportSummary {
+  const issues: PreImportValidationIssue[] = [];
+  const samplePreviews: string[] = [];
+  let normalizedEntries: Array<NormalizedNotebookImport | NormalizedLexiconImport> = [];
+  let candidateRows = 0;
+  let totalInputRows = 0;
+  let inferredMapping: Record<string, number> = input.columnMapping ?? {};
+  let detectedSource = input.fileFormat.toUpperCase();
+
+  if (!input.rawText.trim()) {
+    return {
+      importType: input.importType,
+      fileFormat: input.fileFormat,
+      totalInputRows: 0,
+      candidateRows: 0,
+      validEntries: 0,
+      invalidEntries: 0,
+      warningCount: 0,
+      duplicateCandidateCount: 0,
+      inferredMapping: {},
+      detectedSource: detectedSource,
+      samplePreviews: [],
+      issues: [{ severity: "error", rowLabel: "Input", message: "No import data detected." }],
+    };
+  }
+
+  try {
+    if (input.fileFormat === "json") {
+      const parsed = JSON.parse(input.rawText);
+      const sourceEntries = input.importType === "lexicon"
+        ? extractClavisAureaEntries(parsed).length > 0
+          ? extractClavisAureaEntries(parsed)
+          : Array.isArray(parsed)
+            ? parsed
+            : [parsed]
+        : Array.isArray(parsed)
+          ? parsed
+          : [parsed];
+      candidateRows = sourceEntries.length;
+      totalInputRows = sourceEntries.length;
+      normalizedEntries = input.importType === "quotes"
+        ? normalizeNotebookImportPayload(parsed)
+        : normalizeLexiconImportPayload(parsed);
+      if (input.importType === "lexicon") {
+        const validation = validateClavisAureaPayload(parsed);
+        if (validation.declaredTotal !== undefined && validation.declaredTotal !== validation.totalEntries) {
+          issues.push({
+            severity: "warning",
+            rowLabel: "Metadata",
+            message: `Declared entry count is ${validation.declaredTotal}, but ${validation.totalEntries} entries were found.`,
+          });
+        }
+        if (validation.isValid) {
+          detectedSource = "JSON · Clavis Aurea wrapper";
+        }
+      }
+    } else if (input.fileFormat === "csv") {
+      const parsedRows = parseCsvRows(input.rawText);
+      const csv = buildCsvRecords(parsedRows, input.importType, input.columnMapping ?? {}, input.skipHeader ?? true);
+      inferredMapping = csv.mapping;
+      totalInputRows = csv.totalRows;
+      candidateRows = csv.records.length;
+      normalizedEntries = input.importType === "quotes"
+        ? csv.records.map((record) => normalizeNotebookImportItem(record)).filter((item): item is NormalizedNotebookImport => item !== null)
+        : csv.records.map((record) => normalizeLexiconImportItem(record)).filter((item): item is NormalizedLexiconImport => item !== null);
+
+      const requiredField = input.importType === "quotes" ? "text" : "term";
+      if (inferredMapping[requiredField] === undefined) {
+        issues.push({
+          severity: "error",
+          rowLabel: "Mapping",
+          message: `Unable to infer the required '${requiredField}' column from the CSV header.`,
+        });
+      }
+      detectedSource = "CSV";
+    } else {
+      const records = buildTextRecords(input.rawText, input.importType);
+      totalInputRows = records.length;
+      candidateRows = records.length;
+      normalizedEntries = input.importType === "quotes"
+        ? records.map((record) => normalizeNotebookImportItem(record)).filter((item): item is NormalizedNotebookImport => item !== null)
+        : records.map((record) => normalizeLexiconImportItem(record)).filter((item): item is NormalizedLexiconImport => item !== null);
+      detectedSource = "Plain text";
+    }
+  } catch (error) {
+    issues.push({
+      severity: "error",
+      rowLabel: "Parsing",
+      message: error instanceof Error ? error.message : "Unable to parse the import input.",
+    });
+  }
+
+  const validEntries = normalizedEntries.length;
+  const invalidEntries = Math.max(candidateRows - validEntries, 0);
+
+  if (invalidEntries > 0) {
+    issues.push({
+      severity: "warning",
+      rowLabel: "Validation",
+      message: `${invalidEntries} row${invalidEntries === 1 ? " was" : "s were"} skipped because required fields were missing or malformed.`,
+    });
+  }
+
+  const duplicateCandidateCount = countIncomingDuplicates(normalizedEntries, input.importType);
+  if (duplicateCandidateCount > 0) {
+    issues.push({
+      severity: "warning",
+      rowLabel: "Duplicates",
+      message: `${duplicateCandidateCount} possible duplicate group${duplicateCandidateCount === 1 ? " was" : "s were"} detected within this import batch.`,
+    });
+  }
+
+  normalizedEntries.slice(0, 3).forEach((entry, index) => {
+    samplePreviews.push(
+      input.importType === "quotes"
+        ? `${index + 1}. ${(entry as NormalizedNotebookImport).text.slice(0, 96)}`
+        : `${index + 1}. ${(entry as NormalizedLexiconImport).term}${(entry as NormalizedLexiconImport).definition ? ` — ${(entry as NormalizedLexiconImport).definition?.slice(0, 72)}` : ""}`
+    );
+  });
+
+  if (validEntries > 0 && input.importType === "quotes") {
+    const categoryEnriched = normalizedEntries.filter((entry) => Boolean((entry as NormalizedNotebookImport).collections));
+    if (categoryEnriched.length === validEntries) {
+      issues.push({
+        severity: "warning",
+        rowLabel: "Auto-categorization",
+        message: "All valid quote entries will receive inferred tags and collections during import review.",
+      });
+    }
+  }
+
+  return {
+    importType: input.importType,
+    fileFormat: input.fileFormat,
+    totalInputRows,
+    candidateRows,
+    validEntries,
+    invalidEntries,
+    warningCount: issues.filter((issue) => issue.severity === "warning").length,
+    duplicateCandidateCount,
+    inferredMapping,
+    detectedSource,
+    samplePreviews,
+    issues,
+  };
+}
+
 export function buildNotebookReferenceInsert(input: {
   text: string;
   author?: string | null;

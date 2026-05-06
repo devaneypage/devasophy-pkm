@@ -372,5 +372,18 @@
   - [x] Real uploaded Clavis Aurea source file imported successfully in verification run
   - [x] Verification rows cleaned up after the test run
   - [x] Full test suite passing: 234 tests
-- [ ] Save a checkpoint for the repaired bulk import workflow
+- [x] Save a checkpoint for the repaired bulk import workflow
+
+## Bulk Import Pre-Import Summary and Validation Report
+- [x] Define the pre-import summary contents and validation report structure for quotes, lexicon, and text imports
+- [x] Add shared analysis helpers to compute entry counts, detected format details, required-field validation, warnings, and sample previews before import
+- [x] Add backend or shared support for duplicate counts and validation status prior to submission
+- [x] Update the Bulk Import page to show a pre-import summary panel before the user confirms import
+- [x] Add a validation report section with counts for valid entries, invalid entries, warnings, detected duplicates, and inferred mappings
+- [x] Add regression tests for pre-import summary generation and validation reporting
+- [x] Re-test the live bulk import flow end to end with the new pre-import summary experience
+  - [x] Live Quotes preflight review displayed 1777 valid entries, 0 invalid entries, 6 duplicate groups, and sample previews
+  - [x] Live Clavis Aurea preflight review displayed 354 valid entries, 0 invalid entries, and 0 duplicate groups
+  - [x] Full test suite passing: 237 tests
+- [ ] Save a checkpoint for the enhanced bulk import workflow
 

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, CheckCircle, FileJson2, Sparkles, Upload, UploadCloud } from "lucide-react";
 import {
+  analyzePreImportInput,
   inferCsvColumnMapping,
   normalizeLexiconImportPayload,
   normalizeNotebookImportPayload,
@@ -63,6 +64,19 @@ export default function BulkImport() {
   const autofillMutation = trpc.autofill.loadUploadedFile.useMutation();
 
   const mode = importModes[importType];
+
+  const preImportSummary = useMemo(() => {
+    if (!jsonInput.trim()) return null;
+    return analyzePreImportInput({
+      rawText: jsonInput,
+      importType,
+      fileFormat,
+      columnMapping,
+      skipHeader,
+    });
+  }, [jsonInput, importType, fileFormat, columnMapping, skipHeader]);
+
+  const blockingIssues = preImportSummary?.issues.filter((issue) => issue.severity === "error") ?? [];
 
   const fileHint = useMemo(() => {
     if (loadedFileName) return `Loaded file: ${loadedFileName}`;
@@ -405,7 +419,7 @@ export default function BulkImport() {
             <div className="mt-4 flex flex-wrap gap-3">
               <Button
                 onClick={handleBulkImport}
-                disabled={isImporting || !jsonInput.trim()}
+                disabled={isImporting || !jsonInput.trim() || (preImportSummary?.validEntries ?? 0) === 0 || blockingIssues.length > 0}
                 className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
               >
                 <Upload className="mr-2 h-4 w-4" />
@@ -450,6 +464,109 @@ export default function BulkImport() {
               )}
             </div>
           </Card>
+
+          {preImportSummary && (
+            <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Pre-import review</p>
+                  <h2 className="mt-2 text-[2rem] leading-none">Summary and validation report</h2>
+                </div>
+                <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  {preImportSummary.detectedSource}
+                </span>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-[1.3rem] border border-black/10 bg-[#f6f3ec] p-5">
+                  <p className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Data quality</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[1rem] border border-black/10 bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Valid entries</p>
+                      <p className="mt-2 text-3xl font-bold text-foreground">{preImportSummary.validEntries}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-black/10 bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Invalid entries</p>
+                      <p className="mt-2 text-3xl font-bold text-[#e25b33]">{preImportSummary.invalidEntries}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-black/10 bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Warnings</p>
+                      <p className="mt-2 text-3xl font-bold text-foreground">{preImportSummary.warningCount}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-black/10 bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Input rows</p>
+                      <p className="mt-2 text-3xl font-bold text-foreground">{preImportSummary.totalInputRows}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.3rem] border border-black/10 bg-[#f6f3ec] p-5">
+                  <p className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Import impact</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[1rem] border border-black/10 bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Candidate rows</p>
+                      <p className="mt-2 text-3xl font-bold text-foreground">{preImportSummary.candidateRows}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-black/10 bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Duplicate groups</p>
+                      <p className="mt-2 text-3xl font-bold text-foreground">{preImportSummary.duplicateCandidateCount}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-black/10 bg-white p-4 sm:col-span-2">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Ready to import</p>
+                      <p className="mt-2 text-base leading-7 text-muted-foreground">
+                        {blockingIssues.length > 0
+                          ? "The current import has blocking issues. Resolve the errors below before importing."
+                          : preImportSummary.validEntries > 0
+                            ? `This upload will submit ${preImportSummary.validEntries} validated ${importType === "quotes" ? "notebook entries" : "lexicon entries"} for import.`
+                            : "No valid rows are ready yet. Adjust the file or format and review the report again."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {fileFormat === "csv" && Object.keys(preImportSummary.inferredMapping).length > 0 && (
+                <div className="mt-5 rounded-[1.3rem] border border-black/10 bg-white p-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Inferred CSV mapping</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(preImportSummary.inferredMapping).map(([field, index]) => (
+                      <span key={field} className="rounded-full border border-black/10 bg-[#f6f3ec] px-3 py-1 text-xs font-medium text-foreground">
+                        {field} → column {index + 1}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {preImportSummary.samplePreviews.length > 0 && (
+                <div className="mt-5 rounded-[1.3rem] border border-black/10 bg-white p-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Sample preview</p>
+                  <div className="space-y-2 text-sm leading-6 text-muted-foreground">
+                    {preImportSummary.samplePreviews.map((sample) => (
+                      <p key={sample}>{sample}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-5 rounded-[1.3rem] border border-black/10 bg-white p-5">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Validation report</p>
+                <div className="space-y-3">
+                  {preImportSummary.issues.length === 0 ? (
+                    <p className="text-sm leading-6 text-muted-foreground">No validation issues were detected. This import is ready for review and submission.</p>
+                  ) : (
+                    preImportSummary.issues.map((issue, index) => (
+                      <div key={`${issue.rowLabel}-${index}`} className="rounded-[1rem] border border-black/10 bg-[#f6f3ec] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{issue.severity} · {issue.rowLabel}</p>
+                        <p className="mt-2 text-sm leading-6 text-foreground">{issue.message}</p>
+                        {issue.preview ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{issue.preview}</p> : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
 
           {result && (
             <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
@@ -499,15 +616,15 @@ export default function BulkImport() {
               <div className="space-y-3 text-sm leading-6 text-muted-foreground">
                 <div>
                   <p className="font-semibold text-foreground">JSON Format</p>
-                  <p>Array of objects with entry fields. Best for preserving all metadata.</p>
+                  <p>Array or wrapped payload data with preserved metadata. The review panel validates shape before import.</p>
                 </div>
                 <div>
                   <p className="font-semibold text-foreground">CSV Format</p>
-                  <p>Spreadsheet data. Map columns to entry fields during import.</p>
+                  <p>Spreadsheet data with inferred header mapping, row counts, and required-field checks before submission.</p>
                 </div>
                 <div>
                   <p className="font-semibold text-foreground">Plain Text</p>
-                  <p>One entry per line. Ideal for quick bulk imports of simple entries.</p>
+                  <p>One entry per line. The report estimates how many lines are valid and whether duplicates exist inside the batch.</p>
                 </div>
               </div>
             </div>
