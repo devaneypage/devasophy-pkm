@@ -97,6 +97,44 @@ export const duplicateDetectionRouter = router({
       );
     }),
 
+  detectNotebookDuplicateBatch: protectedProcedure
+    .input(
+      z.object({
+        entries: z.array(
+          z.object({
+            text: z.string(),
+            author: z.string().optional(),
+          })
+        ),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const existingEntriesRaw = await db
+        .select({ id: notebookEntries.id, text: notebookEntries.text, author: notebookEntries.author })
+        .from(notebookEntries)
+        .where(eq(notebookEntries.userId, ctx.user.id));
+
+      const existingEntries = existingEntriesRaw.map((e) => ({
+        id: e.id,
+        text: e.text,
+        author: e.author || undefined,
+      }));
+
+      return input.entries.flatMap((entry, incomingIndex) =>
+        detectNotebookDuplicates({ text: entry.text, author: entry.author || undefined }, existingEntries).map((match) => ({
+          incomingIndex,
+          incomingText: entry.text,
+          matchedEntryId: match.existingId,
+          matchedText: match.existingText,
+          similarity: match.similarity,
+          action: "skip",
+        }))
+      );
+    }),
+
   detectLexiconDuplicates: protectedProcedure
     .input(
       z.object({
@@ -122,6 +160,44 @@ export const duplicateDetectionRouter = router({
       return detectLexiconDuplicates(
         { term: input.term, definition: input.definition || undefined },
         existingEntries
+      );
+    }),
+
+  detectLexiconDuplicateBatch: protectedProcedure
+    .input(
+      z.object({
+        entries: z.array(
+          z.object({
+            term: z.string(),
+            definition: z.string().optional(),
+          })
+        ),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const existingEntriesRaw = await db
+        .select({ id: lexiconEntries.id, term: lexiconEntries.term, definition: lexiconEntries.definition })
+        .from(lexiconEntries)
+        .where(eq(lexiconEntries.userId, ctx.user.id));
+
+      const existingEntries = existingEntriesRaw.map((e) => ({
+        id: e.id,
+        term: e.term,
+        definition: e.definition || undefined,
+      }));
+
+      return input.entries.flatMap((entry, incomingIndex) =>
+        detectLexiconDuplicates({ term: entry.term, definition: entry.definition || undefined }, existingEntries).map((match) => ({
+          incomingIndex,
+          incomingTerm: entry.term,
+          matchedEntryId: match.existingId,
+          matchedTerm: match.existingTerm,
+          similarity: match.similarity,
+          action: "skip",
+        }))
       );
     }),
 });

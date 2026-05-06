@@ -286,17 +286,17 @@
 
 
 ## Duplicate Detection System for Bulk Import
-- [ ] Implement similarity detection algorithms (Levenshtein distance, fuzzy matching)
-- [ ] Create duplicate detection engine for notebook entries
-- [ ] Create duplicate detection engine for lexicon entries
-- [ ] Implement merge strategies for combining duplicates
-- [ ] Add duplicate detection to bulk import procedures
-- [ ] Build conflict resolution UI showing detected duplicates
-- [ ] Add user controls for merge/skip/replace actions
-- [ ] Write tests for similarity algorithms (36+ tests)
-- [ ] Write tests for duplicate detection workflows
-- [ ] Write tests for merge strategies
-- [ ] Save checkpoint for duplicate detection completion
+- [x] Implement similarity detection algorithms (Levenshtein distance, fuzzy matching)
+- [x] Create duplicate detection engine for notebook entries
+- [x] Create duplicate detection engine for lexicon entries
+- [x] Implement merge strategies for combining duplicates
+- [x] Add duplicate detection to bulk import procedures
+- [x] Build conflict resolution UI showing detected duplicates
+- [x] Add user controls for merge/skip/replace actions
+- [x] Write tests for similarity algorithms (36+ tests)
+- [x] Write tests for duplicate detection workflows
+- [x] Write tests for merge strategies
+- [x] Save checkpoint for duplicate detection completion
 
 
 ## Duplicate Detection System — Bulk Import Enhancement
@@ -385,5 +385,12 @@
   - [x] Live Quotes preflight review displayed 1777 valid entries, 0 invalid entries, 6 duplicate groups, and sample previews
   - [x] Live Clavis Aurea preflight review displayed 354 valid entries, 0 invalid entries, and 0 duplicate groups
   - [x] Full test suite passing: 237 tests
-- [ ] Save a checkpoint for the enhanced bulk import workflow
+- [x] Save a checkpoint for the enhanced bulk import workflow
+
+## Duplicate Review Integration Follow-up
+- [x] Add batch duplicate-detection queries for notebook and lexicon imports
+- [x] Integrate DuplicateConflictResolver into the real Bulk Import JSON workflow
+- [x] Wire skip, merge, and replace decisions into the actual import mutations
+- [x] Re-run the full test suite after duplicate-review integration
+  - [x] 237 tests passing
 

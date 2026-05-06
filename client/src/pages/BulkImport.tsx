@@ -11,6 +11,7 @@ import {
   normalizeNotebookImportPayload,
 } from "@shared/pkmFormatting";
 import { buildAutofillErrorMessage, buildAutofillLoadState } from "@shared/importAutofill";
+import { DuplicateConflictResolver } from "@/components/DuplicateConflictResolver";
 
 interface ImportResult {
   successful: number;
@@ -24,6 +25,26 @@ type FileFormat = "json" | "csv" | "text";
 interface ColumnMapping {
   [key: string]: number; // column name -> column index
 }
+
+type DuplicateDecision = "skip" | "merge" | "replace";
+
+type NotebookPreparedEntry = ReturnType<typeof normalizeNotebookImportPayload>[number];
+type LexiconPreparedEntry = ReturnType<typeof normalizeLexiconImportPayload>[number];
+
+type DuplicateConflict = {
+  incomingIndex: number;
+  incomingText?: string;
+  incomingTerm?: string;
+  matchedEntryId: number;
+  matchedText?: string;
+  matchedTerm?: string;
+  similarity: number;
+  action: string;
+};
+
+type PendingImportPayload =
+  | { importType: "quotes"; entries: NotebookPreparedEntry[] }
+  | { importType: "lexicon"; entries: LexiconPreparedEntry[] };
 
 const importModes = {
   quotes: {
@@ -53,14 +74,20 @@ export default function BulkImport() {
   const [autoCategory, setAutoCategory] = useState(true);
   const [skipHeader, setSkipHeader] = useState(true);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
+  const [duplicateConflicts, setDuplicateConflicts] = useState<DuplicateConflict[]>([]);
+  const [pendingImportPayload, setPendingImportPayload] = useState<PendingImportPayload | null>(null);
+  const [isReviewingDuplicates, setIsReviewingDuplicates] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const utils = trpc.useUtils();
   const notebookJSONMutation = trpc.bulkImport.notebookJSON.useMutation();
   const lexiconJSONMutation = trpc.bulkImport.lexiconJSON.useMutation();
   const notebookCSVMutation = trpc.bulkImport.notebookCSV.useMutation();
   const lexiconCSVMutation = trpc.bulkImport.lexiconCSV.useMutation();
   const notebookTextMutation = trpc.bulkImport.notebookText.useMutation();
   const lexiconTextMutation = trpc.bulkImport.lexiconText.useMutation();
+  const notebookDuplicateMutation = trpc.bulkImport.notebookWithDuplicateDetection.useMutation();
+  const lexiconDuplicateMutation = trpc.bulkImport.lexiconWithDuplicateDetection.useMutation();
   const autofillMutation = trpc.autofill.loadUploadedFile.useMutation();
 
   const mode = importModes[importType];
@@ -99,6 +126,114 @@ export default function BulkImport() {
     }
   };
 
+  const prepareJsonPayload = (): PendingImportPayload => {
+    const data = JSON.parse(jsonInput);
+
+    if (importType === "quotes") {
+      const entries = normalizeNotebookImportPayload(data);
+      if (entries.length === 0) {
+        throw new Error("No valid notebook entries were found in the provided JSON payload.");
+      }
+      return { importType: "quotes", entries };
+    }
+
+    const entries = normalizeLexiconImportPayload(data);
+    if (entries.length === 0) {
+      throw new Error("No valid lexicon entries were found in the provided JSON payload.");
+    }
+    return { importType: "lexicon", entries };
+  };
+
+  const finalizeResolvedImport = async (
+    payload: PendingImportPayload,
+    resolutions: Map<number, DuplicateDecision>
+  ) => {
+    const duplicateIndexes = new Set(duplicateConflicts.map((item) => item.incomingIndex));
+    const skipIndexes = new Set<number>();
+    const mergeIndexes = new Set<number>();
+    const replaceIndexes = new Set<number>();
+
+    resolutions.forEach((decision, index) => {
+      if (decision === "skip") skipIndexes.add(index);
+      if (decision === "merge") mergeIndexes.add(index);
+      if (decision === "replace") replaceIndexes.add(index);
+    });
+
+    const responses: ImportResult[] = [];
+
+    if (payload.importType === "quotes") {
+      const nonDuplicateEntries = payload.entries.filter((_, index) => !duplicateIndexes.has(index));
+      const mergeEntries = payload.entries.filter((_, index) => mergeIndexes.has(index));
+      const replaceEntries = payload.entries.filter((_, index) => replaceIndexes.has(index));
+
+      if (nonDuplicateEntries.length > 0) {
+        responses.push(await notebookJSONMutation.mutateAsync({ entries: nonDuplicateEntries, autoCategory }));
+      }
+
+      if (mergeEntries.length > 0) {
+        responses.push(await notebookDuplicateMutation.mutateAsync({ entries: mergeEntries, autoCategory, onDuplicate: "merge" }));
+      }
+
+      if (replaceEntries.length > 0) {
+        responses.push(await notebookDuplicateMutation.mutateAsync({ entries: replaceEntries, autoCategory, onDuplicate: "replace" }));
+      }
+    } else {
+      const nonDuplicateEntries = payload.entries.filter((_, index) => !duplicateIndexes.has(index));
+      const mergeEntries = payload.entries.filter((_, index) => mergeIndexes.has(index));
+      const replaceEntries = payload.entries.filter((_, index) => replaceIndexes.has(index));
+
+      if (nonDuplicateEntries.length > 0) {
+        responses.push(await lexiconJSONMutation.mutateAsync({ entries: nonDuplicateEntries, autoCategory }));
+      }
+
+      if (mergeEntries.length > 0) {
+        responses.push(await lexiconDuplicateMutation.mutateAsync({ entries: mergeEntries, autoCategory, onDuplicate: "merge" }));
+      }
+
+      if (replaceEntries.length > 0) {
+        responses.push(await lexiconDuplicateMutation.mutateAsync({ entries: replaceEntries, autoCategory, onDuplicate: "replace" }));
+      }
+    }
+
+    const skippedCount = skipIndexes.size;
+    const combined = responses.reduce<ImportResult>(
+      (acc, response) => ({
+        successful: acc.successful + response.successful,
+        failed: acc.failed + response.failed,
+        errors: acc.errors.concat(response.errors ?? []),
+      }),
+      {
+        successful: 0,
+        failed: skippedCount,
+        errors: skippedCount > 0 ? [`${skippedCount} duplicate entr${skippedCount === 1 ? "y was" : "ies were"} skipped by review choice.`] : [],
+      }
+    );
+
+    setDuplicateConflicts([]);
+    setPendingImportPayload(null);
+    setIsReviewingDuplicates(false);
+    setResult(combined);
+    setJsonInput("");
+    setLoadedFileName(null);
+  };
+
+  const handleDuplicateResolution = async (resolutions: Map<number, DuplicateDecision>) => {
+    if (!pendingImportPayload) return;
+
+    setIsImporting(true);
+    try {
+      await finalizeResolvedImport(pendingImportPayload, resolutions);
+    } catch (error) {
+      setResult({
+        successful: 0,
+        failed: 1,
+        errors: [`Import failed: ${error instanceof Error ? error.message : "Unknown error"}`],
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   // Bulk import using normalized payload preparation
   const handleBulkImport = async () => {
     if (!jsonInput.trim()) {
@@ -111,29 +246,40 @@ export default function BulkImport() {
       let result: ImportResult;
 
       if (fileFormat === "json") {
-        const data = JSON.parse(jsonInput);
+        const payload = prepareJsonPayload();
+        const duplicateMatches = payload.importType === "quotes"
+          ? await utils.bulkImport.detectNotebookDuplicateBatch.fetch({
+              entries: payload.entries.map((entry) => ({ text: entry.text, author: entry.author })),
+            })
+          : await utils.bulkImport.detectLexiconDuplicateBatch.fetch({
+              entries: payload.entries.map((entry) => ({ term: entry.term, definition: entry.definition })),
+            });
 
-        if (importType === "quotes") {
-          const entries = normalizeNotebookImportPayload(data);
-          if (entries.length === 0) {
-            throw new Error("No valid notebook entries were found in the provided JSON payload.");
-          }
+        const dedupedMatches = Array.from(
+          duplicateMatches.reduce((map, match) => {
+            const current = map.get(match.incomingIndex);
+            if (!current || match.similarity > current.similarity) {
+              map.set(match.incomingIndex, match as DuplicateConflict);
+            }
+            return map;
+          }, new Map<number, DuplicateConflict>()).values()
+        );
 
-          result = await notebookJSONMutation.mutateAsync({
-            entries,
-            autoCategory,
+        if (dedupedMatches.length > 0) {
+          setDuplicateConflicts(dedupedMatches);
+          setPendingImportPayload(payload);
+          setIsReviewingDuplicates(true);
+          setResult({
+            successful: 0,
+            failed: 0,
+            errors: [`${dedupedMatches.length} possible duplicate entr${dedupedMatches.length === 1 ? "y requires" : "ies require"} review before import.`],
           });
-        } else {
-          const entries = normalizeLexiconImportPayload(data);
-          if (entries.length === 0) {
-            throw new Error("No valid lexicon entries were found in the provided JSON payload.");
-          }
-
-          result = await lexiconJSONMutation.mutateAsync({
-            entries,
-            autoCategory,
-          });
+          return;
         }
+
+        result = payload.importType === "quotes"
+          ? await notebookJSONMutation.mutateAsync({ entries: payload.entries, autoCategory })
+          : await lexiconJSONMutation.mutateAsync({ entries: payload.entries, autoCategory });
       } else if (fileFormat === "csv") {
         const previewLines = jsonInput.split(/\r?\n/).filter((line) => line.trim().length > 0);
         const headerRow = previewLines[0]?.split(",") ?? [];
@@ -203,6 +349,9 @@ export default function BulkImport() {
     setLoadedFileName(state.loadedFileName);
     setImportType(state.importType);
     setResult(null);
+    setDuplicateConflicts([]);
+    setPendingImportPayload(null);
+    setIsReviewingDuplicates(false);
   };
 
   const handleFile = async (file: File) => {
@@ -565,6 +714,20 @@ export default function BulkImport() {
                   )}
                 </div>
               </div>
+            </Card>
+          )}
+
+          {isReviewingDuplicates && duplicateConflicts.length > 0 && (
+            <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
+              <div className="mb-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Duplicate review</p>
+                <h2 className="mt-2 text-[2rem] leading-none">Resolve matching entries before import</h2>
+              </div>
+              <DuplicateConflictResolver
+                duplicates={duplicateConflicts}
+                entryType={pendingImportPayload?.importType === "lexicon" ? "lexicon" : "notebook"}
+                onResolve={handleDuplicateResolution}
+              />
             </Card>
           )}
 
