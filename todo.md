@@ -418,3 +418,14 @@
   - [x] Updated BulkImport.tsx to use mutation-based duplicate preflight calls instead of GET fetches
 - [x] Re-verify live bulk import submission after the fix
   - [x] Full test suite passing: 244 tests
+
+## Navigation Fix — Johnny Decimal Taxonomy Menu
+- [x] Inspect the static Johnny Decimal Taxonomy navigation that is covering the main site menu
+- [x] Update the taxonomy menu so it is compact by default or integrated into the main site navigation
+  - [x] Reworked the taxonomy panel into a compact collapsed-by-default sidebar module
+  - [x] Kept the full Johnny Decimal outline available on demand through expandable area groups
+- [x] Verify the revised navigation layout in the live app
+  - [x] Sidebar no longer has the large static taxonomy block covering the main menu
+  - [x] App health clean with no TypeScript or LSP errors
+  - [x] Regression suite passing: 244 tests
+- [ ] Save a checkpoint for the navigation fix
