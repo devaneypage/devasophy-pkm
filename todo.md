@@ -230,7 +230,7 @@
 - [x] Implement task entry-linking UI in TaskDetail with selectable notebook/lexicon references
 - [x] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
 - [x] Phase 3: Implement Goals module (Action Layer)
-- [ ] Phase 6: Implement Ideas module (Synthesis Layer)
+- [x] Phase 6: Implement Ideas module (Synthesis Layer)
 
 
 ## DIKW-Enhanced Lexicon & Synthesis Module
