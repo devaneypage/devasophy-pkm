@@ -510,3 +510,12 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Review the applied visual-editor changes in Home.tsx and DashboardLayout.tsx against the requested UI adjustments
 - [x] Verify the updated branded UI compiles and the app health remains stable after the visual edits
 - [x] Save a checkpoint for the verified visual-editor changes
+
+## Sidebar Brand Palette Normalization
+- [ ] Review the current sidebar accent colors against the established Devanomy brand palette
+- [ ] Normalize sidebar navigation, utility, and profile accent colors to the finalized brand system
+- [ ] Verify the refined sidebar visually in the live app and save a checkpoint
+
+## PKM Integration Roadmap Plan
+- [x] Review the provided six-phase roadmap and convert it into an implementation-ready plan document
+- [x] Save the structured implementation plan under docs/plans with execution guidance and handoff options
