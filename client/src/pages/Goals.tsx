@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from "react";
+import { toast as sonnerToast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import CategorySelect from "@/components/CategorySelect";
-import { Calendar, Compass, Flag, PauseCircle, Plus, Target, Trash2 } from "lucide-react";
+import { Calendar, Compass, Flag, Pencil, PauseCircle, Plus, Target, Trash2, X } from "lucide-react";
 
 const goalStatuses = [
   { value: "active", label: "Active", tone: "bg-[#116d6d] text-white" },
@@ -24,6 +25,29 @@ const goalHorizons = [
 type GoalStatus = (typeof goalStatuses)[number]["value"];
 type GoalHorizon = (typeof goalHorizons)[number]["value"];
 
+type GoalFormState = {
+  title: string;
+  description: string;
+  status: GoalStatus;
+  horizon: GoalHorizon;
+  targetDate: string;
+  tags: string;
+  categoryId: number | undefined;
+  linkedProjectId: number | undefined;
+};
+
+type GoalRecord = {
+  id: number;
+  title: string;
+  description?: string | null;
+  status?: string | null;
+  horizon?: string | null;
+  targetDate?: Date | string | null;
+  tags?: string | null;
+  categoryId?: number | null;
+  linkedProjectId?: number | null;
+};
+
 const statusClassMap: Record<GoalStatus, string> = {
   active: "bg-[#116d6d] text-white",
   achieved: "bg-[#bfd73d] text-black",
@@ -38,51 +62,229 @@ const horizonAccentMap: Record<GoalHorizon, string> = {
   long_term: "#b55af3",
 };
 
+function normalizeDateInput(value?: Date | string | null) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function createGoalFormState(goal?: GoalRecord): GoalFormState {
+  return {
+    title: goal?.title ?? "",
+    description: goal?.description ?? "",
+    status: (goal?.status as GoalStatus | undefined) ?? "active",
+    horizon: (goal?.horizon as GoalHorizon | undefined) ?? "seasonal",
+    targetDate: normalizeDateInput(goal?.targetDate),
+    tags: goal?.tags ?? "",
+    categoryId: goal?.categoryId ?? undefined,
+    linkedProjectId: goal?.linkedProjectId ?? undefined,
+  };
+}
+
+function GoalEditor({
+  mode,
+  formData,
+  setFormData,
+  taxonomyTree,
+  projects,
+  onSubmit,
+  onCancel,
+  submitLabel,
+  isPending,
+}: {
+  mode: "create" | "edit";
+  formData: GoalFormState;
+  setFormData: React.Dispatch<React.SetStateAction<GoalFormState>>;
+  taxonomyTree: any;
+  projects: Array<{ id: number; title: string }>;
+  onSubmit: (event: React.FormEvent) => void;
+  onCancel: () => void;
+  submitLabel: string;
+  isPending: boolean;
+}) {
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)]">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Goal title *</label>
+            <Input
+              aria-label={`${mode === "create" ? "Create" : "Edit"} goal title`}
+              value={formData.title}
+              onChange={(event) => setFormData((current) => ({ ...current, title: event.target.value }))}
+              placeholder="Name the outcome you are steering toward"
+              className="rounded-full border-2 border-black/85 bg-white shadow-none"
+              required
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Why this matters</label>
+            <Textarea
+              aria-label={`${mode === "create" ? "Create" : "Edit"} goal description`}
+              value={formData.description}
+              onChange={(event) => setFormData((current) => ({ ...current, description: event.target.value }))}
+              placeholder="Describe the meaning, criteria, or tension that makes this goal worth keeping in view."
+              rows={4}
+              className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
+            />
+          </div>
+          <CategorySelect
+            label="Johnny Decimal category"
+            value={formData.categoryId}
+            tree={taxonomyTree}
+            placeholder="Assign this goal to a seeded action category"
+            onChange={(categoryId) => setFormData((current) => ({ ...current, categoryId }))}
+          />
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Status</label>
+            <div className="flex flex-wrap gap-2">
+              {goalStatuses.map((option) => (
+                <button
+                  key={`${mode}-${option.value}`}
+                  type="button"
+                  onClick={() => setFormData((current) => ({ ...current, status: option.value }))}
+                  className={`rounded-full border-2 border-black px-3 py-2 text-sm font-semibold ${formData.status === option.value ? option.tone : "bg-white text-black hover:bg-[#f6f3ec]"}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Horizon</label>
+            <div className="grid gap-2">
+              {goalHorizons.map((option) => (
+                <button
+                  key={`${mode}-${option.value}`}
+                  type="button"
+                  onClick={() => setFormData((current) => ({ ...current, horizon: option.value }))}
+                  className={`rounded-[1rem] border px-3 py-3 text-left transition ${formData.horizon === option.value ? "border-black bg-[#f6f3ec]" : "border-black/10 bg-white hover:border-black/40"}`}
+                >
+                  <p className="font-semibold text-foreground">{option.label}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{option.hint}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Target date</label>
+            <Input
+              aria-label={`${mode === "create" ? "Create" : "Edit"} target date`}
+              type="date"
+              value={formData.targetDate}
+              onChange={(event) => setFormData((current) => ({ ...current, targetDate: event.target.value }))}
+              className="rounded-full border-2 border-black/85 bg-white shadow-none"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Anchor project</label>
+            <select
+              aria-label={`${mode === "create" ? "Create" : "Edit"} anchor project`}
+              value={formData.linkedProjectId ?? ""}
+              onChange={(event) =>
+                setFormData((current) => ({
+                  ...current,
+                  linkedProjectId: event.target.value ? Number(event.target.value) : undefined,
+                }))
+              }
+              className="h-11 w-full rounded-full border-2 border-black/85 bg-white px-4 text-foreground shadow-none"
+            >
+              <option value="">No anchor project yet</option>
+              {projects.map((project) => (
+                <option key={`${mode}-${project.id}`} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Tags</label>
+            <Input
+              aria-label={`${mode === "create" ? "Create" : "Edit"} tags`}
+              value={formData.tags}
+              onChange={(event) => setFormData((current) => ({ ...current, tags: event.target.value }))}
+              placeholder="Comma-separated tags"
+              className="rounded-full border-2 border-black/85 bg-white shadow-none"
+            />
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isPending ? "Saving..." : submitLabel}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="h-11 rounded-full border-2 border-black bg-white px-5 text-black shadow-none hover:bg-[#f6f3ec]"
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function Goals() {
   const { data: taxonomyTree } = trpc.taxonomy.getTree.useQuery();
   const { data: projects = [] } = trpc.projects.list.useQuery({});
   const { data: goals = [], isLoading, refetch } = trpc.goals.list.useQuery({});
   const [showForm, setShowForm] = useState(false);
+  const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<GoalStatus | "all">("all");
   const [horizonFilter, setHorizonFilter] = useState<GoalHorizon | "all">("all");
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    status: "active" as GoalStatus,
-    horizon: "seasonal" as GoalHorizon,
-    targetDate: "",
-    tags: "",
-    categoryId: undefined as number | undefined,
-    linkedProjectId: undefined as number | undefined,
-  });
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [feedbackTone, setFeedbackTone] = useState<"success" | "error" | null>(null);
+  const [formData, setFormData] = useState<GoalFormState>(() => createGoalFormState());
+  const [editFormData, setEditFormData] = useState<GoalFormState>(() => createGoalFormState());
+
+  const handleMutationError = (actionLabel: string, error: unknown) => {
+    const message = error instanceof Error ? error.message : `${actionLabel} failed.`;
+    setFeedbackTone("error");
+    setFeedbackMessage(message);
+    sonnerToast.error(actionLabel, { description: message });
+  };
 
   const createMutation = trpc.goals.create.useMutation({
     onSuccess: async () => {
       await refetch();
-      setFormData({
-        title: "",
-        description: "",
-        status: "active",
-        horizon: "seasonal",
-        targetDate: "",
-        tags: "",
-        categoryId: undefined,
-        linkedProjectId: undefined,
-      });
+      setFormData(createGoalFormState());
       setShowForm(false);
+      setFeedbackTone("success");
+      setFeedbackMessage("Goal created successfully.");
+      sonnerToast.success("Goal created", { description: "Your new goal is now part of the action layer." });
     },
+    onError: (error) => handleMutationError("Could not create goal", error),
   });
 
   const updateMutation = trpc.goals.update.useMutation({
     onSuccess: async () => {
       await refetch();
+      setEditingGoalId(null);
+      setFeedbackTone("success");
+      setFeedbackMessage("Goal updated successfully.");
+      sonnerToast.success("Goal updated", { description: "Your changes have been saved." });
     },
+    onError: (error) => handleMutationError("Could not update goal", error),
   });
 
   const deleteMutation = trpc.goals.delete.useMutation({
     onSuccess: async () => {
       await refetch();
+      setEditingGoalId(null);
+      setFeedbackTone("success");
+      setFeedbackMessage("Goal deleted successfully.");
+      sonnerToast.success("Goal deleted", { description: "The goal has been removed from the action layer." });
     },
+    onError: (error) => handleMutationError("Could not delete goal", error),
   });
 
   const filteredGoals = useMemo(() => {
@@ -118,7 +320,30 @@ export default function Goals() {
     });
   };
 
-  const cycleGoalStatus = (goal: { id: number; status: GoalStatus; horizon: GoalHorizon; title: string }) => {
+  const handleEditSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingGoalId || !editFormData.title.trim()) return;
+
+    updateMutation.mutate({
+      id: editingGoalId,
+      title: editFormData.title,
+      description: editFormData.description || undefined,
+      status: editFormData.status,
+      horizon: editFormData.horizon,
+      targetDate: editFormData.targetDate ? new Date(editFormData.targetDate) : undefined,
+      tags: editFormData.tags || undefined,
+      linkedProjectId: editFormData.linkedProjectId,
+    });
+  };
+
+  const beginEditing = (goal: GoalRecord) => {
+    setEditingGoalId(goal.id);
+    setEditFormData(createGoalFormState(goal));
+    setFeedbackMessage(null);
+    setFeedbackTone(null);
+  };
+
+  const cycleGoalStatus = (goal: { id: number; status: GoalStatus }) => {
     const order: GoalStatus[] = ["active", "paused", "achieved", "archived"];
     const currentIndex = order.indexOf(goal.status);
     const nextStatus = order[(currentIndex + 1) % order.length];
@@ -139,7 +364,11 @@ export default function Goals() {
               </p>
             </div>
             <Button
-              onClick={() => setShowForm((current) => !current)}
+              onClick={() => {
+                setShowForm((current) => !current);
+                setFeedbackMessage(null);
+                setFeedbackTone(null);
+              }}
               className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -194,7 +423,7 @@ export default function Goals() {
                 </button>
                 {goalStatuses.map((option) => (
                   <button
-                    key={option.value}
+                    key={`filter-status-${option.value}`}
                     type="button"
                     onClick={() => setStatusFilter(option.value)}
                     className={`rounded-full border-2 border-black px-3 py-2 text-sm font-semibold ${statusFilter === option.value ? option.tone : "bg-white text-black hover:bg-[#f6f3ec]"}`}
@@ -216,7 +445,7 @@ export default function Goals() {
                 </button>
                 {goalHorizons.map((option) => (
                   <button
-                    key={option.value}
+                    key={`filter-horizon-${option.value}`}
                     type="button"
                     onClick={() => setHorizonFilter(option.value)}
                     className={`rounded-full border-2 border-black px-3 py-2 text-sm font-semibold ${horizonFilter === option.value ? "bg-[#f6f3ec] text-black" : "bg-white text-black hover:bg-[#f6f3ec]"}`}
@@ -226,133 +455,32 @@ export default function Goals() {
                 ))}
               </div>
             </div>
+            <div className="rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Mutation feedback</p>
+              <p className={`mt-2 text-sm leading-6 ${feedbackTone === "error" ? "text-[#b42318]" : feedbackTone === "success" ? "text-[#116d6d]" : "text-muted-foreground"}`}>
+                {feedbackMessage ?? "Create, revise, archive, or delete goals with visible confirmation and failure feedback."}
+              </p>
+              {(createMutation.isPending || updateMutation.isPending || deleteMutation.isPending) && (
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">A goal mutation is in progress…</p>
+              )}
+            </div>
           </div>
         </Card>
       </div>
 
       {showForm && (
         <Card className="dev-card rounded-[1.6rem] bg-[#f5f3f0] p-6 shadow-none">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)]">
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-foreground">Goal title *</label>
-                  <Input
-                    value={formData.title}
-                    onChange={(event) => setFormData({ ...formData, title: event.target.value })}
-                    placeholder="Name the outcome you are steering toward"
-                    className="rounded-full border-2 border-black/85 bg-white shadow-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-foreground">Why this matters</label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-                    placeholder="Describe the meaning, criteria, or tension that makes this goal worth keeping in view."
-                    rows={4}
-                    className="rounded-[1.2rem] border-2 border-black/85 bg-white shadow-none"
-                  />
-                </div>
-                <CategorySelect
-                  label="Johnny Decimal category"
-                  value={formData.categoryId}
-                  tree={taxonomyTree}
-                  placeholder="Assign this goal to a seeded action category"
-                  onChange={(categoryId) => setFormData({ ...formData, categoryId })}
-                />
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-foreground">Status</label>
-                  <div className="flex flex-wrap gap-2">
-                    {goalStatuses.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, status: option.value })}
-                        className={`rounded-full border-2 border-black px-3 py-2 text-sm font-semibold ${formData.status === option.value ? option.tone : "bg-white text-black hover:bg-[#f6f3ec]"}`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-foreground">Horizon</label>
-                  <div className="grid gap-2">
-                    {goalHorizons.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, horizon: option.value })}
-                        className={`rounded-[1rem] border px-3 py-3 text-left transition ${formData.horizon === option.value ? "border-black bg-[#f6f3ec]" : "border-black/10 bg-white hover:border-black/40"}`}
-                      >
-                        <p className="font-semibold text-foreground">{option.label}</p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">{option.hint}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-foreground">Target date</label>
-                  <Input
-                    type="date"
-                    value={formData.targetDate}
-                    onChange={(event) => setFormData({ ...formData, targetDate: event.target.value })}
-                    className="rounded-full border-2 border-black/85 bg-white shadow-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-foreground">Anchor project</label>
-                  <select
-                    value={formData.linkedProjectId ?? ""}
-                    onChange={(event) =>
-                      setFormData({
-                        ...formData,
-                        linkedProjectId: event.target.value ? Number(event.target.value) : undefined,
-                      })
-                    }
-                    className="h-11 w-full rounded-full border-2 border-black/85 bg-white px-4 text-foreground shadow-none"
-                  >
-                    <option value="">No anchor project yet</option>
-                    {projects.map((project: { id: number; title: string }) => (
-                      <option key={project.id} value={project.id}>
-                        {project.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-foreground">Tags</label>
-                  <Input
-                    value={formData.tags}
-                    onChange={(event) => setFormData({ ...formData, tags: event.target.value })}
-                    placeholder="Comma-separated tags"
-                    className="rounded-full border-2 border-black/85 bg-white shadow-none"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]"
-              >
-                {createMutation.isPending ? "Saving..." : "Create goal"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowForm(false)}
-                className="h-11 rounded-full border-2 border-black bg-white px-5 text-black shadow-none hover:bg-[#f6f3ec]"
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
+          <GoalEditor
+            mode="create"
+            formData={formData}
+            setFormData={setFormData}
+            taxonomyTree={taxonomyTree}
+            projects={projects}
+            onSubmit={handleSubmit}
+            onCancel={() => setShowForm(false)}
+            submitLabel="Create goal"
+            isPending={createMutation.isPending}
+          />
         </Card>
       )}
 
@@ -366,69 +494,119 @@ export default function Goals() {
             <p className="text-muted-foreground">No goals match the current filters yet. Create one to shape the next layer of action.</p>
           </Card>
         ) : (
-          filteredGoals.map((goal) => (
-            <Card key={goal.id} className="dev-card overflow-hidden rounded-[1.6rem] p-0 shadow-none">
-              <div className="flex items-center justify-between border-b-2 border-black px-5 py-4" style={{ backgroundColor: horizonAccentMap[(goal.horizon as GoalHorizon | undefined) || "seasonal"] }}>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/70">{(goal.horizon || "seasonal").replace("_", " ")}</p>
-                  <p className="mt-1 text-lg font-semibold text-black">{goal.title}</p>
-                </div>
-                <span className={`rounded-full border border-black/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${statusClassMap[(goal.status as GoalStatus | undefined) || "active"]}`}>
-                  {goal.status || "active"}
-                </span>
-              </div>
-              <div className="space-y-4 p-5">
-                <p className="text-sm leading-7 text-muted-foreground">
-                  {goal.description || "No description yet. Use this goal as a visible anchor for projects and tasks that should remain aligned with a bigger outcome."}
-                </p>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Horizon</p>
-                    <p className="mt-2 inline-flex items-center gap-2 text-base font-semibold text-foreground">
-                      <Compass className="h-4 w-4 text-[#116d6d]" />
-                      {(goal.horizon || "seasonal").replace("_", " ")}
-                    </p>
+          filteredGoals.map((goal) => {
+            const goalStatus = (goal.status as GoalStatus | undefined) ?? "active";
+            const goalHorizon = (goal.horizon as GoalHorizon | undefined) ?? "seasonal";
+            const isEditing = editingGoalId === goal.id;
+
+            return (
+              <Card key={goal.id} className="dev-card overflow-hidden rounded-[1.6rem] p-0 shadow-none">
+                <div className="flex items-center justify-between border-b-2 border-black px-5 py-4" style={{ backgroundColor: horizonAccentMap[goalHorizon] }}>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/70">{goalHorizon.replace("_", " ")}</p>
+                    <p className="mt-1 text-lg font-semibold text-black">{goal.title}</p>
                   </div>
-                  <div className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Target date</p>
-                    <p className="mt-2 inline-flex items-center gap-2 text-base font-semibold text-foreground">
-                      <Calendar className="h-4 w-4 text-[#e25b33]" />
-                      {goal.targetDate instanceof Date ? goal.targetDate.toLocaleDateString() : "No date set"}
-                    </p>
-                  </div>
+                  <span className={`rounded-full border border-black/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${statusClassMap[goalStatus]}`}>
+                    {goalStatus}
+                  </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {goal.tags
-                    ? goal.tags.split(",").map((tag) => (
-                        <span key={`${goal.id}-${tag}`} className="dev-chip">
-                          {tag.trim()}
-                        </span>
-                      ))
-                    : <span className="dev-chip">untagged</span>}
-                  {goal.linkedProjectId ? <span className="dev-chip">Anchored to project #{goal.linkedProjectId}</span> : null}
+                <div className="space-y-4 p-5">
+                  {isEditing ? (
+                    <Card className="rounded-[1.25rem] border border-black/10 bg-[#f6f3ec] p-4 shadow-none">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Editing goal</p>
+                          <p className="mt-1 text-base font-semibold text-foreground">Refine this outcome without leaving the dashboard.</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setEditingGoalId(null)}
+                          className="h-10 rounded-full border-2 border-black bg-white px-4 text-black shadow-none hover:bg-[#f6f3ec]"
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Close
+                        </Button>
+                      </div>
+                      <GoalEditor
+                        mode="edit"
+                        formData={editFormData}
+                        setFormData={setEditFormData}
+                        taxonomyTree={taxonomyTree}
+                        projects={projects}
+                        onSubmit={handleEditSubmit}
+                        onCancel={() => setEditingGoalId(null)}
+                        submitLabel="Save changes"
+                        isPending={updateMutation.isPending}
+                      />
+                    </Card>
+                  ) : (
+                    <>
+                      <p className="text-sm leading-7 text-muted-foreground">
+                        {goal.description || "No description yet. Use this goal as a visible anchor for projects and tasks that should remain aligned with a bigger outcome."}
+                      </p>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Horizon</p>
+                          <p className="mt-2 inline-flex items-center gap-2 text-base font-semibold text-foreground">
+                            <Compass className="h-4 w-4 text-[#116d6d]" />
+                            {goalHorizon.replace("_", " ")}
+                          </p>
+                        </div>
+                        <div className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Target date</p>
+                          <p className="mt-2 inline-flex items-center gap-2 text-base font-semibold text-foreground">
+                            <Calendar className="h-4 w-4 text-[#e25b33]" />
+                            {goal.targetDate instanceof Date ? goal.targetDate.toLocaleDateString() : goal.targetDate ? new Date(goal.targetDate).toLocaleDateString() : "No date set"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {goal.tags
+                          ? goal.tags.split(",").map((tag) => (
+                              <span key={`${goal.id}-${tag}`} className="dev-chip">
+                                {tag.trim()}
+                              </span>
+                            ))
+                          : <span className="dev-chip">untagged</span>}
+                        {goal.linkedProjectId ? <span className="dev-chip">Anchored to project #{goal.linkedProjectId}</span> : null}
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        <Button
+                          type="button"
+                          onClick={() => cycleGoalStatus({ id: goal.id, status: goalStatus })}
+                          disabled={updateMutation.isPending}
+                          className="h-10 rounded-full border-2 border-black bg-white px-4 text-black shadow-none hover:bg-[#f6f3ec] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {goal.status === "paused" ? <PauseCircle className="mr-2 h-4 w-4" /> : <Target className="mr-2 h-4 w-4" />}
+                          Advance status
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => beginEditing(goal)}
+                          className="h-10 rounded-full border-2 border-black bg-white px-4 text-black shadow-none hover:bg-[#f6f3ec]"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit goal
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => deleteMutation.mutate({ id: goal.id })}
+                          disabled={deleteMutation.isPending}
+                          className="h-10 rounded-full border-2 border-black bg-white px-4 text-[#e25b33] shadow-none hover:bg-[#fff1eb] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    type="button"
-                    onClick={() => cycleGoalStatus({ id: goal.id, status: (goal.status as GoalStatus | undefined) || "active", horizon: (goal.horizon as GoalHorizon | undefined) || "seasonal", title: goal.title })}
-                    className="h-10 rounded-full border-2 border-black bg-white px-4 text-black shadow-none hover:bg-[#f6f3ec]"
-                  >
-                    {goal.status === "paused" ? <PauseCircle className="mr-2 h-4 w-4" /> : <Target className="mr-2 h-4 w-4" />}
-                    Advance status
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => deleteMutation.mutate({ id: goal.id })}
-                    className="h-10 rounded-full border-2 border-black bg-white px-4 text-[#e25b33] shadow-none hover:bg-[#fff1eb]"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))
+              </Card>
+            );
+          })
         )}
       </section>
 

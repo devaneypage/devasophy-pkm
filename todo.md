@@ -158,7 +158,7 @@
 ## Recommended Features for Future Implementation
 - [x] Phase 1: Implement Zettelkasten ID system (AC.ID-YYYYMMDD-Seq format)
 - [x] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
-- [ ] Phase 3: Implement Goals module (Action Layer)
+- [x] Phase 3: Implement Goals module (Action Layer)
 - [x] Phase 4: Implement Projects module (Action Layer)
 - [x] Phase 5: Implement Tasks module (Action Layer)
 - [ ] Phase 6: Implement Ideas module (Synthesis Layer)
@@ -229,7 +229,7 @@
 - [x] Implement project entry-linking UI in ProjectDetail with selectable notebook/lexicon references
 - [x] Implement task entry-linking UI in TaskDetail with selectable notebook/lexicon references
 - [x] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
-- [ ] Phase 3: Implement Goals module (Action Layer)
+- [x] Phase 3: Implement Goals module (Action Layer)
 - [ ] Phase 6: Implement Ideas module (Synthesis Layer)
 
 
@@ -472,3 +472,8 @@
 - [x] Build the Goals page and integrate it into navigation and dashboard surfaces
 - [x] Add regression coverage for the Goals module workflows
 - [x] Verify the Goals slice in the live app and save a checkpoint
+
+## Goals Module Refinement
+- [x] Add full edit UX for existing goals, including title, description, status, horizon, target date, tags, and linked project updates
+- [x] Add user-visible loading and error feedback for Goals create, update, and delete mutations
+- [x] Add regression coverage for editing an existing goal and for visible failure-state behavior
