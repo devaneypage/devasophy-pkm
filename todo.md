@@ -449,3 +449,12 @@
 - [x] Expand Vitest coverage to include client component tests and add a taxonomy sidebar regression test
 - [x] Run the full test suite and confirm all Phase 1 validations pass
 - [x] Verify the live preview reflects the dark editorial workspace and live dashboard/sidebar data
+
+## Phase 2 — Writing Studio and Knowledge Model Expansion
+- [x] Audit the current Documents page, AIChatBox component, and backend procedures to define the first implementation slice
+- [x] Upgrade the Writing Studio linked references panel to surface richer linked-entry context and navigation
+- [x] Integrate AIChatBox into the Writing Studio as a Research Assistant backed by a server-side tRPC workflow
+- [x] Add automated tests for the new Writing Studio and research-assistant behavior
+- [x] Document the relational collections migration path for notebook and related entry types
+- [x] Document the DIKW tier expansion path across notebook, documents, projects, and tasks
+- [x] Verify the full Phase 2 slice in the live app and save a checkpoint

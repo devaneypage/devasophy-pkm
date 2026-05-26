@@ -1,14 +1,33 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
+import { v4 as uuidv4 } from "uuid";
 import { trpc } from "@/lib/trpc";
+import { AIChatBox, type Message } from "@/components/AIChatBox";
+import CategorySelect from "@/components/CategorySelect";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, ChevronRight, FileText, Library, Link2, Plus, Search, Trash2 } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
+import {
+  BookOpen,
+  Bot,
+  ChevronRight,
+  FileText,
+  Library,
+  Link2,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { buildLexiconReferenceInsert, buildNotebookReferenceInsert } from "@shared/pkmFormatting";
-import { defaultSemanticLinkPresetByTarget, formatSemanticLinkDisplay, formatSemanticLinkLabel, semanticLinkPresets, type SemanticLinkPresetKey } from "@shared/linkSemantics";
-import CategorySelect from "@/components/CategorySelect";
+import {
+  defaultSemanticLinkPresetByTarget,
+  formatSemanticLinkDisplay,
+  formatSemanticLinkLabel,
+  semanticLinkPresets,
+  type SemanticLinkPresetKey,
+} from "@shared/linkSemantics";
 
 const statusColors: Record<string, string> = {
   draft: "#efb93a",
@@ -19,14 +38,25 @@ const statusColors: Record<string, string> = {
 
 type ReferenceMode = "notebook" | "lexicon";
 
+type InsertableReference = {
+  id: number;
+  title: string;
+  preview: string;
+  type: "notebook" | "lexicon";
+  insertText: string;
+};
+
 export default function Documents() {
   const utils = trpc.useUtils();
+  const [, setLocation] = useLocation();
   const [showForm, setShowForm] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>("notebook");
   const [referenceSearch, setReferenceSearch] = useState("");
   const [selectedRelationship, setSelectedRelationship] = useState<SemanticLinkPresetKey>("supports");
+  const [editContent, setEditContent] = useState("");
+  const [assistantMessages, setAssistantMessages] = useState<Message[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     project: "",
@@ -34,30 +64,24 @@ export default function Documents() {
     status: "draft" as const,
     categoryId: undefined as number | undefined,
   });
-  const [editContent, setEditContent] = useState("");
 
   const { data: documents, isLoading, refetch } = trpc.documents.list.useQuery({
     status: undefined,
   });
-
   const { data: taxonomyTree } = trpc.taxonomy.getTree.useQuery();
-
   const { data: selectedDoc } = trpc.documents.get.useQuery(
     { id: selectedDocId! },
     { enabled: selectedDocId !== null }
   );
-
   const { data: notebookEntries } = trpc.notebook.list.useQuery({
     search: referenceSearch || undefined,
     sortBy: "recent",
   });
-
   const { data: lexiconEntries } = trpc.lexicon.list.useQuery({
     search: referenceSearch || undefined,
   });
-
-  const { data: documentLinks } = trpc.links.list.useQuery(
-    { sourceType: "document", sourceId: selectedDocId! },
+  const { data: linkedReferences } = trpc.documents.linkedReferences.useQuery(
+    { id: selectedDocId! },
     { enabled: selectedDocId !== null }
   );
 
@@ -66,6 +90,14 @@ export default function Documents() {
       setEditContent(selectedDoc.content || "");
     }
   }, [selectedDoc?.id, selectedDoc?.content]);
+
+  useEffect(() => {
+    setAssistantMessages([]);
+  }, [selectedDocId]);
+
+  useEffect(() => {
+    setSelectedRelationship(defaultSemanticLinkPresetByTarget[referenceMode]);
+  }, [referenceMode]);
 
   const createMutation = trpc.documents.create.useMutation({
     onSuccess: () => {
@@ -82,7 +114,12 @@ export default function Documents() {
   });
 
   const updateMutation = trpc.documents.update.useMutation({
-    onSuccess: () => refetch(),
+    onSuccess: async () => {
+      await Promise.all([
+        refetch(),
+        selectedDocId ? utils.documents.get.invalidate({ id: selectedDocId }) : Promise.resolve(),
+      ]);
+    },
   });
 
   const deleteMutation = trpc.documents.delete.useMutation({
@@ -90,20 +127,81 @@ export default function Documents() {
       refetch();
       setSelectedDocId(null);
       setEditContent("");
+      setAssistantMessages([]);
     },
   });
 
   const createLinkMutation = trpc.links.create.useMutation({
     onSuccess: async () => {
       if (selectedDocId) {
-        await utils.links.list.invalidate({ sourceType: "document", sourceId: selectedDocId });
+        await Promise.all([
+          utils.links.list.invalidate({ sourceType: "document", sourceId: selectedDocId }),
+          utils.documents.linkedReferences.invalidate({ id: selectedDocId }),
+        ]);
       }
     },
   });
 
-  useEffect(() => {
-    setSelectedRelationship(defaultSemanticLinkPresetByTarget[referenceMode]);
-  }, [referenceMode]);
+  const researchMutation = trpc.documents.researchAssist.useMutation({
+    onSuccess: (result) => {
+      setAssistantMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: result.response,
+        },
+      ]);
+    },
+    onError: (error) => {
+      setAssistantMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: `I couldn’t complete that research pass. ${error.message}`,
+        },
+      ]);
+    },
+  });
+
+  const filteredDocs = documents?.filter((doc) =>
+    doc.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const notebookReferences = useMemo<InsertableReference[]>(
+    () =>
+      (notebookEntries || []).slice(0, 8).map((entry) => ({
+        id: entry.id,
+        title: entry.author ? `${entry.author}${entry.work ? ` — ${entry.work}` : ""}` : entry.work || "Notebook entry",
+        preview: entry.text,
+        type: "notebook",
+        insertText: buildNotebookReferenceInsert({
+          text: entry.text,
+          author: entry.author,
+          work: entry.work,
+          note: entry.note,
+        }),
+      })),
+    [notebookEntries]
+  );
+
+  const lexiconReferences = useMemo<InsertableReference[]>(
+    () =>
+      (lexiconEntries || []).slice(0, 8).map((entry) => ({
+        id: entry.id,
+        title: entry.term,
+        preview: entry.definition || entry.notes || "No definition available.",
+        type: "lexicon",
+        insertText: buildLexiconReferenceInsert({
+          term: entry.term,
+          partOfSpeech: entry.partOfSpeech,
+          definition: entry.definition,
+          notes: entry.notes,
+        }),
+      })),
+    [lexiconEntries]
+  );
+
+  const activeReferences = referenceMode === "notebook" ? notebookReferences : lexiconReferences;
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,53 +222,7 @@ export default function Documents() {
     });
   };
 
-  const filteredDocs = documents?.filter((doc) =>
-    doc.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const notebookReferences = useMemo(
-    () =>
-      (notebookEntries || []).slice(0, 8).map((entry) => ({
-        id: entry.id,
-        title: entry.author ? `${entry.author}${entry.work ? ` — ${entry.work}` : ""}` : entry.work || "Notebook entry",
-        preview: entry.text,
-        type: "notebook" as const,
-        insertText: buildNotebookReferenceInsert({
-          text: entry.text,
-          author: entry.author,
-          work: entry.work,
-          note: entry.note,
-        }),
-      })),
-    [notebookEntries]
-  );
-
-  const lexiconReferences = useMemo(
-    () =>
-      (lexiconEntries || []).slice(0, 8).map((entry) => ({
-        id: entry.id,
-        title: entry.term,
-        preview: entry.definition || entry.notes || "No definition available.",
-        type: "lexicon" as const,
-        insertText: buildLexiconReferenceInsert({
-          term: entry.term,
-          partOfSpeech: entry.partOfSpeech,
-          definition: entry.definition,
-          notes: entry.notes,
-        }),
-      })),
-    [lexiconEntries]
-  );
-
-  const activeReferences = referenceMode === "notebook" ? notebookReferences : lexiconReferences;
-
-  const handleInsertReference = async (reference: {
-    id: number;
-    title: string;
-    preview: string;
-    type: "notebook" | "lexicon";
-    insertText: string;
-  }) => {
+  const handleInsertReference = async (reference: InsertableReference) => {
     if (!selectedDocId) return;
 
     setEditContent((current) => `${current.trim()}${current.trim() ? "\n\n" : ""}${reference.insertText}`);
@@ -181,6 +233,27 @@ export default function Documents() {
       targetType: reference.type,
       targetId: reference.id,
       linkType: selectedRelationship,
+    });
+  };
+
+  const handleResearchPrompt = (content: string) => {
+    if (!selectedDocId) return;
+
+    const nextMessages: Message[] = [
+      ...assistantMessages,
+      {
+        role: "user",
+        content,
+      },
+    ];
+
+    setAssistantMessages(nextMessages);
+    researchMutation.mutate({
+      documentId: selectedDocId,
+      messages: nextMessages.map((message) => ({
+        role: message.role === "assistant" ? "assistant" : "user",
+        content: message.content,
+      })),
     });
   };
 
@@ -272,6 +345,7 @@ export default function Documents() {
               {filteredDocs.map((doc, index) => {
                 const active = selectedDocId === doc.id;
                 const statusColor = statusColors[doc.status || "draft"] || "#efb93a";
+
                 return (
                   <button
                     key={doc.id}
@@ -318,7 +392,7 @@ export default function Documents() {
                   {selectedDoc.project && <span className="dev-chip">{selectedDoc.project}</span>}
                   {selectedDoc.folder && <span className="dev-chip">{selectedDoc.folder}</span>}
                   <span className="dev-chip">{(selectedDoc.status || "draft").replace("_", " ")}</span>
-                  <span className="dev-chip">{documentLinks?.length || 0} links</span>
+                  <span className="dev-chip">{linkedReferences?.length || 0} linked sources</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -340,12 +414,15 @@ export default function Documents() {
               </div>
             </div>
 
-            <div className="grid min-h-[32rem] gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <div className="grid min-h-[32rem] gap-6 2xl:grid-cols-[minmax(0,1fr)_24rem_24rem] xl:grid-cols-[minmax(0,1fr)_23rem]">
               <Card className="dev-card rounded-[1.6rem] p-0 shadow-none">
                 <div className="border-b-2 border-black px-5 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Markdown editor</p>
                 </div>
-                <div className="p-5">
+                <div className="space-y-4 p-5">
+                  <div className="rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4 text-sm leading-6 text-muted-foreground">
+                    Draft with your document on the left, pull structured references from notebook or Clavis Aurea on the right, and use the assistant to synthesize what is already linked into this file.
+                  </div>
                   <Textarea
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
@@ -450,29 +527,95 @@ export default function Documents() {
                 </Card>
 
                 <Card className="dev-card rounded-[1.6rem] p-5 shadow-none">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Bi-directional links</p>
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Linked references</p>
+                      <p className="text-lg font-semibold text-foreground">Working context already attached</p>
+                    </div>
+                    <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {linkedReferences?.length || 0} items
+                    </span>
+                  </div>
+
                   <div className="space-y-3 text-sm leading-6 text-muted-foreground">
-                    {documentLinks && documentLinks.length > 0 ? (
-                      documentLinks.slice(0, 8).map((link, index) => (
-                        <div key={link.id ?? index} className="rounded-[1.1rem] border border-black/10 bg-white p-4">
-                          <p className="font-semibold text-foreground">
-                            {formatSemanticLinkDisplay(link.linkType, link.targetType)}
-                          </p>
-                          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                            Linked record #{link.targetId}
-                          </p>
+                    {linkedReferences && linkedReferences.length > 0 ? (
+                      linkedReferences.slice(0, 8).map((link) => (
+                        <div key={link.id} className="rounded-[1.1rem] border border-black/10 bg-white p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-foreground">{link.targetTitle}</p>
+                              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                                {formatSemanticLinkDisplay(link.linkType, link.targetType)}
+                              </p>
+                            </div>
+                            <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                              {link.targetType}
+                            </span>
+                          </div>
+                          {link.targetMetadata ? (
+                            <p className="mt-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">{link.targetMetadata}</p>
+                          ) : null}
+                          <p className="mt-3 line-clamp-4 text-sm leading-6 text-muted-foreground">{link.targetPreview}</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setLocation(link.targetHref)}
+                            className="mt-3 h-9 w-full rounded-full border-2 border-black bg-white text-black shadow-none hover:bg-[#f6f3ec]"
+                          >
+                            Open linked source
+                          </Button>
                         </div>
                       ))
                     ) : (
                       <div className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4">
-                        Insert a notebook excerpt or Clavis Aurea term to create a semantic backlink from this document.
+                        Insert a notebook excerpt or Clavis Aurea term to create a richer contextual lane for this document.
                       </div>
                     )}
+                  </div>
+                </Card>
+              </aside>
+
+              <aside className="space-y-6 xl:col-span-1 2xl:col-span-1">
+                <Card className="dev-card rounded-[1.6rem] p-5 shadow-none">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#bfd73d]">
+                      <Bot className="h-5 w-5 text-black" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Research assistant</p>
+                      <p className="text-lg font-semibold text-foreground">Interrogate the draft in context</p>
+                    </div>
+                  </div>
+                  <div className="mb-4 rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4 text-sm leading-6 text-muted-foreground">
+                    The assistant sees the current draft and up to eight linked references, so it can help outline arguments, compare sources, or identify missing evidence.
+                  </div>
+                  <AIChatBox
+                    messages={assistantMessages}
+                    onSendMessage={handleResearchPrompt}
+                    isLoading={researchMutation.isPending}
+                    height="34rem"
+                    className="border-2 border-black shadow-none"
+                    placeholder="Ask the assistant to synthesize, outline, compare, or critique this draft..."
+                    emptyStateMessage="Ask for an outline, counterargument, synthesis, or evidence gap analysis."
+                    suggestedPrompts={[
+                      "Summarize the argument emerging from this draft and the linked sources.",
+                      "Identify the strongest tension or contradiction across the linked references.",
+                      "Propose a tighter outline for this piece using the current document and references.",
+                    ]}
+                  />
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-[1.1rem] border border-black/10 bg-white p-4">
-                      Project: <span className="font-semibold text-foreground">{selectedDoc.project || "General research"}</span>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Context loaded</p>
+                      <p className="mt-2 text-2xl font-bold text-foreground">{linkedReferences?.length || 0}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">linked sources available to the assistant</p>
                     </div>
                     <div className="rounded-[1.1rem] border border-black/10 bg-white p-4">
-                      Folder: <span className="font-semibold text-foreground">{selectedDoc.folder || "Working drafts"}</span>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Draft state</p>
+                      <p className="mt-2 inline-flex items-center gap-2 text-2xl font-bold text-foreground">
+                        <Sparkles className="h-5 w-5 text-[#116d6d]" />
+                        {(selectedDoc.status || "draft").replace("_", " ")}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">document status reflected in the AI context packet</p>
                     </div>
                   </div>
                 </Card>

@@ -364,6 +364,98 @@ export async function deleteSemanticLink(userId: number, linkId: number) {
     .where(and(eq(semanticLinks.userId, userId), eq(semanticLinks.id, linkId)));
 }
 
+export async function getEnrichedDocumentLinks(userId: number, documentId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const links = await getSemanticLinks(userId, "document", documentId);
+  if (links.length === 0) {
+    return [];
+  }
+
+  const notebookIds = Array.from(new Set(links.filter((link) => link.targetType === "notebook").map((link) => link.targetId)));
+  const lexiconIds = Array.from(new Set(links.filter((link) => link.targetType === "lexicon").map((link) => link.targetId)));
+  const documentIds = Array.from(new Set(links.filter((link) => link.targetType === "document").map((link) => link.targetId)));
+
+  const [notebookRows, lexiconRows, documentRows] = await Promise.all([
+    notebookIds.length > 0
+      ? db
+          .select()
+          .from(notebookEntries)
+          .where(and(eq(notebookEntries.userId, userId), inArray(notebookEntries.id, notebookIds)))
+      : Promise.resolve([]),
+    lexiconIds.length > 0
+      ? db
+          .select()
+          .from(lexiconEntries)
+          .where(and(eq(lexiconEntries.userId, userId), inArray(lexiconEntries.id, lexiconIds)))
+      : Promise.resolve([]),
+    documentIds.length > 0
+      ? db
+          .select()
+          .from(documents)
+          .where(and(eq(documents.userId, userId), inArray(documents.id, documentIds)))
+      : Promise.resolve([]),
+  ]);
+
+  const notebookMap = new Map(
+    notebookRows.map((entry) => [
+      entry.id,
+      {
+        title: entry.author ? `${entry.author}${entry.work ? ` — ${entry.work}` : ""}` : entry.work || "Notebook entry",
+        preview: entry.note || entry.text,
+        excerpt: entry.text,
+        href: `/notebook/${entry.id}`,
+        metadata: [entry.sourceType, entry.location].filter(Boolean).join(" • "),
+      },
+    ])
+  );
+
+  const lexiconMap = new Map(
+    lexiconRows.map((entry) => [
+      entry.id,
+      {
+        title: entry.term,
+        preview: entry.definition || entry.notes || "No definition available.",
+        excerpt: entry.definition || entry.notes || entry.term,
+        href: `/lexicon/${entry.id}`,
+        metadata: [entry.partOfSpeech, entry.dikwTier].filter(Boolean).join(" • "),
+      },
+    ])
+  );
+
+  const documentMap = new Map(
+    documentRows.map((entry) => [
+      entry.id,
+      {
+        title: entry.title,
+        preview: entry.content?.slice(0, 220) || "No document excerpt available.",
+        excerpt: entry.content || entry.title,
+        href: `/documents`,
+        metadata: [entry.project, entry.folder, entry.status].filter(Boolean).join(" • "),
+      },
+    ])
+  );
+
+  return links.map((link) => {
+    const target =
+      link.targetType === "notebook"
+        ? notebookMap.get(link.targetId)
+        : link.targetType === "lexicon"
+          ? lexiconMap.get(link.targetId)
+          : documentMap.get(link.targetId);
+
+    return {
+      ...link,
+      targetTitle: target?.title || `Linked ${link.targetType} record`,
+      targetPreview: target?.preview || "Linked material is no longer available.",
+      targetExcerpt: target?.excerpt || "",
+      targetHref: target?.href || "/documents",
+      targetMetadata: target?.metadata || "",
+    };
+  });
+}
+
 // ============================================================================
 // TAXONOMY
 // ============================================================================

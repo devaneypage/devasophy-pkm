@@ -23,6 +23,7 @@ import {
   createSemanticLink,
   getSemanticLinks,
   deleteSemanticLink,
+  getEnrichedDocumentLinks,
   getTaxonomyAreas,
   getTaxonomyCategories,
   getTaxonomyTree,
@@ -242,6 +243,70 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
         return await getDocument(ctx.user.id, input.id);
+      }),
+
+    linkedReferences: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return await getEnrichedDocumentLinks(ctx.user.id, input.id);
+      }),
+
+    researchAssist: protectedProcedure
+      .input(
+        z.object({
+          documentId: z.number(),
+          messages: z.array(
+            z.object({
+              role: z.enum(["user", "assistant"]),
+              content: z.string(),
+            })
+          ),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const document = await getDocument(ctx.user.id, input.documentId);
+        if (!document) {
+          throw new Error("Document not found");
+        }
+
+        const linkedReferences = await getEnrichedDocumentLinks(ctx.user.id, input.documentId);
+        const { invokeLLM } = await import("./_core/llm");
+
+        const referenceContext = linkedReferences.length > 0
+          ? linkedReferences
+              .slice(0, 8)
+              .map((reference, index) => `${index + 1}. [${reference.targetType}] ${reference.targetTitle}\nRelationship: ${reference.linkType || "related"}\nMetadata: ${reference.targetMetadata || "none"}\nExcerpt: ${reference.targetExcerpt || reference.targetPreview}`)
+              .join("\n\n")
+          : "No linked references are currently attached to this document.";
+
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are the Devasophy Research Assistant. Help the user think, synthesize, outline, compare sources, and refine arguments. Ground your answer in the current document and linked PKM references when available. If context is missing, say so plainly and suggest what to add next.",
+            },
+            {
+              role: "user",
+              content: `Current document title: ${document.title}\nProject: ${document.project || "General research"}\nFolder: ${document.folder || "Working drafts"}\nStatus: ${document.status || "draft"}\n\nCurrent document content:\n${document.content || "(This draft is currently empty.)"}\n\nLinked references:\n${referenceContext}`,
+            },
+            ...input.messages,
+          ],
+        });
+
+        const rawContent = response.choices[0]?.message?.content;
+        const normalizedResponse = typeof rawContent === "string"
+          ? rawContent
+          : Array.isArray(rawContent)
+            ? rawContent
+                .map((part) => (part && typeof part === "object" && "type" in part && part.type === "text" && "text" in part ? part.text : ""))
+                .join("\n")
+            : "";
+
+        return {
+          response: normalizedResponse,
+          contextCount: linkedReferences.length,
+        };
       }),
 
     update: protectedProcedure
