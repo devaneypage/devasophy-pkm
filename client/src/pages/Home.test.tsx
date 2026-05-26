@@ -9,32 +9,18 @@ vi.mock("wouter", () => ({
 }));
 
 vi.mock("@/components/ui/button", () => ({
-  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button {...props}>{children}</button>
-  ),
+  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props}>{children}</button>,
 }));
 
 vi.mock("@/components/ui/card", () => ({
-  Card: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div className={className}>{children}</div>
-  ),
+  Card: ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={className}>{children}</div>,
 }));
 
-vi.mock("@/components/DevanomyIcons", () => ({
-  EssaysIcon: () => <span>EssaysIcon</span>,
-  NotesIcon: () => <span>NotesIcon</span>,
-  QuotationsIcon: () => <span>QuotationsIcon</span>,
-  ResearchIcon: () => <span>ResearchIcon</span>,
-  VocabularyIcon: () => <span>VocabularyIcon</span>,
+vi.mock("@/components/ui/calendar", () => ({
+  Calendar: () => <div>Calendar widget</div>,
 }));
 
-vi.mock("@/client/src/_core/hooks/useAuth", () => ({
-  useAuth: () => ({
-    user: { name: "Devaney Page", email: "devaneypage@gmail.com" },
-  }),
-}));
-
-vi.mock("@/_core/hooks/useAuth", () => ({
+vi.mock("@/../src/_core/hooks/useAuth", () => ({
   useAuth: () => ({
     user: { name: "Devaney Page", email: "devaneypage@gmail.com" },
   }),
@@ -42,7 +28,17 @@ vi.mock("@/_core/hooks/useAuth", () => ({
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
-    notebook: { list: { useQuery: () => ({ data: new Array(12).fill({}), isLoading: false }) } },
+    notebook: {
+      list: {
+        useQuery: () => ({
+          data: [
+            { id: 1, text: "First note", author: "Arendt", collections: "Political theory" },
+            { id: 2, text: "Second note", author: "Weil", collections: "Attention" },
+          ],
+          isLoading: false,
+        }),
+      },
+    },
     lexicon: { list: { useQuery: () => ({ data: new Array(7).fill({}), isLoading: false }) } },
     documents: { list: { useQuery: () => ({ data: [{ id: 1 }], isLoading: false }) } },
     goals: { list: { useQuery: () => ({ data: [{ id: 1, title: "Launch Devanomy" }], isLoading: false }) } },
@@ -58,12 +54,21 @@ vi.mock("@/lib/trpc", () => ({
         }),
       },
     },
-    projects: { list: { useQuery: () => ({ data: [], isLoading: false }) } },
+    projects: {
+      list: {
+        useQuery: () => ({
+          data: [
+            { id: 1, title: "LSAT Knowledge Graph", description: "Map reasoning patterns.", status: "active", startDate: "2026-05-01", endDate: "2026-06-01" },
+          ],
+          isLoading: false,
+        }),
+      },
+    },
     tasks: {
       list: {
         useQuery: () => ({
           data: [
-            { id: 1, title: "Polish dashboard", dueDate: new Date("2026-05-30T00:00:00.000Z"), status: "todo", priority: "high" },
+            { id: 1, title: "Polish dashboard", dueDate: new Date("2026-05-30T00:00:00.000Z"), status: "todo", priority: "high", projectId: 1 },
           ],
           isLoading: false,
         }),
@@ -74,28 +79,32 @@ vi.mock("@/lib/trpc", () => ({
 
 import Home from "./Home";
 
-describe("Home dashboard branding refresh", () => {
+describe("Home launchpad dashboard", () => {
   beforeEach(() => {
     setLocation.mockClear();
   });
 
-  it("renders the new branded hero and module entry points", () => {
+  it("renders the launchpad hero and requested dashboard sections", () => {
     render(<Home />);
 
-    expect(screen.getByAltText("Devanomy")).toBeTruthy();
-    expect(screen.getByText("Devanomy editorial workspace")).toBeTruthy();
+    expect(screen.getByText("Launchpad dashboard")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Quick capture/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Unified search/i })).toBeTruthy();
-    expect(screen.getByText("Ideas Lab")).toBeTruthy();
+    expect(screen.getByText("Docket")).toBeTruthy();
+    expect(screen.getByText("Projects in motion")).toBeTruthy();
+    expect(screen.getByText("Mini calendar")).toBeTruthy();
+    expect(screen.getByText("Notes preview")).toBeTruthy();
+    expect(screen.getByText("LSAT Knowledge Graph")).toBeTruthy();
   });
 
-  it("routes the primary hero actions to the expected destinations", () => {
+  it("routes the primary launchpad actions to the new top-level destinations", () => {
     render(<Home />);
 
     fireEvent.click(screen.getByRole("button", { name: /Quick capture/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Unified search/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Explore knowledge base/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Open full calendar/i }));
 
-    expect(setLocation).toHaveBeenNthCalledWith(1, "/notebook");
-    expect(setLocation).toHaveBeenNthCalledWith(2, "/search");
+    expect(setLocation).toHaveBeenNthCalledWith(1, "/notes");
+    expect(setLocation).toHaveBeenNthCalledWith(2, "/knowledge-base");
+    expect(setLocation).toHaveBeenNthCalledWith(3, "/calendar");
   });
 });

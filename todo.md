@@ -528,4 +528,21 @@ Identify which request or route returns the unexpected HTML payload
 ## Taxonomy-Aware Import Suggestions
 - [x] Review the current notebook and lexicon import flows to identify where category suggestions should appear before save
 - [x] Implement taxonomy-aware category suggestion logic and pre-save suggestion UI for imports
-- [ ] Verify import category suggestions in tests and live project health, then save a checkpoint
+- [x] Verify import category suggestions in tests and live project health, then save a checkpoint
+
+## Import Taxonomy Override Controls
+- [ ] Review the current taxonomy suggestion review flow to identify where one-click per-row overrides should appear
+- [ ] Implement one-click per-row category override controls in the import review UI and supporting logic
+- [ ] Verify the override workflow in tests and live project health, then save a checkpoint
+
+## Launchpad Dashboard and Sidebar Views
+- [x] Review the current dashboard shell, routes, and reusable components for the new launchpad views
+- [x] Integrate the Dashboard view with hero, docket, active projects, stats, mini-calendar, and notes preview sections
+- [x] Create the Projects view with grid filtering and a detail modal
+- [x] Create the Knowledge Base view with tagged intellectual constellations and a detail modal
+- [x] Create the Notes view with split-pane list/detail layout and collection filtering
+- [x] Create the Calendar view with a month grid, event dots, and event sidebar
+- [x] Create the Settings view with account, preferences, and workspace sections
+- [x] Wire the new sidebar navigation items and route integration across the launchpad shell
+- [ ] Verify the new launchpad views in tests and live project health, then save a checkpoint
+- [x] Nest the existing legacy module destinations inside the six new top-level launchpad views instead of keeping them as primary sidebar items

@@ -1,4 +1,5 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import { CSSProperties, useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,41 +24,67 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Download, FolderOpen, Grid2x2, LogOut, PanelLeft, Search, Settings2, Upload } from "lucide-react";
+import { useAuth } from "@/../src/_core/hooks/useAuth";
 import {
-  CategoriesIcon,
-  EssaysIcon,
-  NotesIcon,
-  QuotationsIcon,
-  ResearchIcon,
-  VocabularyIcon,
-} from "./DevanomyIcons";
-import { CSSProperties, useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
+  BookOpen,
+  CalendarDays,
+  FolderKanban,
+  Grid2x2,
+  Library,
+  LogOut,
+  NotebookPen,
+  PanelLeft,
+  Search,
+  Settings2,
+  Sparkles,
+  Target,
+  Upload,
+} from "lucide-react";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
-import TaxonomySidebar from "./TaxonomySidebar";
 
-const menuItems = [
-  { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
-  { icon: EssaysIcon, label: "Writing Studio", path: "/documents", accent: "#e25b33" },
-  { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#f03878" },
-  { icon: ResearchIcon, label: "Ideas", path: "/ideas", accent: "#5c61ff" },
-  { icon: NotesIcon, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
-  { icon: QuotationsIcon, label: "Notes", path: "/notebook", accent: "#efb93a" },
-  { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#5c61ff" },
-  { icon: VocabularyIcon, label: "Lexicon", path: "/lexicon", accent: "#56c5ea" },
-  { icon: Upload, label: "Import", path: "/bulk-import", accent: "#f03878" },
-  { icon: Download, label: "Export", path: "/export", accent: "#56c5ea" },
-];
+const primaryMenuItems = [
+  { icon: Grid2x2, label: "Dashboard", path: "/", accent: "#efb93a" },
+  { icon: FolderKanban, label: "Projects", path: "/projects", accent: "#e25b33" },
+  { icon: Sparkles, label: "Knowledge Base", path: "/knowledge-base", accent: "#56c5ea" },
+  { icon: NotebookPen, label: "Notes", path: "/notes", accent: "#f0b85a" },
+  { icon: CalendarDays, label: "Calendar", path: "/calendar", accent: "#5c61ff" },
+  { icon: Settings2, label: "Settings", path: "/settings", accent: "#f03878" },
+] as const;
 
-const utilityItems = [{ icon: Settings2, label: "Settings", path: "/export", accent: "#5c61ff" }];
+const nestedDestinations = {
+  dashboard: [
+    { label: "Quick import", path: "/bulk-import", icon: Upload },
+    { label: "Goals", path: "/goals", icon: Target },
+  ],
+  projects: [
+    { label: "Writing Studio", path: "/documents", icon: BookOpen },
+    { label: "Goals", path: "/goals", icon: Target },
+  ],
+  "knowledge-base": [
+    { label: "Lexicon", path: "/lexicon", icon: Library },
+    { label: "Ideas", path: "/ideas", icon: Sparkles },
+    { label: "Glossary", path: "/glossary", icon: BookOpen },
+  ],
+  notes: [
+    { label: "Notebook detail", path: "/notebook", icon: NotebookPen },
+    { label: "Bulk import", path: "/bulk-import", icon: Upload },
+  ],
+  calendar: [
+    { label: "Goals timeline", path: "/goals", icon: Target },
+    { label: "Projects", path: "/projects", icon: FolderKanban },
+  ],
+  settings: [
+    { label: "Import", path: "/bulk-import", icon: Upload },
+    { label: "Export", path: "/export", icon: BookOpen },
+  ],
+} as const;
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 292;
 const MIN_WIDTH = 240;
 const MAX_WIDTH = 420;
 
-type ModuleKey = "home" | "notebook" | "lexicon" | "documents" | "goals" | "ideas" | "glossary";
+type ModuleKey = "dashboard" | "projects" | "knowledge-base" | "notes" | "calendar" | "settings";
 
 export default function DashboardLayout({
   children,
@@ -76,21 +103,17 @@ export default function DashboardLayout({
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
   }, [sidebarWidth]);
 
-  if (loading) {
-    return <DashboardLayoutSkeleton />;
-  }
+  if (loading) return <DashboardLayoutSkeleton />;
 
   if (!user) {
     return (
       <div className="min-h-screen bg-background px-6 py-12">
         <div className="mx-auto flex min-h-[80vh] max-w-md items-center justify-center">
           <div className="dev-card w-full p-8 text-center">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-              Devanomy Workspace
-            </p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">Devanomy Workspace</p>
             <h1 className="mb-4 text-4xl">Sign in to continue</h1>
             <p className="mb-8 text-sm leading-6 text-muted-foreground">
-              Access your knowledge hub, lexicon, and research studio from a single integrated workspace.
+              Access your knowledge hub, project launchpad, notes workspace, and planning tools from a single integrated shell.
             </p>
             <Button
               onClick={() => {
@@ -128,11 +151,7 @@ type DashboardLayoutContentProps = {
   currentModule?: ModuleKey;
 };
 
-function DashboardLayoutContent({
-  children,
-  setSidebarWidth,
-  currentModule,
-}: DashboardLayoutContentProps) {
+function DashboardLayoutContent({ children, setSidebarWidth, currentModule }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
@@ -141,31 +160,38 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const isMobile = useIsMobile();
 
-  const pathToModule: Record<string, ModuleKey> = {
-    "/": "home",
-    "/notebook": "notebook",
-    "/lexicon": "lexicon",
-    "/documents": "documents",
-    "/goals": "goals",
-    "/ideas": "ideas",
+  const routeModuleMap: Record<string, ModuleKey> = {
+    "/": "dashboard",
+    "/projects": "projects",
+    "/knowledge-base": "knowledge-base",
+    "/notes": "notes",
+    "/calendar": "calendar",
+    "/settings": "settings",
+    "/documents": "projects",
+    "/goals": "projects",
+    "/search": "knowledge-base",
+    "/lexicon": "knowledge-base",
+    "/ideas": "knowledge-base",
+    "/glossary": "knowledge-base",
+    "/notebook": "notes",
+    "/bulk-import": "settings",
+    "/export": "settings",
   };
 
-  const activeMenuItem = menuItems.find((item) => item.path === location) ?? menuItems[0];
+  const resolvedModule = currentModule ?? routeModuleMap[location] ?? "dashboard";
+  const activeMenuItem = primaryMenuItems.find((item) => item.path === (resolvedModule === "dashboard" ? "/" : `/${resolvedModule}`)) ?? primaryMenuItems[0];
+  const shortcuts = nestedDestinations[resolvedModule];
 
   useEffect(() => {
-    if (isCollapsed) {
-      setIsResizing(false);
-    }
+    if (isCollapsed) setIsResizing(false);
   }, [isCollapsed]);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (event: MouseEvent) => {
       if (!isResizing) return;
       const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
-      const newWidth = e.clientX - sidebarLeft;
-      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
-        setSidebarWidth(newWidth);
-      }
+      const newWidth = event.clientX - sidebarLeft;
+      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) setSidebarWidth(newWidth);
     };
 
     const handleMouseUp = () => setIsResizing(false);
@@ -199,7 +225,7 @@ function DashboardLayoutContent({
                     alt="Devanomy"
                     className="h-16 w-auto max-w-[13rem] rounded-xl object-contain"
                   />
-                  <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-white/72">a personal knowledge taxonomy</p>
+                  <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-white/72">launchpad workspace</p>
                 </div>
               ) : (
                 <button
@@ -227,11 +253,8 @@ function DashboardLayoutContent({
             <div className="absolute inset-x-0 bottom-0 h-28 dev-sidebar-pattern" />
             <div className="relative z-10 flex h-full flex-col">
               <SidebarMenu className="px-3 py-3">
-                {menuItems.map((item) => {
-                  const isActive = currentModule
-                    ? pathToModule[item.path] === currentModule || location === item.path
-                    : location === item.path;
-
+                {primaryMenuItems.map((item) => {
+                  const isActive = item.label.toLowerCase().replace(/ /g, "-") === resolvedModule;
                   return (
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton
@@ -255,31 +278,27 @@ function DashboardLayoutContent({
               </SidebarMenu>
 
               {!isCollapsed && (
-                <div className="mx-3 mt-2 rounded-[1.35rem] border border-white/12 bg-white/8 backdrop-blur-sm">
-                  <TaxonomySidebar />
+                <div className="mx-3 mt-2 rounded-[1.35rem] border border-white/12 bg-white/8 p-4 backdrop-blur-sm">
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-white/60">Nested modules</p>
+                  <div className="mt-4 space-y-2">
+                    {shortcuts.map((shortcut) => (
+                      <button
+                        key={shortcut.path}
+                        onClick={() => setLocation(shortcut.path)}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${location === shortcut.path ? "bg-white/14" : "hover:bg-white/10"}`}
+                      >
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/12 bg-white/10 text-white">
+                          <shortcut.icon className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white">{shortcut.label}</p>
+                          <p className="text-xs text-white/60">Secondary destination inside {activeMenuItem.label}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
-
-              <SidebarMenu className="mt-auto px-3 pb-3">
-                {utilityItems.map((item) => (
-                  <SidebarMenuItem key={item.label}>
-                      <SidebarMenuButton
-                        onClick={() => setLocation(item.path)}
-                        tooltip={item.label}
-                        className="h-12 rounded-[1.15rem] border border-transparent px-3 text-sidebar-foreground transition-all hover:bg-white/8"
-                      >
-                        <span
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 text-black shadow-sm"
-                          style={{ backgroundColor: item.accent }}
-                        >
-                          <item.icon className="h-4 w-4" />
-                        </span>
-                        <span className="font-medium tracking-[0.01em]">{item.label}</span>
-                      </SidebarMenuButton>
-
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
             </div>
           </SidebarContent>
 
@@ -328,7 +347,7 @@ function DashboardLayoutContent({
               <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6b7487]" />
               <Input
                 readOnly
-                value={activeMenuItem?.label === "Dashboard" ? "Search your notes, terms, and projects" : `Browse ${activeMenuItem?.label.toLowerCase()}`}
+                value={activeMenuItem.label === "Dashboard" ? "Search your notes, projects, and events" : `Browse ${activeMenuItem.label.toLowerCase()}`}
                 className="dev-search h-14 pl-12 text-base text-foreground shadow-none placeholder:text-muted-foreground"
               />
             </div>
@@ -341,7 +360,7 @@ function DashboardLayoutContent({
                 />
                 <div className="hidden pr-1 lg:block">
                   <p className="text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-[#6b7487]">Devanomy</p>
-                  <p className="text-sm font-semibold text-[#13243f]">Editorial workspace</p>
+                  <p className="text-sm font-semibold text-[#13243f]">Launchpad workspace</p>
                 </div>
               </div>
               <Avatar className="h-12 w-12 border-2 border-[#13243f] bg-[#f6f3ec]">
