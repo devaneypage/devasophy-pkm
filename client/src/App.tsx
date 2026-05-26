@@ -20,6 +20,7 @@ import Glossary from "./pages/Glossary";
 import Projects from "./pages/Projects";
 import CalendarPage from "./pages/Calendar";
 import SettingsPage from "./pages/Settings";
+import Library from "./pages/Library";
 
 function Router() {
   return (
@@ -141,6 +142,13 @@ function Router() {
         {() => (
           <DashboardLayout currentModule="settings">
             <Export />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/library"}>
+        {() => (
+          <DashboardLayout currentModule="library">
+            <Library />
           </DashboardLayout>
         )}
       </Route>
