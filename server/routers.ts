@@ -57,6 +57,11 @@ import {
   bulkImportLexiconFromText,
   bulkImportNotebookWithDuplicateDetection,
   bulkImportLexiconWithDuplicateDetection,
+  createBook,
+  listBooks,
+  getBook,
+  updateBook,
+  deleteBook,
 } from "./db";
 import {
   generateNotebookZettelkastenId,
@@ -880,6 +885,27 @@ Composition request: ${input.prompt}`,
         });
       }),
     ...duplicateDetectionRouter._def.procedures,
+  }),
+
+  // ============================================================================
+  // BOOKS MODULE (Library Layer)
+  // ============================================================================
+  books: router({
+    list: protectedProcedure
+      .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), sortBy: z.enum(["recent", "oldest", "rating"]).optional() }))
+      .query(async ({ ctx, input }) => listBooks(ctx.user.id, input)),
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => getBook(ctx.user.id, input.id)),
+    create: protectedProcedure
+      .input(z.object({ title: z.string(), author: z.string().optional(), coverColor: z.string().optional(), rating: z.string().optional(), readingProgress: z.number().optional(), status: z.enum(["reading", "completed", "want_to_read"]).optional(), notes: z.string().optional(), tags: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => createBook(ctx.user.id, input)),
+    update: protectedProcedure
+      .input(z.object({ id: z.number(), title: z.string().optional(), author: z.string().optional(), coverColor: z.string().optional(), rating: z.string().optional(), readingProgress: z.number().optional(), status: z.enum(["reading", "completed", "want_to_read"]).optional(), notes: z.string().optional(), tags: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => { const { id, ...data } = input; return updateBook(ctx.user.id, id, data); }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => deleteBook(ctx.user.id, input.id)),
   }),
 });
 export type AppRouter = typeof appRouter;

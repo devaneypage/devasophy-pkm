@@ -18,6 +18,7 @@ import {
   projects,
   tasks,
   ideas,
+  books,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { johnnyDecimalModuleDefaults, johnnyDecimalSeeds } from "../shared/johnnyDecimal";
@@ -1490,6 +1491,55 @@ export async function bulkImportLexiconFromText(
   }));
 
   return bulkImportLexiconEntries(userId, entries, options);
+}
+
+// ============================================================================
+// BOOKS MODULE
+// ============================================================================
+export async function createBook(userId: number, data: {
+  title: string;
+  author?: string;
+  coverColor?: string;
+  rating?: string;
+  readingProgress?: number;
+  status?: "reading" | "completed" | "want_to_read";
+  notes?: string;
+  tags?: string;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(books).values({ userId, ...data });
+  return result;
+}
+
+export async function listBooks(userId: number, opts?: { status?: "reading" | "completed" | "want_to_read"; sortBy?: "recent" | "oldest" | "rating" }) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(books.userId, userId)];
+  if (opts?.status) conditions.push(eq(books.status, opts.status));
+  const order = opts?.sortBy === "oldest" ? asc(books.createdAt) : desc(books.createdAt);
+  return db.select().from(books).where(and(...conditions)).orderBy(order);
+}
+
+export async function getBook(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [book] = await db.select().from(books).where(and(eq(books.id, id), eq(books.userId, userId)));
+  return book ?? null;
+}
+
+export async function updateBook(userId: number, id: number, data: Partial<{ title: string; author: string; coverColor: string; rating: string; readingProgress: number; status: "reading" | "completed" | "want_to_read"; notes: string; tags: string }>) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(books).set(data).where(and(eq(books.id, id), eq(books.userId, userId)));
+  return getBook(userId, id);
+}
+
+export async function deleteBook(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.delete(books).where(and(eq(books.id, id), eq(books.userId, userId)));
+  return { success: true };
 }
 
 

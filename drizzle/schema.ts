@@ -346,3 +346,25 @@ export const lexiconEnhancements = {
   partOfSpeech: varchar('part_of_speech', { length: 50 }), // noun, verb, adjective, adverb, phrase
   etymology: text('etymology'), // word origins and linguistic history
 };
+
+/**
+ * Books Module (Library Layer)
+ * Tracks reading list, progress, and ratings
+ */
+export const books = mysqlTable("books", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 500 }).notNull(),
+  author: varchar("author", { length: 255 }),
+  coverColor: varchar("coverColor", { length: 20 }).default("#E84D20"),
+  dateAdded: timestamp("dateAdded").defaultNow().notNull(),
+  rating: decimal("rating", { precision: 2, scale: 1 }),
+  readingProgress: int("readingProgress").default(0),
+  status: mysqlEnum("status", ["reading", "completed", "want_to_read"]).default("want_to_read"),
+  notes: text("notes"),
+  tags: text("tags"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Book = typeof books.$inferSelect;
+export type InsertBook = typeof books.$inferInsert;
