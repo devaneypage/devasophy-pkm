@@ -50,7 +50,7 @@ const modules = [
     description: "Keep immediate, seasonal, annual, and long-term aims visible so projects and tasks remain aligned with larger ends.",
     icon: NotesIcon,
     route: "/goals",
-    accent: "#116d6d",
+    accent: "#f03878",
     pattern: "dev-pattern-waves",
     chips: ["Action Layer", "Outcomes", "Horizon"],
   },
@@ -60,7 +60,7 @@ const modules = [
     description: "Develop questions, frameworks, arguments, and synthesis threads that connect your archive to future writing and teaching.",
     icon: ResearchIcon,
     route: "/ideas",
-    accent: "#b55af3",
+    accent: "#5c61ff",
     pattern: "dev-pattern-diamonds",
     chips: ["Synthesis Layer", "Frameworks", "Questions"],
   },
@@ -70,7 +70,7 @@ const modules = [
     description: "Explore philosophical and literary vocabulary with AI-powered composition and thematic organization.",
     icon: VocabularyIcon,
     route: "/glossary",
-    accent: "#b55af3",
+    accent: "#5c61ff",
     pattern: "dev-pattern-stripes",
     chips: ["Lexicon", "Scribe", "Themes"],
   },
@@ -129,25 +129,25 @@ export default function Home() {
     {
       label: "Notebook Entries",
       value: formatStatValue(notebookQuery.data?.length, notebookQuery.isLoading),
-      tone: "#116d6d",
+      tone: "#efb93a",
       pattern: "dev-pattern-waves",
     },
     {
       label: "Lexicon Terms",
       value: formatStatValue(lexiconQuery.data?.length, lexiconQuery.isLoading),
-      tone: "#e25b33",
+      tone: "#56c5ea",
       pattern: "dev-pattern-dots",
     },
     {
       label: "Documents",
       value: formatStatValue(documentsQuery.data?.length, documentsQuery.isLoading),
-      tone: "#56c5ea",
+      tone: "#e25b33",
       pattern: "dev-pattern-stripes",
     },
     {
       label: "Ideas in Play",
       value: formatStatValue(ideasQuery.data?.filter((idea) => idea.status !== "archived").length, ideasQuery.isLoading),
-      tone: "#b55af3",
+      tone: "#5c61ff",
       pattern: "dev-pattern-diamonds",
     },
   ];
@@ -176,17 +176,17 @@ export default function Home() {
         : task.priority === "high"
           ? "#efb93a"
           : task.status === "completed"
-            ? "#bfd73d"
+            ? "#5c61ff"
             : "#56c5ea",
   }));
 
   const tasks =
     liveTasks.length > 0
-      ? liveTasks
+        ? liveTasks
       : [
-          { label: "Import your first archive", date: "Start here", shape: "circle" as const, color: "#bfd73d" },
+          { label: "Import your first archive", date: "Start here", shape: "circle" as const, color: "#efb93a" },
           { label: "Define your first lexicon term", date: "Next", shape: "square" as const, color: "#56c5ea" },
-          { label: "Set your first workspace goal", date: "Then", shape: "diamond" as const, color: "#116d6d" },
+          { label: "Set your first workspace goal", date: "Then", shape: "diamond" as const, color: "#5c61ff" },
         ];
 
   return (

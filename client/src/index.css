@@ -83,13 +83,13 @@
   --devanomy-paper-strong: #efe6d6;
   --devanomy-ink: #13243f;
   --devanomy-ink-soft: #48546a;
-  --devanomy-teal: #0d706b;
-  --devanomy-teal-deep: #0a5655;
+  --devanomy-teal: #5c61ff;
+  --devanomy-teal-deep: #3f46d9;
   --devanomy-coral: #e85b3e;
   --devanomy-sky: #54b5dd;
-  --devanomy-lime: #c5dc55;
+  --devanomy-lime: #f4c86a;
   --devanomy-gold: #d2a53b;
-  --devanomy-violet: #7b5bc2;
+  --devanomy-violet: #f03878;
   --devanomy-dot: #f16a43;
   --devanomy-line: rgba(19, 36, 63, 0.14);
   --devanomy-shadow: rgba(19, 36, 63, 0.12);
@@ -238,7 +238,7 @@
   .dev-soft-card {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(249, 246, 239, 0.92));
     border: 1.5px solid rgba(19, 36, 63, 0.12);
-    box-shadow: 0 20px 46px -30px rgba(13, 112, 107, 0.28);
+    box-shadow: 0 20px 46px -30px rgba(92, 97, 255, 0.24);
     border-radius: 2rem;
     backdrop-filter: blur(16px);
   }
@@ -303,7 +303,9 @@
 
   .dev-sidebar-panel {
     background:
-      linear-gradient(180deg, rgba(13,112,107,0.97), rgba(10,86,85,0.99)),
+      linear-gradient(180deg, rgba(19, 36, 63, 0.97), rgba(28, 45, 82, 0.99)),
+      radial-gradient(circle at 16% 18%, rgba(84, 181, 221, 0.2) 0, transparent 34%),
+      radial-gradient(circle at 82% 22%, rgba(240, 56, 120, 0.16) 0, transparent 28%),
       linear-gradient(145deg, rgba(255,255,255,0.06), transparent 35%);
     color: white;
   }
@@ -343,7 +345,7 @@
     width: 4.1rem;
     height: 4.1rem;
     border-radius: 9999px;
-    background: linear-gradient(135deg, var(--devanomy-lime), #d8e85f);
+    background: linear-gradient(135deg, var(--devanomy-lime), var(--devanomy-gold));
     box-shadow: inset 0 0 0 2px rgba(21, 21, 21, 0.08);
   }
 

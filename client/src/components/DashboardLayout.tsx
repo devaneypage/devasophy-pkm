@@ -40,17 +40,17 @@ import TaxonomySidebar from "./TaxonomySidebar";
 const menuItems = [
   { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
   { icon: EssaysIcon, label: "Writing Studio", path: "/documents", accent: "#e25b33" },
-  { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#116d6d" },
-  { icon: ResearchIcon, label: "Ideas", path: "/ideas", accent: "#b55af3" },
+  { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#f03878" },
+  { icon: ResearchIcon, label: "Ideas", path: "/ideas", accent: "#5c61ff" },
   { icon: NotesIcon, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
   { icon: QuotationsIcon, label: "Notes", path: "/notebook", accent: "#efb93a" },
-  { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#b55af3" },
-  { icon: VocabularyIcon, label: "Lexicon", path: "/lexicon", accent: "#9b7e8f" },
-  { icon: Upload, label: "Import", path: "/bulk-import", accent: "#bfd73d" },
+  { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#5c61ff" },
+  { icon: VocabularyIcon, label: "Lexicon", path: "/lexicon", accent: "#56c5ea" },
+  { icon: Upload, label: "Import", path: "/bulk-import", accent: "#f03878" },
   { icon: Download, label: "Export", path: "/export", accent: "#56c5ea" },
 ];
 
-const utilityItems = [{ icon: Settings2, label: "Settings", path: "/export", accent: "#e25b33" }];
+const utilityItems = [{ icon: Settings2, label: "Settings", path: "/export", accent: "#5c61ff" }];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 292;
@@ -287,7 +287,7 @@ function DashboardLayoutContent({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex w-full items-center gap-3 rounded-2xl border border-white/12 bg-white/8 px-2 py-2 text-left transition hover:bg-white/12 group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                  <Avatar className="h-10 w-10 border-2 border-white/20 bg-[#56c5ea]">
+                  <Avatar className="h-10 w-10 border-2 border-white/20 bg-[#5c61ff]">
                     <AvatarFallback className="bg-transparent font-semibold text-black">
                       {user?.name?.charAt(0).toUpperCase() || "D"}
                     </AvatarFallback>

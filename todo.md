@@ -512,8 +512,8 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Save a checkpoint for the verified visual-editor changes
 
 ## Sidebar Brand Palette Normalization
-- [ ] Review the current sidebar accent colors against the established Devanomy brand palette
-- [ ] Normalize sidebar navigation, utility, and profile accent colors to the finalized brand system
+- [x] Review the current sidebar accent colors against the established Devanomy brand palette
+- [x] Normalize sidebar navigation, utility, and profile accent colors to the finalized brand system
 - [ ] Verify the refined sidebar visually in the live app and save a checkpoint
 
 ## PKM Integration Roadmap Plan
@@ -523,4 +523,4 @@ Identify which request or route returns the unexpected HTML payload
 ## Johnny Decimal Taxonomy Outline Schema Update
 - [x] Review the uploaded Master Classification Key PDF against the current Johnny Decimal taxonomy outline implementation
 - [x] Update the taxonomy outline schema and mapped data structures to reflect the Master Classification Key
-- [ ] Verify the updated taxonomy schema in tests and live project health, then save a checkpoint
+- [x] Verify the updated taxonomy schema in tests and live project health, then save a checkpoint
