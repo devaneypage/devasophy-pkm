@@ -1,265 +1,190 @@
-import React from "react";
-import { ArrowRight, CalendarDays, FolderKanban, NotebookPen, Plus, Sparkles, Target } from "lucide-react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/../src/_core/hooks/useAuth";
+import { BookOpen, FileText, Lightbulb, MessageSquareQuote, Plus } from "lucide-react";
 
-function formatStatValue(value: number | undefined, isLoading: boolean) {
-  if (isLoading) return "—";
-  return String(value ?? 0).padStart(2, "0");
-}
+const FOCUS_QUOTES = [
+  { text: "The person you are becoming is more important than the person you have been.", author: "Alex Aubrey" },
+  { text: "The unexamined life is not worth living.", author: "Socrates" },
+  { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
+];
 
-function normalizeDate(value?: Date | string | null) {
-  if (!value) return null;
-  const parsed = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+const ITEM_ICONS: Record<string, React.FC<any>> = {
+  notebook: MessageSquareQuote,
+  lexicon: BookOpen,
+  document: FileText,
+  idea: Lightbulb,
+};
+
+function formatRelTime(dateVal: Date | string | null | undefined): string {
+  if (!dateVal) return "";
+  const date = dateVal instanceof Date ? dateVal : new Date(dateVal);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = Date.now();
+  const diff = now - date.getTime();
+  if (diff < 60_000) return "Just now";
+  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) {
+    const h = date.getHours().toString().padStart(2, "0");
+    const m = date.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+  }
+  if (diff < 7 * 86_400_000) return date.toLocaleDateString("en-US", { weekday: "short" });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default function Home() {
-  const { user } = useAuth();
+  const [focusIndex, setFocusIndex] = useState(0);
   const [, setLocation] = useLocation();
 
-  const notebookQuery = trpc.notebook.list.useQuery({});
+  const notebookQuery = trpc.notebook.list.useQuery({ sortBy: "recent" });
   const lexiconQuery = trpc.lexicon.list.useQuery({});
-  const documentsQuery = trpc.documents.list.useQuery({});
-  const goalsQuery = trpc.goals.list.useQuery({});
+  const booksQuery = trpc.books.list.useQuery({ sortBy: "recent" });
   const ideasQuery = trpc.ideas.list.useQuery({});
-  const projectsQuery = trpc.projects.list.useQuery({});
-  const tasksQuery = trpc.tasks.list.useQuery({});
 
+  const notes = notebookQuery.data ?? [];
+  const lexicon = lexiconQuery.data ?? [];
+  const books = booksQuery.data ?? [];
+  const ideas = ideasQuery.data ?? [];
+
+  // Quotes = notebook entries that are actual quotes (have author field)
+  const quotes = notes.filter((n: any) => n.author);
+
+  // Knowledge overview stats
   const stats = [
-    {
-      label: "Notebook entries",
-      value: formatStatValue(notebookQuery.data?.length, notebookQuery.isLoading),
-      tone: "#efb93a",
-    },
-    {
-      label: "Lexicon terms",
-      value: formatStatValue(lexiconQuery.data?.length, lexiconQuery.isLoading),
-      tone: "#56c5ea",
-    },
-    {
-      label: "Drafts in studio",
-      value: formatStatValue(documentsQuery.data?.length, documentsQuery.isLoading),
-      tone: "#e25b33",
-    },
-    {
-      label: "Ideas in play",
-      value: formatStatValue(ideasQuery.data?.filter((idea: any) => idea.status !== "archived").length, ideasQuery.isLoading),
-      tone: "#5c61ff",
-    },
+    { label: "NOTES", count: notes.length, delta: 0, color: "#E84D20" },
+    { label: "QUOTES", count: quotes.length, delta: 0, color: "#2D6BE4" },
+    { label: "BOOKS", count: books.length, delta: 0, color: "#1A8F6E" },
+    { label: "CONCEPTS", count: lexicon.length + ideas.length, delta: 0, color: "#7B4FD4" },
   ];
 
-  const activeProjects = (projectsQuery.data ?? [])
-    .filter((project: any) => project.status !== "archived")
-    .slice(0, 3)
-    .map((project: any) => {
-      const projectTasks = (tasksQuery.data ?? []).filter((task: any) => task.projectId === project.id);
-      const completedTasks = projectTasks.filter((task: any) => task.status === "completed").length;
-      const progress = projectTasks.length === 0 ? 0 : Math.round((completedTasks / projectTasks.length) * 100);
-      return {
-        ...project,
-        progress,
-        taskCount: projectTasks.length,
-      };
-    });
-
-  const docket = (tasksQuery.data ?? [])
-    .slice()
-    .sort((a: any, b: any) => {
-      const left = normalizeDate(a.dueDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-      const right = normalizeDate(b.dueDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-      return left - right;
+  // Recently opened — combine notes + lexicon + ideas, sort by updatedAt
+  type RecentItem = { id: number; type: string; title: string; jdLabel: string; updatedAt: Date | string | null; path: string };
+  const recentItems: RecentItem[] = [
+    ...notes.slice(0, 8).map((n: any) => ({
+      id: n.id,
+      type: "notebook",
+      title: n.work || n.author || n.text?.slice(0, 50) || "Untitled note",
+      jdLabel: n.collections || "30.01 Quotations",
+      updatedAt: n.updatedAt,
+      path: `/notebook/${n.id}`,
+    })),
+    ...lexicon.slice(0, 4).map((l: any) => ({
+      id: l.id,
+      type: "lexicon",
+      title: l.term,
+      jdLabel: "20.01 Vocabulary",
+      updatedAt: l.updatedAt,
+      path: `/lexicon/${l.id}`,
+    })),
+    ...ideas.slice(0, 4).map((i: any) => ({
+      id: i.id,
+      type: "idea",
+      title: i.title,
+      jdLabel: "50.01 Concepts",
+      updatedAt: i.updatedAt,
+      path: "/ideas",
+    })),
+  ]
+    .sort((a, b) => {
+      const at = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const bt = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return bt - at;
     })
-    .slice(0, 4)
-    .map((task: any) => ({
-      id: task.id,
-      title: task.title,
-      due: normalizeDate(task.dueDate),
-      status: task.status,
-      priority: task.priority,
-    }));
+    .slice(0, 6);
 
-  const recentNotes = (notebookQuery.data ?? []).slice(0, 4);
-  const upcomingDates = [
-    ...docket.map((item) => item.due).filter(Boolean),
-    ...(projectsQuery.data ?? []).flatMap((project: any) => [normalizeDate(project.startDate), normalizeDate(project.endDate)]).filter(Boolean),
-  ] as Date[];
+  const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase();
 
-  const dashboardLinks = [
-    { label: "Open Writing Studio", description: "Draft essays and research notes.", path: "/documents", icon: FolderKanban, accent: "#e25b33" },
-    { label: "Open Goals", description: "Track immediate and long-range aims.", path: "/goals", icon: Target, accent: "#f03878" },
-    { label: "Open Ideas Lab", description: "Develop frameworks and synthesis threads.", path: "/ideas", icon: Sparkles, accent: "#5c61ff" },
-  ];
+  // Use quotes from notebook as focus quotes, fall back to static
+  const focusQuotes = quotes.length > 0
+    ? quotes.slice(0, 3).map((q: any) => ({ text: q.text, author: q.author }))
+    : FOCUS_QUOTES;
+  const currentFocus = focusQuotes[focusIndex % focusQuotes.length];
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="dev-soft-card overflow-hidden p-6 sm:p-8" style={{ backgroundColor: "rgba(249,246,239,0.9)" }}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="max-w-3xl">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#6b7487]">Launchpad dashboard</p>
-              <h1 className="dev-hero-accent relative inline-block pr-10 text-balance text-[#13243f]">
-                Good morning, {user?.name?.split(" ")[0] || "Devaney"}
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-[#48546a] sm:text-lg">
-                A dashboard for active projects, immediate docket items, current notes, and the calendar layer that coordinates your Devanomy workspace.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => setLocation("/notes")} className="h-11 rounded-full border border-[#13243f]/15 bg-[#e85b3e] px-5 text-white shadow-[0_18px_30px_-22px_rgba(232,91,62,0.7)] hover:bg-[#d94d31]">
-                <Plus className="mr-2 h-4 w-4" />
-                Quick capture
-              </Button>
-              <Button variant="outline" onClick={() => setLocation("/knowledge-base")} className="h-11 rounded-full border border-[#13243f]/14 bg-white/88 px-5 text-[#13243f] shadow-[0_14px_30px_-24px_rgba(19,36,63,0.48)] hover:bg-[#fffaf2]">
-                <ArrowRight className="mr-2 h-4 w-4" />
-                Explore knowledge base
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="dev-stat-card" style={{ backgroundColor: "rgba(255,255,255,0.92)" }}>
-                <div className="h-3 w-full" style={{ backgroundColor: stat.tone }} />
-                <div className="space-y-2 px-5 py-4">
-                  <p className="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-[#6b7487]">Live metric</p>
-                  <div className="text-5xl font-black tracking-tight text-[#13243f]">{stat.value}</div>
-                  <p className="text-base font-medium text-[#13243f]">{stat.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="min-h-screen bg-white px-0 pb-24">
+      {/* Today's Focus Header */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#E84D20] text-[10px] font-bold text-white">1</span>
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-black">Today's Focus</span>
+          <span className="ml-1 h-1.5 w-1.5 rounded-full bg-[#E84D20]" />
         </div>
+        <span className="text-xs font-medium text-black/40">{today}</span>
+      </div>
 
-        <aside className="dev-card overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.9)" }}>
-          <div className="border-b-2 border-black px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Docket</p>
-          </div>
-          <div className="space-y-4 p-5">
-            {docket.length === 0 ? (
-              <div className="rounded-[1.35rem] border border-[#13243f]/10 p-4 text-sm leading-6 text-muted-foreground" style={{ backgroundColor: "rgba(249,246,239,0.82)" }}>
-                Your next commitments will appear here once projects and tasks carry due dates.
-              </div>
-            ) : (
-              docket.map((task) => (
-                <div key={task.id} className="rounded-[1.35rem] border border-[#13243f]/10 p-4 shadow-[0_12px_22px_-24px_rgba(19,36,63,0.35)]" style={{ backgroundColor: "rgba(249,246,239,0.82)" }}>
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold text-foreground">{task.due ? task.due.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "TBD"}</span>
-                    <span className="rounded-full border border-black/10 px-2 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      {task.priority || task.status}
-                    </span>
-                  </div>
-                  <p className="text-sm leading-6 text-muted-foreground">{task.title}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </aside>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <Card className="dev-card rounded-[1.8rem] p-6 shadow-none">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Active projects</p>
-              <h2 className="mt-2 text-2xl text-foreground">Projects in motion</h2>
-            </div>
-            <Button variant="outline" className="rounded-full border-black/10 bg-[#fcfaf6]" onClick={() => setLocation("/projects")}>Open projects</Button>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {activeProjects.length === 0 ? (
-              <div className="rounded-[1.4rem] border border-dashed border-black/12 bg-[#fcfaf6] p-5 text-sm leading-6 text-muted-foreground xl:col-span-3">
-                No active projects yet. Start in the Projects workspace to define the initiatives that should drive your dashboard.
-              </div>
-            ) : (
-              activeProjects.map((project: any) => (
-                <div key={project.id} className="rounded-[1.4rem] border border-black/10 bg-[#fcfaf6] p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-semibold text-foreground">{project.title}</p>
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">{project.description || "No description yet."}</p>
-                    </div>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-black/10 bg-[#fbe0d8]">
-                      <FolderKanban className="h-4 w-4 text-[#e25b33]" />
-                    </div>
-                  </div>
-                  <div className="mt-4 h-2 rounded-full bg-black/5">
-                    <div className="h-full rounded-full bg-[#e25b33]" style={{ width: `${project.progress}%` }} />
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    <span>{project.status || "active"}</span>
-                    <span>{project.taskCount} tasks · {project.progress}% complete</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="dev-card rounded-[1.8rem] p-5 shadow-none">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-black/10 bg-[#d8ecfb]">
-                <CalendarDays className="h-5 w-5 text-[#13243f]" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Mini calendar</p>
-                <h2 className="mt-1 text-xl text-foreground">This month</h2>
-              </div>
-            </div>
-            <Calendar
-              mode="single"
-              selected={new Date()}
-              modifiers={{ hasEvent: upcomingDates }}
-              modifiersClassNames={{ hasEvent: "relative after:absolute after:bottom-1.5 after:left-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:rounded-full after:bg-[#e25b33]" }}
-              className="w-full rounded-[1.4rem] border border-black/10 bg-[#fcfaf6] p-4"
+      {/* Quote Carousel Card */}
+      <div className="mx-4 mb-5 overflow-hidden rounded-2xl border border-black/8 bg-white p-5 shadow-sm">
+        <div className="mb-3">
+          <span className="text-5xl font-black leading-none text-[#E84D20]">"</span>
+          <p className="mt-1 text-base font-medium leading-relaxed text-black">{currentFocus.text}</p>
+        </div>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-black/50">— {currentFocus.author}</p>
+        <div className="mt-4 flex items-center gap-1.5">
+          {focusQuotes.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setFocusIndex(i)}
+              className={`h-1.5 rounded-full transition-all ${i === focusIndex % focusQuotes.length ? "w-5 bg-[#E84D20]" : "w-1.5 bg-black/15"}`}
             />
-            <Button variant="outline" className="mt-4 w-full rounded-2xl border-black/10 bg-[#fcfaf6]" onClick={() => setLocation("/calendar")}>Open full calendar</Button>
-          </Card>
-
-          <Card className="dev-card rounded-[1.8rem] p-5 shadow-none">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Notes preview</p>
-            <div className="mt-4 space-y-3">
-              {recentNotes.length === 0 ? (
-                <p className="text-sm leading-6 text-muted-foreground">Your recent notes and quotations will appear here once the notebook begins to fill.</p>
-              ) : (
-                recentNotes.map((entry: any) => (
-                  <button key={entry.id} onClick={() => setLocation(`/notebook/${entry.id}`)} className="block w-full rounded-[1.25rem] border border-black/10 bg-[#fcfaf6] p-4 text-left transition hover:border-black/20">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="line-clamp-3 text-sm leading-6 text-foreground">{entry.text}</p>
-                      <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-black/10 bg-[#f8e9b7]">
-                        <NotebookPen className="h-4 w-4 text-[#13243f]" />
-                      </div>
-                    </div>
-                    <p className="mt-3 text-xs uppercase tracking-[0.16em] text-muted-foreground">{entry.collections || entry.author || "Commonplace Notebook"}</p>
-                  </button>
-                ))
-              )}
-            </div>
-          </Card>
+          ))}
         </div>
-      </section>
+      </div>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        {dashboardLinks.map((link) => (
-          <button key={link.path} onClick={() => setLocation(link.path)} className="dev-card rounded-[1.6rem] p-5 text-left shadow-none transition hover:-translate-y-0.5 hover:border-black/20">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Nested destination</p>
-                <h3 className="mt-2 text-xl text-foreground">{link.label}</h3>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">{link.description}</p>
-              </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-black/10" style={{ backgroundColor: `${link.accent}24` }}>
-                <link.icon className="h-5 w-5" style={{ color: link.accent }} />
-              </div>
+      {/* Knowledge Overview */}
+      <div className="px-4 mb-5">
+        <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-[0.25em] text-black/40">Knowledge Overview</p>
+        <div className="grid grid-cols-4 gap-2">
+          {stats.map((stat) => (
+            <div key={stat.label} className="rounded-xl border border-black/8 bg-white p-2.5 text-center">
+              <p className="text-[0.6rem] font-bold uppercase tracking-[0.12em]" style={{ color: stat.color }}>{stat.label}</p>
+              <p className="mt-0.5 text-xl font-black tabular-nums text-black">{stat.count.toLocaleString()}</p>
+              <p className="mt-0.5 text-[0.6rem] font-medium text-black/30">+{stat.delta} today</p>
             </div>
-          </button>
-        ))}
-      </section>
+          ))}
+        </div>
+      </div>
+
+      {/* Recently Opened */}
+      <div className="px-4">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.25em] text-black/40">Recently Opened</p>
+          <button onClick={() => setLocation("/search")} className="text-[0.65rem] font-bold uppercase tracking-[0.15em] text-[#E84D20]">View All</button>
+        </div>
+        <div className="divide-y divide-black/6 overflow-hidden rounded-2xl border border-black/8 bg-white">
+          {recentItems.length === 0 ? (
+            <div className="py-8 text-center text-sm text-black/40">Your recent items will appear here.</div>
+          ) : (
+            recentItems.map((item) => {
+              const Icon = ITEM_ICONS[item.type] ?? FileText;
+              return (
+                <button
+                  key={`${item.type}-${item.id}`}
+                  onClick={() => setLocation(item.path)}
+                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-black/2"
+                >
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-black/8 bg-black/3">
+                    <Icon className="h-4 w-4 text-black/60" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-black">{item.title}</p>
+                    <p className="text-xs text-black/40">{item.jdLabel}</p>
+                  </div>
+                  <span className="text-xs font-medium text-black/30 whitespace-nowrap">{formatRelTime(item.updatedAt)}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Quick capture FAB */}
+      <button
+        onClick={() => setLocation("/notes")}
+        className="fixed bottom-24 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#E84D20] text-white shadow-lg shadow-[#E84D20]/30 transition hover:bg-[#d43b10] z-30"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
     </div>
   );
 }
