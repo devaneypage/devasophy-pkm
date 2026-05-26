@@ -524,3 +524,8 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Review the uploaded Master Classification Key PDF against the current Johnny Decimal taxonomy outline implementation
 - [x] Update the taxonomy outline schema and mapped data structures to reflect the Master Classification Key
 - [x] Verify the updated taxonomy schema in tests and live project health, then save a checkpoint
+
+## Taxonomy-Aware Import Suggestions
+- [x] Review the current notebook and lexicon import flows to identify where category suggestions should appear before save
+- [x] Implement taxonomy-aware category suggestion logic and pre-save suggestion UI for imports
+- [ ] Verify import category suggestions in tests and live project health, then save a checkpoint

@@ -1,3 +1,5 @@
+import { getJohnnyDecimalSeedByCategoryNumber, johnnyDecimalModuleDefaults } from "./johnnyDecimal";
+
 export type NormalizedLexiconImport = {
   term: string;
   partOfSpeech?: string;
@@ -324,6 +326,21 @@ export type PreImportValidationIssue = {
   preview?: string;
 };
 
+export type PreImportTaxonomySuggestion = {
+  rowLabel: string;
+  preview: string;
+  categoryNumber: string;
+  categoryName: string;
+  reason: string;
+  confidence: "high" | "medium";
+};
+
+export type PreImportTaxonomyGroup = {
+  categoryNumber: string;
+  categoryName: string;
+  count: number;
+};
+
 export type PreImportSummary = {
   importType: "quotes" | "lexicon";
   fileFormat: "json" | "csv" | "text";
@@ -336,6 +353,9 @@ export type PreImportSummary = {
   inferredMapping: Record<string, number>;
   detectedSource: string;
   samplePreviews: string[];
+  taxonomySuggestionCount: number;
+  taxonomySuggestions: PreImportTaxonomySuggestion[];
+  taxonomyGroups: PreImportTaxonomyGroup[];
   issues: PreImportValidationIssue[];
 };
 
@@ -453,6 +473,134 @@ function countIncomingDuplicates(
   return duplicates.size;
 }
 
+function resolveTaxonomyCategoryName(categoryNumber: string): string {
+  return getJohnnyDecimalSeedByCategoryNumber(categoryNumber)?.categoryName ?? categoryNumber;
+}
+
+function buildNotebookTaxonomySuggestion(entry: NormalizedNotebookImport): Omit<PreImportTaxonomySuggestion, "rowLabel" | "preview"> {
+  const corpus = [entry.text, entry.note, entry.author, entry.work, entry.sourceType]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (["insight", "synthesis", "framework", "realization", "discovery", "argument", "thesis"].some((keyword) => corpus.includes(keyword))) {
+    return {
+      categoryNumber: "44.03",
+      categoryName: resolveTaxonomyCategoryName("44.03"),
+      reason: "Matched synthesis and insight language in the imported note.",
+      confidence: "high",
+    };
+  }
+
+  if (["observation", "general note", "reflection", "research fragment", "annotation"].some((keyword) => corpus.includes(keyword))) {
+    return {
+      categoryNumber: johnnyDecimalModuleDefaults.notebookNote,
+      categoryName: resolveTaxonomyCategoryName(johnnyDecimalModuleDefaults.notebookNote),
+      reason: "Matched note-like and observational language in the imported entry.",
+      confidence: "high",
+    };
+  }
+
+  return {
+    categoryNumber: johnnyDecimalModuleDefaults.notebookQuote,
+    categoryName: resolveTaxonomyCategoryName(johnnyDecimalModuleDefaults.notebookQuote),
+    reason: "Defaulted to the quotation lane for notebook imports without stronger note or synthesis cues.",
+    confidence: corpus.includes("quote") || corpus.includes("excerpt") || corpus.includes("passage") ? "high" : "medium",
+  };
+}
+
+function buildLexiconTaxonomySuggestion(entry: NormalizedLexiconImport): Omit<PreImportTaxonomySuggestion, "rowLabel" | "preview"> {
+  const corpus = [entry.term, entry.definition, entry.etymology, entry.origin, entry.notes, entry.sourceType]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const firstLetter = entry.term.trim().charAt(0).toUpperCase();
+  const generalVocabularyCategory = firstLetter >= "N" ? "10.02" : johnnyDecimalModuleDefaults.lexiconGeneral;
+
+  if (corpus.includes("latin")) {
+    return {
+      categoryNumber: "14.01",
+      categoryName: resolveTaxonomyCategoryName("14.01"),
+      reason: "Matched Latin-language cues in the imported lexicon entry.",
+      confidence: "high",
+    };
+  }
+
+  if (corpus.includes("french")) {
+    return {
+      categoryNumber: "14.02",
+      categoryName: resolveTaxonomyCategoryName("14.02"),
+      reason: "Matched French-language cues in the imported lexicon entry.",
+      confidence: "high",
+    };
+  }
+
+  if (["etymology", "origin", "root", "proto", "derived from"].some((keyword) => corpus.includes(keyword))) {
+    return {
+      categoryNumber: johnnyDecimalModuleDefaults.lexiconEtymology,
+      categoryName: resolveTaxonomyCategoryName(johnnyDecimalModuleDefaults.lexiconEtymology),
+      reason: "Matched etymology and origin language in the imported lexicon entry.",
+      confidence: "high",
+    };
+  }
+
+  if (["concordance", "reference", "index", "cross-reference", "see also"].some((keyword) => corpus.includes(keyword))) {
+    return {
+      categoryNumber: johnnyDecimalModuleDefaults.lexiconConcordance,
+      categoryName: resolveTaxonomyCategoryName(johnnyDecimalModuleDefaults.lexiconConcordance),
+      reason: "Matched concordance or reference cues in the imported lexicon entry.",
+      confidence: "high",
+    };
+  }
+
+  return {
+    categoryNumber: generalVocabularyCategory,
+    categoryName: resolveTaxonomyCategoryName(generalVocabularyCategory),
+    reason: `Placed the term in the general vocabulary band for the ${firstLetter >= "N" ? "N–Z" : "A–M"} range.`,
+    confidence: "medium",
+  };
+}
+
+function buildTaxonomySuggestions(
+  entries: Array<NormalizedNotebookImport | NormalizedLexiconImport>,
+  importType: "quotes" | "lexicon"
+): { suggestions: PreImportTaxonomySuggestion[]; groups: PreImportTaxonomyGroup[] } {
+  const suggestions = entries.map((entry, index) => {
+    const baseSuggestion = importType === "quotes"
+      ? buildNotebookTaxonomySuggestion(entry as NormalizedNotebookImport)
+      : buildLexiconTaxonomySuggestion(entry as NormalizedLexiconImport);
+
+    const preview = importType === "quotes"
+      ? (entry as NormalizedNotebookImport).text.slice(0, 96)
+      : `${(entry as NormalizedLexiconImport).term}${(entry as NormalizedLexiconImport).definition ? ` — ${(entry as NormalizedLexiconImport).definition?.slice(0, 72)}` : ""}`;
+
+    return {
+      rowLabel: `Row ${index + 1}`,
+      preview,
+      ...baseSuggestion,
+    };
+  });
+
+  const groups = Array.from(
+    suggestions.reduce((map, suggestion) => {
+      const key = suggestion.categoryNumber;
+      const current = map.get(key);
+      if (current) {
+        current.count += 1;
+      } else {
+        map.set(key, {
+          categoryNumber: suggestion.categoryNumber,
+          categoryName: suggestion.categoryName,
+          count: 1,
+        });
+      }
+      return map;
+    }, new Map<string, PreImportTaxonomyGroup>()).values()
+  ).sort((a, b) => b.count - a.count || a.categoryNumber.localeCompare(b.categoryNumber));
+
+  return { suggestions, groups };
+}
+
 export function analyzePreImportInput(input: {
   rawText: string;
   importType: "quotes" | "lexicon";
@@ -481,6 +629,9 @@ export function analyzePreImportInput(input: {
       inferredMapping: {},
       detectedSource: detectedSource,
       samplePreviews: [],
+      taxonomySuggestionCount: 0,
+      taxonomySuggestions: [],
+      taxonomyGroups: [],
       issues: [{ severity: "error", rowLabel: "Input", message: "No import data detected." }],
     };
   }
@@ -579,6 +730,16 @@ export function analyzePreImportInput(input: {
     );
   });
 
+  const taxonomyReview = buildTaxonomySuggestions(normalizedEntries, input.importType);
+
+  if (taxonomyReview.suggestions.length > 0) {
+    issues.push({
+      severity: "warning",
+      rowLabel: "Taxonomy",
+      message: `${taxonomyReview.suggestions.length} valid ${input.importType === "quotes" ? "notebook entries" : "lexicon entries"} now have suggested Johnny Decimal categories ready for review before import.`,
+    });
+  }
+
   if (validEntries > 0 && input.importType === "quotes") {
     const categoryEnriched = normalizedEntries.filter((entry) => Boolean((entry as NormalizedNotebookImport).collections));
     if (categoryEnriched.length === validEntries) {
@@ -602,6 +763,9 @@ export function analyzePreImportInput(input: {
     inferredMapping,
     detectedSource,
     samplePreviews,
+    taxonomySuggestionCount: taxonomyReview.suggestions.length,
+    taxonomySuggestions: taxonomyReview.suggestions.slice(0, 5),
+    taxonomyGroups: taxonomyReview.groups,
     issues,
   };
 }

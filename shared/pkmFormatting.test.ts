@@ -201,6 +201,10 @@ describe("pre-import analysis", () => {
     expect(summary.invalidEntries).toBe(0);
     expect(summary.samplePreviews).toHaveLength(2);
     expect(summary.detectedSource).toBe("JSON");
+    expect(summary.taxonomySuggestionCount).toBe(2);
+    expect(summary.taxonomyGroups[0]).toMatchObject({
+      categoryNumber: "30.09",
+    });
   });
 
   it("reports inferred mappings and blocking errors for malformed CSV imports", () => {
@@ -226,6 +230,42 @@ describe("pre-import analysis", () => {
     expect(summary.validEntries).toBe(3);
     expect(summary.duplicateCandidateCount).toBe(1);
     expect(summary.issues.some((issue) => issue.rowLabel === "Duplicates")).toBe(true);
+    expect(summary.taxonomySuggestionCount).toBe(3);
+    expect(summary.taxonomyGroups[0]).toMatchObject({ categoryNumber: "10.01" });
+  });
+
+  it("suggests synthesis and etymology categories before save when the import content is specific enough", () => {
+    const notebookSummary = analyzePreImportInput({
+      rawText: JSON.stringify([
+        {
+          text: "A synthesis framework becomes insight when rewritten and connected.",
+          note: "Use in the synthesis chapter.",
+        },
+      ]),
+      importType: "quotes",
+      fileFormat: "json",
+    });
+
+    const lexiconSummary = analyzePreImportInput({
+      rawText: JSON.stringify({
+        entries: [
+          {
+            term: "Nominalism",
+            definition: "A theory about universals.",
+            etymology: "Derived from Late Latin nominalis.",
+          },
+        ],
+      }),
+      importType: "lexicon",
+      fileFormat: "json",
+    });
+
+    expect(notebookSummary.taxonomySuggestions[0]).toMatchObject({
+      categoryNumber: "44.03",
+    });
+    expect(lexiconSummary.taxonomySuggestions[0]).toMatchObject({
+      categoryNumber: "14.01",
+    });
   });
 });
 

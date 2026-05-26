@@ -380,7 +380,7 @@ export default function BulkImport() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Ingestion and archive tools</p>
         <h1 className="mb-4">Bulk Import</h1>
         <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
-          Import multiple entries at once from JSON, CSV, or plain text files. Entries are automatically categorized, assigned unique identifiers, and organized through your taxonomy.
+          Import multiple entries at once from JSON, CSV, or plain text files. Before saving, the review workspace now surfaces suggested Johnny Decimal categories, then applies auto-categorization, identifiers, and taxonomy organization during import.
         </p>
       </section>
 
@@ -694,6 +694,51 @@ export default function BulkImport() {
                   <div className="space-y-2 text-sm leading-6 text-muted-foreground">
                     {preImportSummary.samplePreviews.map((sample) => (
                       <p key={sample}>{sample}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {preImportSummary.taxonomySuggestionCount > 0 && (
+                <div className="mt-5 rounded-[1.3rem] border border-black/10 bg-white p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Taxonomy suggestions</p>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        Suggested Johnny Decimal categories are now available for {preImportSummary.taxonomySuggestionCount} valid {importType === "quotes" ? "notebook entries" : "lexicon entries"} before save.
+                        {autoCategory
+                          ? " Auto-categorization is enabled, so these recommendations will guide the saved import."
+                          : " Auto-categorization is currently off, so these recommendations are advisory until you enable automatic categorization."}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-black/10 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      Preview ready
+                    </span>
+                  </div>
+
+                  {preImportSummary.taxonomyGroups.length > 0 && (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {preImportSummary.taxonomyGroups.map((group) => (
+                        <span key={group.categoryNumber} className="rounded-full border border-black/10 bg-[#f6f3ec] px-3 py-2 text-xs font-medium text-foreground">
+                          {group.categoryNumber} · {group.categoryName} · {group.count}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {preImportSummary.taxonomySuggestions.map((suggestion) => (
+                      <div key={`${suggestion.rowLabel}-${suggestion.categoryNumber}-${suggestion.preview}`} className="rounded-[1rem] border border-black/10 bg-[#f6f3ec] p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{suggestion.rowLabel}</p>
+                          <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                            {suggestion.confidence} confidence
+                          </span>
+                        </div>
+                        <p className="mt-3 text-sm font-semibold text-foreground">{suggestion.categoryNumber} · {suggestion.categoryName}</p>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{suggestion.preview}</p>
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">{suggestion.reason}</p>
+                      </div>
                     ))}
                   </div>
                 </div>
