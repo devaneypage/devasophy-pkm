@@ -395,9 +395,12 @@
   - [x] 237 tests passing
 
 ## Directional Linking Semantics Verification
-- [ ] Add UI or integration tests covering relationship selection and directional-symbol rendering in the document-linking workflow
-- [ ] Verify the live workflow end to end for forward, backward, and bidirectional relationship types
-- [ ] Audit any remaining semantic-link surfaces and backlink views for consistent directional formatting
+- [x] Add UI or integration tests covering relationship selection and directional-symbol rendering in the document-linking workflow
+- [x] Verify the live workflow end to end for forward, backward, and bidirectional relationship types
+- [x] Audit any remaining semantic-link surfaces and backlink views for consistent directional formatting
+  - [x] Documents creation and semantic-link summary use the shared directional formatter
+  - [x] Notebook detail semantic-link cards use the shared directional formatter
+  - [x] Lexicon detail semantic-link cards use the shared directional formatter
 
 
 ## Bulk Import Live End-to-End Verification
@@ -428,4 +431,21 @@
   - [x] Sidebar no longer has the large static taxonomy block covering the main menu
   - [x] App health clean with no TypeScript or LSP errors
   - [x] Regression suite passing: 244 tests
-- [ ] Save a checkpoint for the navigation fix
+- [x] Save a checkpoint for the navigation fix
+
+## Phase 1 — Make the app feel alive
+- [ ] Fix the app theme so the interface defaults to the intended dark-first palette
+- [ ] Replace hardcoded Home dashboard quick stats with live data queries
+- [ ] Connect the Taxonomy sidebar to real taxonomy areas, categories, and entry counts from the database
+- [ ] Remove or gate ComponentShowcase from production routes
+- [ ] Verify the updated Phase 1 experience in the live app and test suite
+- [ ] Save a checkpoint for the Phase 1 operational fixes
+
+## Follow-up Enhancement — Phase 1 Make It Feel Alive
+- [x] Default the application theme to dark in App.tsx
+- [x] Replace hardcoded home dashboard stats with live tRPC-backed counts
+- [x] Replace the static Johnny Decimal sidebar data with the live taxonomy tree and real category totals
+- [x] Verify the production router no longer exposes ComponentShowcase
+- [x] Expand Vitest coverage to include client component tests and add a taxonomy sidebar regression test
+- [x] Run the full test suite and confirm all Phase 1 validations pass
+- [x] Verify the live preview reflects the dark editorial workspace and live dashboard/sidebar data

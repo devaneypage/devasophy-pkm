@@ -471,22 +471,50 @@ export async function getTaxonomyTree(userId: number) {
 
   await seedJohnnyDecimalTaxonomy(userId);
 
-  const areas = await db
-    .select()
-    .from(taxonomyAreas)
-    .where(eq(taxonomyAreas.userId, userId))
-    .orderBy(asc(taxonomyAreas.areaNumber));
+  const [areas, categories, notebookRows, lexiconRows, documentRows, projectRows, taskRows] = await Promise.all([
+    db
+      .select()
+      .from(taxonomyAreas)
+      .where(eq(taxonomyAreas.userId, userId))
+      .orderBy(asc(taxonomyAreas.areaNumber)),
+    db
+      .select()
+      .from(taxonomyCategories)
+      .where(eq(taxonomyCategories.userId, userId))
+      .orderBy(asc(taxonomyCategories.categoryNumber)),
+    db.select({ categoryId: notebookEntries.categoryId }).from(notebookEntries).where(eq(notebookEntries.userId, userId)),
+    db.select({ categoryId: lexiconEntries.categoryId }).from(lexiconEntries).where(eq(lexiconEntries.userId, userId)),
+    db.select({ categoryId: documents.categoryId }).from(documents).where(eq(documents.userId, userId)),
+    db.select({ categoryId: projects.categoryId }).from(projects).where(eq(projects.userId, userId)),
+    db.select({ categoryId: tasks.categoryId }).from(tasks).where(eq(tasks.userId, userId)),
+  ]);
 
-  const categories = await db
-    .select()
-    .from(taxonomyCategories)
-    .where(eq(taxonomyCategories.userId, userId))
-    .orderBy(asc(taxonomyCategories.categoryNumber));
+  const categoryCountMap = new Map<number, number>();
 
-  return areas.map((area) => ({
-    ...area,
-    categories: categories.filter((category) => category.areaId === area.id),
-  }));
+  [notebookRows, lexiconRows, documentRows, projectRows, taskRows].forEach((rows) => {
+    rows.forEach((row) => {
+      if (!row.categoryId) {
+        return;
+      }
+
+      categoryCountMap.set(row.categoryId, (categoryCountMap.get(row.categoryId) ?? 0) + 1);
+    });
+  });
+
+  return areas.map((area) => {
+    const areaCategories = categories
+      .filter((category) => category.areaId === area.id)
+      .map((category) => ({
+        ...category,
+        count: categoryCountMap.get(category.id) ?? 0,
+      }));
+
+    return {
+      ...area,
+      count: areaCategories.reduce((sum, category) => sum + category.count, 0),
+      categories: areaCategories,
+    };
+  });
 }
 
 // ============================================================================
