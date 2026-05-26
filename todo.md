@@ -498,10 +498,15 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Restyle the dashboard and key workspace surfaces to reflect the provided art direction
 - [x] Integrate the provided logo into the primary UI branding surfaces
 - [x] Add or update regression coverage for the branding refresh where appropriate
-- [ ] Verify the refreshed branded experience in the live app and save a checkpoint
+- [x] Verify the refreshed branded experience in the live app and save a checkpoint
 
 ## Ideas Lab Cross-Link Pickers
 - [x] Review the current Ideas Lab editor and existing linked-record patterns before replacing raw JSON entry editing
 - [x] Replace raw linked-entry JSON editing with guided notebook, lexicon, and document pickers while preserving the stored JSON structure
 - [x] Update the Ideas Lab regression coverage to exercise the new guided linked-record workflow
 - [x] Verify the Ideas Lab cross-link picker experience in the live app and save a checkpoint
+
+## Visual Editor Sync — Home and Dashboard Shell
+- [x] Review the applied visual-editor changes in Home.tsx and DashboardLayout.tsx against the requested UI adjustments
+- [x] Verify the updated branded UI compiles and the app health remains stable after the visual edits
+- [x] Save a checkpoint for the verified visual-editor changes
