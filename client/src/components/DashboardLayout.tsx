@@ -29,6 +29,7 @@ import {
   EssaysIcon,
   NotesIcon,
   QuotationsIcon,
+  ResearchIcon,
   VocabularyIcon,
 } from "./DevanomyIcons";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -40,6 +41,7 @@ const menuItems = [
   { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
   { icon: EssaysIcon, label: "Writing Studio", path: "/documents", accent: "#e25b33" },
   { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#116d6d" },
+  { icon: ResearchIcon, label: "Ideas", path: "/ideas", accent: "#b55af3" },
   { icon: NotesIcon, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
   { icon: QuotationsIcon, label: "Notes", path: "/notebook", accent: "#efb93a" },
   { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#b55af3" },
@@ -55,7 +57,7 @@ const DEFAULT_WIDTH = 292;
 const MIN_WIDTH = 240;
 const MAX_WIDTH = 420;
 
-type ModuleKey = "home" | "notebook" | "lexicon" | "documents" | "goals" | "glossary";
+type ModuleKey = "home" | "notebook" | "lexicon" | "documents" | "goals" | "ideas" | "glossary";
 
 export default function DashboardLayout({
   children,
@@ -145,6 +147,7 @@ function DashboardLayoutContent({
     "/lexicon": "lexicon",
     "/documents": "documents",
     "/goals": "goals",
+    "/ideas": "ideas",
   };
 
   const activeMenuItem = menuItems.find((item) => item.path === location) ?? menuItems[0];

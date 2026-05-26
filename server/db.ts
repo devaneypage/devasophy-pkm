@@ -17,6 +17,7 @@ import {
   goals,
   projects,
   tasks,
+  ideas,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { johnnyDecimalSeeds } from "../shared/johnnyDecimal";
@@ -991,6 +992,145 @@ export async function deleteTask(userId: number, taskId: number) {
   return db
     .delete(tasks)
     .where(and(eq(tasks.userId, userId), eq(tasks.id, taskId)));
+}
+
+// ============================================================================
+// Ideas Module (Synthesis Layer)
+// ============================================================================
+
+export async function createIdea(
+  userId: number,
+  data: {
+    title: string;
+    summary?: string;
+    categoryId?: number;
+    linkedGoalId?: number;
+    status?: string;
+    dikwTier?: string;
+    sparkType?: string;
+    sourceModule?: string;
+    insightStage?: string;
+    tags?: string;
+    linkedEntries?: string;
+    zettelkastenId?: string;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { v4: uuidv4 } = await import("uuid");
+  return db.insert(ideas).values({
+    userId,
+    uuid: uuidv4(),
+    title: data.title,
+    summary: data.summary,
+    categoryId: data.categoryId,
+    linkedGoalId: data.linkedGoalId,
+    status: (data.status || "seed") as any,
+    dikwTier: (data.dikwTier || "knowledge") as any,
+    sparkType: (data.sparkType || "theme") as any,
+    sourceModule: (data.sourceModule || "manual") as any,
+    insightStage: (data.insightStage || "capture") as any,
+    tags: data.tags,
+    linkedEntries: data.linkedEntries,
+    zettelkastenId: data.zettelkastenId,
+  });
+}
+
+export async function getIdea(userId: number, ideaId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .select()
+    .from(ideas)
+    .where(and(eq(ideas.userId, userId), eq(ideas.id, ideaId)))
+    .limit(1)
+    .then((rows) => rows[0]);
+}
+
+export async function listIdeas(
+  userId: number,
+  filters?: {
+    status?: string;
+    dikwTier?: string;
+    sparkType?: string;
+    insightStage?: string;
+    linkedGoalId?: number;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const conditions = [eq(ideas.userId, userId)];
+
+  if (filters?.status) {
+    conditions.push(eq(ideas.status, filters.status as any));
+  }
+  if (filters?.dikwTier) {
+    conditions.push(eq(ideas.dikwTier, filters.dikwTier as any));
+  }
+  if (filters?.sparkType) {
+    conditions.push(eq(ideas.sparkType, filters.sparkType as any));
+  }
+  if (filters?.insightStage) {
+    conditions.push(eq(ideas.insightStage, filters.insightStage as any));
+  }
+  if (filters?.linkedGoalId) {
+    conditions.push(eq(ideas.linkedGoalId, filters.linkedGoalId));
+  }
+
+  return db
+    .select()
+    .from(ideas)
+    .where(and(...conditions))
+    .orderBy(desc(ideas.updatedAt), desc(ideas.createdAt));
+}
+
+export async function updateIdea(
+  userId: number,
+  ideaId: number,
+  data: Partial<{
+    title: string;
+    summary: string;
+    status: "seed" | "germinating" | "incubating" | "developed" | "archived";
+    dikwTier: "data" | "information" | "knowledge" | "wisdom";
+    sparkType: "question" | "theme" | "argument" | "framework" | "experiment";
+    sourceModule: "notebook" | "lexicon" | "documents" | "goals" | "manual";
+    insightStage: "capture" | "connection" | "synthesis" | "expression";
+    tags: string;
+    linkedGoalId: number;
+    linkedEntries: string;
+  }>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const updateData: Record<string, any> = { updatedAt: new Date() };
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.summary !== undefined) updateData.summary = data.summary;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.dikwTier !== undefined) updateData.dikwTier = data.dikwTier;
+  if (data.sparkType !== undefined) updateData.sparkType = data.sparkType;
+  if (data.sourceModule !== undefined) updateData.sourceModule = data.sourceModule;
+  if (data.insightStage !== undefined) updateData.insightStage = data.insightStage;
+  if (data.tags !== undefined) updateData.tags = data.tags;
+  if (data.linkedGoalId !== undefined) updateData.linkedGoalId = data.linkedGoalId;
+  if (data.linkedEntries !== undefined) updateData.linkedEntries = data.linkedEntries;
+
+  return db
+    .update(ideas)
+    .set(updateData)
+    .where(and(eq(ideas.userId, userId), eq(ideas.id, ideaId)));
+}
+
+export async function deleteIdea(userId: number, ideaId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .delete(ideas)
+    .where(and(eq(ideas.userId, userId), eq(ideas.id, ideaId)));
 }
 
 

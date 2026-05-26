@@ -44,6 +44,11 @@ import {
   listTasks,
   updateTask,
   deleteTask,
+  createIdea,
+  getIdea,
+  listIdeas,
+  updateIdea,
+  deleteIdea,
   bulkImportNotebookEntries,
   bulkImportLexiconEntries,
   bulkImportNotebookFromCSV,
@@ -677,10 +682,79 @@ Composition request: ${input.prompt}`,
         const { id, ...data } = input;
         return await updateTask(ctx.user.id, id, data);
       }),
-     delete: protectedProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         return await deleteTask(ctx.user.id, input.id);
+      }),
+  }),
+
+  // ============================================================================
+  // IDEAS (Synthesis Layer - Phase 6)
+  // ============================================================================
+  ideas: router({
+    create: protectedProcedure
+      .input(
+        z.object({
+          title: z.string(),
+          summary: z.string().optional(),
+          categoryId: z.number().optional(),
+          linkedGoalId: z.number().optional(),
+          status: z.enum(["seed", "germinating", "incubating", "developed", "archived"]).optional(),
+          dikwTier: z.enum(["data", "information", "knowledge", "wisdom"]).optional(),
+          sparkType: z.enum(["question", "theme", "argument", "framework", "experiment"]).optional(),
+          sourceModule: z.enum(["notebook", "lexicon", "documents", "goals", "manual"]).optional(),
+          insightStage: z.enum(["capture", "connection", "synthesis", "expression"]).optional(),
+          tags: z.string().optional(),
+          linkedEntries: z.string().optional(),
+          zettelkastenId: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await createIdea(ctx.user.id, input);
+      }),
+    list: protectedProcedure
+      .input(
+        z.object({
+          status: z.enum(["seed", "germinating", "incubating", "developed", "archived"]).optional(),
+          dikwTier: z.enum(["data", "information", "knowledge", "wisdom"]).optional(),
+          sparkType: z.enum(["question", "theme", "argument", "framework", "experiment"]).optional(),
+          insightStage: z.enum(["capture", "connection", "synthesis", "expression"]).optional(),
+          linkedGoalId: z.number().optional(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        return await listIdeas(ctx.user.id, input);
+      }),
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return await getIdea(ctx.user.id, input.id);
+      }),
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().optional(),
+          summary: z.string().optional(),
+          linkedGoalId: z.number().optional(),
+          status: z.enum(["seed", "germinating", "incubating", "developed", "archived"]).optional(),
+          dikwTier: z.enum(["data", "information", "knowledge", "wisdom"]).optional(),
+          sparkType: z.enum(["question", "theme", "argument", "framework", "experiment"]).optional(),
+          sourceModule: z.enum(["notebook", "lexicon", "documents", "goals", "manual"]).optional(),
+          insightStage: z.enum(["capture", "connection", "synthesis", "expression"]).optional(),
+          tags: z.string().optional(),
+          linkedEntries: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        return await updateIdea(ctx.user.id, id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return await deleteIdea(ctx.user.id, input.id);
       }),
   }),
 

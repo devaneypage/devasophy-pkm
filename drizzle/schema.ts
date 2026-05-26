@@ -312,6 +312,34 @@ export const tasks = mysqlTable("tasks", {
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = typeof tasks.$inferInsert;
 
+/**
+ * Phase 6: Ideas Module (Synthesis Layer)
+ * Tracks emerging concepts, synthesis candidates, and speculative threads
+ */
+export const ideas = mysqlTable("ideas", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  categoryId: int("categoryId"),
+  linkedGoalId: int("linkedGoalId"),
+  uuid: varchar("uuid", { length: 64 }).notNull().unique(),
+  zettelkastenId: varchar("zettelkasten_id", { length: 50 }).unique(),
+  title: varchar("title", { length: 255 }).notNull(),
+  summary: text("summary"),
+  status: mysqlEnum("status", ["seed", "germinating", "incubating", "developed", "archived"]).default("seed"),
+  dikwTier: mysqlEnum("dikw_tier", ["data", "information", "knowledge", "wisdom"]).default("knowledge"),
+  sparkType: mysqlEnum("sparkType", ["question", "theme", "argument", "framework", "experiment"]).default("theme"),
+  sourceModule: mysqlEnum("sourceModule", ["notebook", "lexicon", "documents", "goals", "manual"]).default("manual"),
+  insightStage: mysqlEnum("insightStage", ["capture", "connection", "synthesis", "expression"]).default("capture"),
+  tags: text("tags"),
+  linkedEntries: text("linkedEntries"),
+  favorite: boolean("favorite").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Idea = typeof ideas.$inferSelect;
+export type InsertIdea = typeof ideas.$inferInsert;
+
 // Enhanced DIKW Lexicon fields
 export const lexiconEnhancements = {
   dikwTier: varchar('dikw_tier', { length: 20 }).default('information'), // wisdom, knowledge, information, data

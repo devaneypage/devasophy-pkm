@@ -1,0 +1,23 @@
+CREATE TABLE `ideas` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`categoryId` int,
+	`linkedGoalId` int,
+	`uuid` varchar(64) NOT NULL,
+	`zettelkasten_id` varchar(50),
+	`title` varchar(255) NOT NULL,
+	`summary` text,
+	`status` enum('seed','germinating','incubating','developed','archived') DEFAULT 'seed',
+	`dikw_tier` enum('data','information','knowledge','wisdom') DEFAULT 'knowledge',
+	`sparkType` enum('question','theme','argument','framework','experiment') DEFAULT 'theme',
+	`sourceModule` enum('notebook','lexicon','documents','goals','manual') DEFAULT 'manual',
+	`insightStage` enum('capture','connection','synthesis','expression') DEFAULT 'capture',
+	`tags` text,
+	`linkedEntries` text,
+	`favorite` boolean DEFAULT false,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `ideas_id` PRIMARY KEY(`id`),
+	CONSTRAINT `ideas_uuid_unique` UNIQUE(`uuid`),
+	CONSTRAINT `ideas_zettelkasten_id_unique` UNIQUE(`zettelkasten_id`)
+);

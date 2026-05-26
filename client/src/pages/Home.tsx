@@ -7,6 +7,7 @@ import {
   EssaysIcon,
   NotesIcon,
   QuotationsIcon,
+  ResearchIcon,
   VocabularyIcon,
 } from "@/components/DevanomyIcons";
 import { useLocation } from "wouter";
@@ -51,6 +52,16 @@ const modules = [
     accent: "#116d6d",
     pattern: "dev-pattern-waves",
     chips: ["Action Layer", "Outcomes", "Horizon"],
+  },
+  {
+    id: "ideas",
+    title: "Ideas Lab",
+    description: "Develop questions, frameworks, arguments, and synthesis threads that connect your archive to future writing and teaching.",
+    icon: ResearchIcon,
+    route: "/ideas",
+    accent: "#b55af3",
+    pattern: "dev-pattern-diamonds",
+    chips: ["Synthesis Layer", "Frameworks", "Questions"],
   },
   {
     id: "glossary",
@@ -109,6 +120,7 @@ export default function Home() {
   const lexiconQuery = trpc.lexicon.list.useQuery({});
   const documentsQuery = trpc.documents.list.useQuery({});
   const goalsQuery = trpc.goals.list.useQuery({});
+  const ideasQuery = trpc.ideas.list.useQuery({});
   const projectsQuery = trpc.projects.list.useQuery({});
   const tasksQuery = trpc.tasks.list.useQuery({});
 
@@ -132,10 +144,10 @@ export default function Home() {
       pattern: "dev-pattern-stripes",
     },
     {
-      label: "Active Goals",
-      value: formatStatValue(goalsQuery.data?.filter((goal) => goal.status === "active").length, goalsQuery.isLoading),
-      tone: "#116d6d",
-      pattern: "dev-pattern-waves",
+      label: "Ideas in Play",
+      value: formatStatValue(ideasQuery.data?.filter((idea) => idea.status !== "archived").length, ideasQuery.isLoading),
+      tone: "#b55af3",
+      pattern: "dev-pattern-diamonds",
     },
   ];
 

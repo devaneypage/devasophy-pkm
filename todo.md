@@ -161,7 +161,7 @@
 - [x] Phase 3: Implement Goals module (Action Layer)
 - [x] Phase 4: Implement Projects module (Action Layer)
 - [x] Phase 5: Implement Tasks module (Action Layer)
-- [ ] Phase 6: Implement Ideas module (Synthesis Layer)
+- [x] Phase 6: Implement Ideas module (Synthesis Layer)
 
 
 ## Phase 1: Zettelkasten ID System Implementation
@@ -404,16 +404,14 @@
 
 
 ## Bulk Import Live End-to-End Verification
-- [ ] Prepare safe temporary import fixtures for live testing
-- [ ] Run a real bulk import submission through the current workflow
-- [ ] Verify pre-import summary, duplicate review, and final success behavior
-- [ ] Clean up temporary verification records created during testing
-- [ ] Inspect logs for any remaining import-related runtime errors
-- [ ] Report the final bulk import verification result to the user
-
-## Bulk Import Blocking Bug — HTML Response on Submit
-- [x] Reproduce the live import submission failure that returns HTML instead of JSON
-- [x] Identify which request or route returns the unexpected HTML payload
+- [x] Prepare safe temporary import fixtures for live testing
+- [x] Run a real bulk import submission through the current workflow
+- [x] Verify pre-import summary, duplicate review, and final success behavior
+- [x] Clean up temporary verification records created during testing
+- [x] Inspect logs for any remaining import-related runtime errors
+- [x] Report the final bulk import verification result to the user
+- [x] Use clearly named temporary bulk-import records with a verification prefix so they can be identified and removed safely after the live test
+Identify which request or route returns the unexpected HTML payload
   - [x] Confirmed `bulkImport.detectLexiconDuplicateBatch` was being sent as a large GET request
   - [x] Confirmed the request returned HTTP 414 with `text/html`, which produced the `Unexpected token '<'` parse error
 - [x] Fix the client/server mismatch causing the invalid JSON parse
@@ -477,3 +475,12 @@
 - [x] Add full edit UX for existing goals, including title, description, status, horizon, target date, tags, and linked project updates
 - [x] Add user-visible loading and error feedback for Goals create, update, and delete mutations
 - [x] Add regression coverage for editing an existing goal and for visible failure-state behavior
+- [x] Use clearly named temporary bulk-import records with a verification prefix so they can be identified and removed safely after the live test
+
+## Phase 6 — Ideas Module (Synthesis Layer)
+- [x] Audit the current synthesis-layer routes, dashboard surfaces, and shared patterns for Ideas integration
+- [x] Add Ideas schema and backend CRUD support
+- [x] Build the Ideas page and integrate it into navigation and dashboard surfaces
+- [x] Add regression coverage for the Ideas module workflows
+- [x] Verify the Ideas slice in the live app and save a checkpoint
+

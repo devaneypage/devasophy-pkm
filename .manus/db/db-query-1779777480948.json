@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, text, author, work, sourceType, location, createdAt FROM notebook_entries WHERE text LIKE 'VERIFICATION BULK IMPORT NOTE%' ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ecwSL7MSEz9ShF.78c8e8770d20 --database EqCbheLsAyU2CJnijcBavG --execute SELECT id, text, author, work, sourceType, location, createdAt FROM notebook_entries WHERE text LIKE 'VERIFICATION BULK IMPORT NOTE%' ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "240001",
+      "text": "VERIFICATION BULK IMPORT NOTE — Delete after test. The philosopher's archive needs a safe temporary record for live workflow validation.",
+      "author": "Manus Verification",
+      "work": "Bulk Import E2E Check",
+      "sourceType": "System Test",
+      "location": "verification://bulk-import/2026-05-26",
+      "createdAt": "2026-05-26 06:37:12"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttext\tauthor\twork\tsourceType\tlocation\tcreatedAt\n240001\tVERIFICATION BULK IMPORT NOTE — Delete after test. The philosopher's archive needs a safe temporary record for live workflow validation.\tManus Verification\tBulk Import E2E Check\tSystem Test\tverification://bulk-import/2026-05-26\t2026-05-26 06:37:12\n",
+  "stderr": "",
+  "execution_time_ms": 3772
+}
