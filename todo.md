@@ -519,3 +519,8 @@ Identify which request or route returns the unexpected HTML payload
 ## PKM Integration Roadmap Plan
 - [x] Review the provided six-phase roadmap and convert it into an implementation-ready plan document
 - [x] Save the structured implementation plan under docs/plans with execution guidance and handoff options
+
+## Johnny Decimal Taxonomy Outline Schema Update
+- [x] Review the uploaded Master Classification Key PDF against the current Johnny Decimal taxonomy outline implementation
+- [x] Update the taxonomy outline schema and mapped data structures to reflect the Master Classification Key
+- [ ] Verify the updated taxonomy schema in tests and live project health, then save a checkpoint

@@ -10,19 +10,26 @@ import Lexicon from "@/pages/Lexicon";
 const mockState = vi.hoisted(() => ({
   taxonomyTree: [
     {
-      id: 10,
-      areaNumber: 10,
-      areaName: "Commonplace Notebook",
+      id: 30,
+      areaNumber: 30,
+      areaName: "QUOTATIONS & EXCERPTS",
       categories: [
-        { id: 101, categoryNumber: "11", categoryName: "Quotes & Passages" },
-        { id: 102, categoryNumber: "12", categoryName: "Observations" },
+        { id: 101, categoryNumber: "30.09", categoryName: "Miscellaneous Quotations" },
       ],
     },
     {
-      id: 20,
-      areaNumber: 20,
-      areaName: "Clavis Aurea",
-      categories: [{ id: 201, categoryNumber: "21", categoryName: "Terms" }],
+      id: 41,
+      areaNumber: 41,
+      areaName: "RESEARCH & ORIGINAL THINKING",
+      categories: [
+        { id: 102, categoryNumber: "41.01", categoryName: "Observations & Insights" },
+      ],
+    },
+    {
+      id: 10,
+      areaNumber: 10,
+      areaName: "LANGUAGE & VOCABULARY",
+      categories: [{ id: 201, categoryNumber: "10.01", categoryName: "General Vocabulary Lists (A–M)" }],
     },
   ],
   notebookEntries: [
@@ -221,7 +228,7 @@ describe("PKM inline editing UI", () => {
     // zettelkastenId is generated asynchronously and may not be set in test environment
     // Just verify it exists if present
     if (callArgs.zettelkastenId) {
-      expect(callArgs.zettelkastenId).toBe("11-20250424-001");
+      expect(callArgs.zettelkastenId).toBe("41.01-20250424-001");
     }
     expect(mockState.notebookRefetchSpy).toHaveBeenCalled();
   });

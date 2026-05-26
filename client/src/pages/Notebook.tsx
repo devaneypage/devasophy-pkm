@@ -70,12 +70,13 @@ export default function Notebook() {
   });
 
   const { data: taxonomyTree } = trpc.taxonomy.getTree.useQuery();
-  const quoteCategory = taxonomyTree?.find((area) => area.areaNumber === 10)?.categories.find((category) => category.categoryNumber === "11");
-  const noteCategory = taxonomyTree?.find((area) => area.areaNumber === 10)?.categories.find((category) => category.categoryNumber === "12");
+  const allTaxonomyCategories = taxonomyTree?.flatMap((area) => area.categories) ?? [];
+  const quoteCategory = allTaxonomyCategories.find((category) => category.categoryNumber === "30.09");
+  const noteCategory = allTaxonomyCategories.find((category) => category.categoryNumber === "41.01");
 
   // Get category number for Zettelkasten ID generation
   const selectedCategoryId = formData.categoryId ?? (entryMode === "note" ? noteCategory?.id : quoteCategory?.id);
-  const selectedCategory = taxonomyTree?.flatMap(a => a.categories).find(c => c.id === selectedCategoryId);
+  const selectedCategory = allTaxonomyCategories.find((category) => category.id === selectedCategoryId);
   const categoryNumber = selectedCategory?.categoryNumber || "";
 
   // Generate Zettelkasten ID when category changes

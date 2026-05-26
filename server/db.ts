@@ -20,7 +20,7 @@ import {
   ideas,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
-import { johnnyDecimalSeeds } from "../shared/johnnyDecimal";
+import { johnnyDecimalModuleDefaults, johnnyDecimalSeeds } from "../shared/johnnyDecimal";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -557,6 +557,25 @@ export async function getTaxonomyCategories(userId: number, areaId: number) {
       )
     )
     .orderBy(asc(taxonomyCategories.categoryNumber));
+}
+
+export async function getTaxonomyCategoryIdByNumber(userId: number, categoryNumber: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await seedJohnnyDecimalTaxonomy(userId);
+
+  const rows = await db
+    .select({ id: taxonomyCategories.id })
+    .from(taxonomyCategories)
+    .where(
+      and(
+        eq(taxonomyCategories.userId, userId),
+        eq(taxonomyCategories.categoryNumber, categoryNumber)
+      )
+    );
+
+  return rows[0]?.id ?? null;
 }
 
 export async function getTaxonomyTree(userId: number) {
@@ -1142,44 +1161,36 @@ export async function deleteIdea(userId: number, ideaId: number) {
  * Auto-categorize entries based on content analysis
  * Maps content keywords to Johnny Decimal categories
  */
-export function categorizeEntryContent(text: string, entryType: 'notebook' | 'lexicon'): number | null {
+export function categorizeEntryContent(text: string, entryType: 'notebook' | 'lexicon'): string | null {
   // Simple keyword-based categorization
   // In production, this could use ML or more sophisticated NLP
-  
+
   const lowerText = text.toLowerCase();
-  
+
   if (entryType === 'notebook') {
-    // 11 = Quotes & Passages
     if (lowerText.includes('quote') || lowerText.includes('passage') || lowerText.includes('excerpt')) {
-      return 11;
+      return johnnyDecimalModuleDefaults.notebookQuote;
     }
-    // 12 = Observations
     if (lowerText.includes('observation') || lowerText.includes('note') || lowerText.includes('thought')) {
-      return 12;
+      return johnnyDecimalModuleDefaults.notebookNote;
     }
-    // 13 = Insights
     if (lowerText.includes('insight') || lowerText.includes('discovery') || lowerText.includes('realization')) {
-      return 13;
+      return "44.03";
     }
-    // Default to 11 (Quotes & Passages)
-    return 11;
+    return johnnyDecimalModuleDefaults.notebookQuote;
   } else if (entryType === 'lexicon') {
-    // 22 = Etymology (check first since "word" might appear in etymology definitions)
     if (lowerText.includes('etymology') || lowerText.includes('origin') || lowerText.includes('root')) {
-      return 22;
+      return johnnyDecimalModuleDefaults.lexiconEtymology;
     }
-    // 21 = Terms
-    if (lowerText.includes('term') || lowerText.includes('word') || lowerText.includes('vocabulary')) {
-      return 21;
-    }
-    // 23 = Concordance
     if (lowerText.includes('concordance') || lowerText.includes('reference') || lowerText.includes('index')) {
-      return 23;
+      return johnnyDecimalModuleDefaults.lexiconConcordance;
     }
-    // Default to 21 (Terms)
-    return 21;
+    if (lowerText.includes('term') || lowerText.includes('word') || lowerText.includes('vocabulary')) {
+      return johnnyDecimalModuleDefaults.lexiconGeneral;
+    }
+    return johnnyDecimalModuleDefaults.lexiconGeneral;
   }
-  
+
   return null;
 }
 
@@ -1222,7 +1233,8 @@ export async function bulkImportNotebookEntries(
       }
 
       const uuid = `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const categoryId = options?.autoCategory ? categorizeEntryContent(entry.text, 'notebook') : undefined;
+      const categoryNumber = options?.autoCategory ? categorizeEntryContent(entry.text, 'notebook') : undefined;
+      const categoryId = categoryNumber ? (await getTaxonomyCategoryIdByNumber(userId, categoryNumber)) ?? undefined : undefined;
 
       await db.insert(notebookEntries).values({
         userId,
@@ -1287,7 +1299,8 @@ export async function bulkImportLexiconEntries(
         continue;
       }
 
-      const categoryId = options?.autoCategory ? categorizeEntryContent(entry.definition || entry.term, 'lexicon') : undefined;
+      const categoryNumber = options?.autoCategory ? categorizeEntryContent(entry.definition || entry.term, 'lexicon') : undefined;
+      const categoryId = categoryNumber ? (await getTaxonomyCategoryIdByNumber(userId, categoryNumber)) ?? undefined : undefined;
 
       await db.insert(lexiconEntries).values({
         userId,
@@ -1605,8 +1618,11 @@ export async function bulkImportNotebookWithDuplicateDetection(
       } else {
         // No duplicate, insert normally
         const uuid = `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const categoryId = options?.autoCategory
+        const categoryNumber = options?.autoCategory
           ? categorizeEntryContent(entry.text, "notebook")
+          : undefined;
+        const categoryId = categoryNumber
+          ? (await getTaxonomyCategoryIdByNumber(userId, categoryNumber)) ?? undefined
           : undefined;
 
         await db.insert(notebookEntries).values({
@@ -1763,8 +1779,11 @@ export async function bulkImportLexiconWithDuplicateDetection(
         }
       } else {
         // No duplicate, insert normally
-        const categoryId = options?.autoCategory
+        const categoryNumber = options?.autoCategory
           ? categorizeEntryContent(entry.definition || entry.term, "lexicon")
+          : undefined;
+        const categoryId = categoryNumber
+          ? (await getTaxonomyCategoryIdByNumber(userId, categoryNumber)) ?? undefined
           : undefined;
 
         await db.insert(lexiconEntries).values({

@@ -9,42 +9,42 @@ describe("Bulk Import Functions", () => {
   describe("categorizeEntryContent", () => {
     it("should categorize notebook entries as quotes", () => {
       const result = categorizeEntryContent("This is a great quote from the book", "notebook");
-      expect(result).toBe(11); // Quotes & Passages
+      expect(result).toBe("30.09"); // Miscellaneous Quotations
     });
 
     it("should categorize notebook entries as observations", () => {
       const result = categorizeEntryContent("My observation about this phenomenon", "notebook");
-      expect(result).toBe(12); // Observations
+      expect(result).toBe("41.01"); // Observations & Insights
     });
 
     it("should categorize notebook entries as insights", () => {
       const result = categorizeEntryContent("I had an insight about the problem", "notebook");
-      expect(result).toBe(13); // Insights
+      expect(result).toBe("44.03"); // Synthesis Notes
     });
 
     it("should default to quotes for unknown notebook content", () => {
       const result = categorizeEntryContent("Random text without keywords", "notebook");
-      expect(result).toBe(11);
+      expect(result).toBe("30.09");
     });
 
     it("should categorize lexicon entries as terms", () => {
       const result = categorizeEntryContent("This is a vocabulary term", "lexicon");
-      expect(result).toBe(21); // Terms
+      expect(result).toBe("10.01"); // General Vocabulary Lists (A–M)
     });
 
     it("should categorize lexicon entries as etymology", () => {
       const result = categorizeEntryContent("The root and etymology of this word", "lexicon");
-      expect(result).toBe(22); // Etymology
+      expect(result).toBe("11.01"); // Word Origins & Histories
     });
 
     it("should categorize lexicon entries as concordance", () => {
       const result = categorizeEntryContent("This is a concordance reference", "lexicon");
-      expect(result).toBe(23); // Concordance
+      expect(result).toBe("12.01"); // Usage Notes & Distinctions
     });
 
     it("should default to terms for unknown lexicon content", () => {
       const result = categorizeEntryContent("Random text", "lexicon");
-      expect(result).toBe(21);
+      expect(result).toBe("10.01");
     });
 
     it("should be case-insensitive", () => {
@@ -219,20 +219,20 @@ describe("Bulk Import Functions", () => {
   describe("Categorization edge cases", () => {
     it("should handle null or undefined input gracefully", () => {
       const result = categorizeEntryContent("", "notebook");
-      expect(result).toBe(11); // Default
+      expect(result).toBe("30.09"); // Default
     });
 
     it("should handle very long text", () => {
       const longText = "quote ".repeat(1000);
       const result = categorizeEntryContent(longText, "notebook");
-      expect(result).toBe(11);
+      expect(result).toBe("30.09");
     });
 
     it("should handle multiple keywords", () => {
       const text = "This is a quote and an observation and an insight";
       const result = categorizeEntryContent(text, "notebook");
       // Should match the first keyword found
-      expect([11, 12, 13]).toContain(result);
+      expect(["30.09", "41.01", "44.03"]).toContain(result);
     });
 
     it("should handle mixed case keywords", () => {
