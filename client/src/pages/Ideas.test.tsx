@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockRefetch = vi.fn(async () => undefined);
@@ -40,6 +40,42 @@ const mockIdeas = [
   },
 ];
 
+const mockNotebookEntries = [
+  {
+    id: 11,
+    author: "Devaney Page",
+    work: "Tutoring Notes",
+    text: "Students often confuse speed rituals with actual comprehension.",
+    note: "Notebook seed",
+  },
+];
+
+const mockLexiconEntries = [
+  {
+    id: 21,
+    term: "Hidden curriculum",
+    definition: "The implicit lessons embedded in instructional systems.",
+    notes: "Lexicon thread",
+  },
+];
+
+const mockDocuments = [
+  {
+    id: 1,
+    title: "LSAT Performance Draft",
+    project: "Teaching Framework",
+    folder: "Research",
+    content: "Draft arguing that performance rituals distort reasoning growth.",
+  },
+  {
+    id: 7,
+    title: "Jurisprudence Teaching Atlas",
+    project: "Atlas",
+    folder: "Drafts",
+    content: "A document for mapping doctrine, rhetoric, and reasoning tensions.",
+  },
+];
+
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -56,6 +92,21 @@ vi.mock("@/lib/trpc", () => ({
     taxonomy: {
       getTree: {
         useQuery: () => ({ data: [], isLoading: false }),
+      },
+    },
+    notebook: {
+      list: {
+        useQuery: () => ({ data: mockNotebookEntries, isLoading: false }),
+      },
+    },
+    lexicon: {
+      list: {
+        useQuery: () => ({ data: mockLexiconEntries, isLoading: false }),
+      },
+    },
+    documents: {
+      list: {
+        useQuery: () => ({ data: mockDocuments, isLoading: false }),
       },
     },
     goals: {
@@ -142,7 +193,7 @@ describe("Ideas page", () => {
     });
   });
 
-  it("submits a new idea with synthesis metadata", async () => {
+  it("submits a new idea with guided linked-record selection", async () => {
     render(<Ideas />);
 
     fireEvent.click(screen.getByRole("button", { name: "Capture idea" }));
@@ -165,9 +216,8 @@ describe("Ideas page", () => {
     fireEvent.change(screen.getByLabelText("Create anchor goal"), {
       target: { value: "3" },
     });
-    fireEvent.change(screen.getByLabelText("Create linked entries"), {
-      target: { value: '[{"type":"document","id":7}]' },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Documents" }));
+    fireEvent.click(screen.getByLabelText("Add document record 7"));
     fireEvent.change(screen.getByLabelText("Create tags"), {
       target: { value: "framework,teaching" },
     });
@@ -190,10 +240,18 @@ describe("Ideas page", () => {
     });
   });
 
-  it("supports inline editing for an existing idea", async () => {
+  it("supports inline editing with guided linked-record changes", async () => {
     render(<Ideas />);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Edit idea" })[0]);
+    const firstIdeaCard = screen
+      .getByText("Map the hidden curriculum of LSAT tutoring")
+      .closest(".dev-card") as HTMLElement;
+
+    fireEvent.click(within(firstIdeaCard).getByRole("button", { name: "Edit idea" }));
+    expect(screen.getByText("LSAT Performance Draft")).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("Remove document record 1"));
+    fireEvent.click(screen.getByRole("button", { name: "Notebook" }));
+    fireEvent.click(screen.getByLabelText("Add notebook record 11"));
     fireEvent.change(screen.getByLabelText("Edit idea title"), {
       target: { value: "Map the hidden curriculum of LSAT tutoring v2" },
     });
@@ -220,7 +278,7 @@ describe("Ideas page", () => {
         sourceModule: "documents",
         insightStage: "synthesis",
         tags: "teaching,lsat,hidden-curriculum",
-        linkedEntries: '[{"type":"document","id":1}]',
+        linkedEntries: '[{"type":"notebook","id":11}]',
       });
     });
   });
@@ -229,7 +287,11 @@ describe("Ideas page", () => {
     updateShouldFail = true;
     render(<Ideas />);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Edit idea" })[0]);
+    const firstIdeaCard = screen
+      .getByText("Map the hidden curriculum of LSAT tutoring")
+      .closest(".dev-card") as HTMLElement;
+
+    fireEvent.click(within(firstIdeaCard).getByRole("button", { name: "Edit idea" }));
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {

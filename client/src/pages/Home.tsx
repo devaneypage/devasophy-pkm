@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import React from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -191,26 +192,26 @@ export default function Home() {
   return (
     <div className="space-y-8">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="dev-soft-card p-6 sm:p-8" style={{ backgroundColor: "#F5F3F0" }}>
+        <div className="dev-soft-card overflow-hidden p-6 sm:p-8" style={{ backgroundColor: "rgba(249,246,239,0.9)" }}>
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="mb-5 flex items-center gap-4">
-                <img src="/manus-storage/primary-logo-full_013d703c.png" alt="Devanomy" className="h-16 w-auto" />
+                <img src="/manus-storage/devanomy-logo-branding-refresh_2e8698f4.webp" alt="Devanomy" className="h-18 w-auto rounded-[1.35rem] shadow-[0_18px_30px_-24px_rgba(19,36,63,0.65)]" />
               </div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.26em] text-muted-foreground">
-                Devanomy workspace
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#6b7487]">
+                Devanomy editorial workspace
               </p>
-              <h1 className="dev-hero-accent dev-hero-striped relative inline-block pr-16 text-balance">
+              <h1 className="dev-hero-accent dev-hero-striped relative inline-block pr-16 text-balance text-[#13243f]">
                 Good morning, {user?.name?.split(" ")[0] || "Devaney"}
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-                A dark, editorial workspace for quotations, vocabulary, and writing projects—organized through a visible taxonomy and expressive visual cues.
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[#48546a] sm:text-lg">
+                An editorial command center for notes, concepts, drafts, and synthesis—now tuned to the off-white, indigo, coral, gold, and sky-blue Devanomy visual language.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button
                 onClick={() => setLocation("/notebook")}
-                className="h-11 rounded-full border-2 border-black bg-[#e25b33] px-5 text-white shadow-none hover:bg-[#d6522d]"
+                className="h-11 rounded-full border border-[#13243f]/15 bg-[#e85b3e] px-5 text-white shadow-[0_18px_30px_-22px_rgba(232,91,62,0.7)] hover:bg-[#d94d31]"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Quick capture
@@ -218,7 +219,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 onClick={() => setLocation("/search")}
-                className="h-11 rounded-full border-2 border-black bg-white px-5 text-black shadow-none hover:bg-[#f6f3ec]"
+                className="h-11 rounded-full border border-[#13243f]/14 bg-white/88 px-5 text-[#13243f] shadow-[0_14px_30px_-24px_rgba(19,36,63,0.48)] hover:bg-[#fffaf2]"
               >
                 <Search className="mr-2 h-4 w-4" />
                 Unified search
@@ -228,24 +229,25 @@ export default function Home() {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => (
-              <div key={stat.label} className="dev-stat-card" style={{ backgroundColor: "#F5F3F0" }}>
+              <div key={stat.label} className="dev-stat-card" style={{ backgroundColor: "rgba(255,255,255,0.92)" }}>
                 <div className={`${stat.pattern} h-3 w-full`} style={{ backgroundColor: stat.tone }} />
                 <div className="space-y-2 px-5 py-4">
-                  <div className="text-5xl font-black tracking-tight text-foreground">{stat.value}</div>
-                  <p className="text-base font-medium text-foreground">{stat.label}</p>
+                  <p className="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-[#6b7487]">Live metric</p>
+                  <div className="text-5xl font-black tracking-tight text-[#13243f]">{stat.value}</div>
+                  <p className="text-base font-medium text-[#13243f]">{stat.label}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <aside className="dev-card overflow-hidden" style={{ backgroundColor: "#F5F3F0" }}>
+        <aside className="dev-card overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.9)" }}>
           <div className="border-b-2 border-black px-5 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Live task queue</p>
           </div>
           <div className="space-y-4 p-5">
             {tasks.map((task) => (
-              <div key={`${task.label}-${task.date}`} className="rounded-2xl border border-black/10 p-4" style={{ backgroundColor: "#F5F3F0" }}>
+              <div key={`${task.label}-${task.date}`} className="rounded-[1.35rem] border border-[#13243f]/10 p-4 shadow-[0_12px_22px_-24px_rgba(19,36,63,0.35)]" style={{ backgroundColor: "rgba(249,246,239,0.82)" }}>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <span className="text-sm font-semibold text-foreground">{task.date}</span>
                   <StatusShape shape={task.shape as "circle" | "square" | "diamond"} color={task.color} />
@@ -275,14 +277,15 @@ export default function Home() {
             return (
               <Card
                 key={module.id}
-                className="dev-card overflow-hidden rounded-[1.5rem] p-0 shadow-none transition-transform hover:-translate-y-1"
+                className="dev-card overflow-hidden rounded-[1.65rem] p-0 shadow-none transition-transform duration-200 hover:-translate-y-1.5"
               >
                 <div
                   className={`dev-module-banner ${module.pattern} flex min-h-[9rem] items-end justify-between border-b-2 border-black px-5 py-5`}
                   style={{ backgroundColor: module.accent }}
                 >
                   <Icon className="h-11 w-11" />
-                  <span className="rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black">
+                    <span className="rounded-full border border-[#13243f]/14 bg-white/86 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[#13243f] shadow-[0_8px_18px_-18px_rgba(19,36,63,0.6)]">
+
                     {module.id}
                   </span>
                 </div>
@@ -300,7 +303,7 @@ export default function Home() {
                   </div>
                   <Button
                     onClick={() => setLocation(module.route)}
-                    className="h-11 w-full rounded-full border-2 border-black bg-white text-black shadow-none hover:bg-[#f6f3ec]"
+                    className="h-11 w-full rounded-full border border-[#13243f]/14 bg-white/86 text-[#13243f] shadow-[0_14px_28px_-24px_rgba(19,36,63,0.52)] hover:bg-[#fffaf2]"
                   >
                     Open module
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -315,7 +318,7 @@ export default function Home() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid gap-6 lg:grid-cols-2">
           {knowledgeHighlights.map((item) => (
-            <div key={item.title} className="dev-card overflow-hidden" style={{ backgroundColor: "#F5F3F0" }}>
+            <div key={item.title} className="dev-card overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.86)" }}>
               <div className={`${item.pattern} h-5 w-full`} style={{ backgroundColor: item.accent }} />
               <div className="space-y-3 p-5">
                 <h3 className="text-[2rem] leading-none">{item.title}</h3>
@@ -325,9 +328,9 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="dev-soft-card p-5" style={{ backgroundColor: "#F5F3F0" }}>
+        <div className="dev-soft-card p-5" style={{ backgroundColor: "rgba(249,246,239,0.88)" }}>
           <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#56c5ea]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#13243f]/14 bg-[#54b5dd] shadow-[0_16px_28px_-24px_rgba(84,181,221,0.75)]">
               <NotesIcon className="h-8 w-8" />
             </div>
             <div>
@@ -346,7 +349,7 @@ export default function Home() {
           <Button
             variant="outline"
             onClick={() => setLocation("/documents")}
-            className="mt-5 h-11 w-full rounded-full border-2 border-black bg-[#116d6d] text-white shadow-none hover:bg-[#0f5959]"
+            className="mt-5 h-11 w-full rounded-full border border-[#13243f]/14 bg-[#0d706b] text-white shadow-[0_18px_30px_-24px_rgba(13,112,107,0.72)] hover:bg-[#0a5e5b]"
           >
             Open writing studio
           </Button>

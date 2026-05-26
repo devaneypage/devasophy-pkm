@@ -484,3 +484,24 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Add regression coverage for the Ideas module workflows
 - [x] Verify the Ideas slice in the live app and save a checkpoint
 
+
+## Ideas Lab Cross-Link Picker Enhancement
+- [x] Audit the current Ideas linked-entry workflow and any reusable entry-selection patterns
+- [x] Replace raw linked-entry JSON editing in Ideas Lab with guided notebook, lexicon, and document pickers
+- [x] Preserve existing linked-entry persistence format while showing selected references clearly in the UI
+- [x] Add regression coverage for guided Ideas cross-link selection and save behavior
+- [x] Verify the new Ideas linking workflow in the live app and save a checkpoint
+
+## Devanomy Branding Refresh
+- [x] Review the provided logo asset and uploaded dashboard reference to align the redesign direction
+- [x] Update the app branding assets and shared theme tokens to match the new Devanomy visual identity
+- [x] Restyle the dashboard and key workspace surfaces to reflect the provided art direction
+- [x] Integrate the provided logo into the primary UI branding surfaces
+- [x] Add or update regression coverage for the branding refresh where appropriate
+- [ ] Verify the refreshed branded experience in the live app and save a checkpoint
+
+## Ideas Lab Cross-Link Pickers
+- [x] Review the current Ideas Lab editor and existing linked-record patterns before replacing raw JSON entry editing
+- [x] Replace raw linked-entry JSON editing with guided notebook, lexicon, and document pickers while preserving the stored JSON structure
+- [x] Update the Ideas Lab regression coverage to exercise the new guided linked-record workflow
+- [x] Verify the Ideas Lab cross-link picker experience in the live app and save a checkpoint

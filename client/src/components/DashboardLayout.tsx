@@ -195,11 +195,11 @@ function DashboardLayoutContent({
               {!isCollapsed ? (
                 <div className="min-w-0">
                   <img
-                    src="/manus-storage/logo-wordmark_6ae838d1.png"
+                    src="/manus-storage/devanomy-logo-branding-refresh_2e8698f4.webp"
                     alt="Devanomy"
-                    className="h-16 w-auto max-w-[13rem] object-contain"
+                    className="h-16 w-auto max-w-[13rem] rounded-xl object-contain"
                   />
-                  <p className="mt-2 text-xs font-medium text-white/80">a personal knowledge taxonomy</p>
+                  <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-white/72">a personal knowledge taxonomy</p>
                 </div>
               ) : (
                 <button
@@ -238,15 +238,16 @@ function DashboardLayoutContent({
                         isActive={isActive}
                         onClick={() => setLocation(item.path)}
                         tooltip={item.label}
-                        className="h-12 rounded-2xl border border-transparent px-3 text-sidebar-foreground transition-all hover:bg-white/10 data-[active=true]:border-white/15 data-[active=true]:bg-white/10 data-[active=true]:shadow-none"
+                        className="h-13 rounded-[1.15rem] border border-transparent px-3 text-sidebar-foreground transition-all hover:bg-white/9 data-[active=true]:border-white/10 data-[active=true]:bg-white/8 data-[active=true]:shadow-none"
                       >
+                        <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-transparent transition data-[active=true]:bg-white/80" />
                         <span
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-black/10 bg-white text-black"
-                          style={{ backgroundColor: isActive ? item.accent : "rgba(255,255,255,0.96)" }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 text-black shadow-sm"
+                          style={{ backgroundColor: isActive ? item.accent : "rgba(255,255,255,0.08)", color: isActive ? "#13243f" : "rgba(255,255,255,0.92)" }}
                         >
                           <item.icon className="h-5 w-5" />
                         </span>
-                        <span className="font-medium">{item.label}</span>
+                        <span className="font-medium tracking-[0.01em]">{item.label}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -262,19 +263,20 @@ function DashboardLayoutContent({
               <SidebarMenu className="mt-auto px-3 pb-3">
                 {utilityItems.map((item) => (
                   <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className="h-12 rounded-2xl border border-transparent px-3 text-sidebar-foreground transition-all hover:bg-white/10"
-                    >
-                      <span
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-black/10 bg-white text-black"
-                        style={{ backgroundColor: item.accent }}
+                      <SidebarMenuButton
+                        onClick={() => setLocation(item.path)}
+                        tooltip={item.label}
+                        className="h-12 rounded-[1.15rem] border border-transparent px-3 text-sidebar-foreground transition-all hover:bg-white/8"
                       >
-                        <item.icon className="h-4 w-4" />
-                      </span>
-                      <span className="font-medium">{item.label}</span>
-                    </SidebarMenuButton>
+                        <span
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 text-black shadow-sm"
+                          style={{ backgroundColor: item.accent }}
+                        >
+                          <item.icon className="h-4 w-4" />
+                        </span>
+                        <span className="font-medium tracking-[0.01em]">{item.label}</span>
+                      </SidebarMenuButton>
+
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
@@ -323,7 +325,7 @@ function DashboardLayoutContent({
           <div className="flex h-20 items-center gap-3 px-4 sm:px-6">
             {isMobile && <SidebarTrigger className="h-10 w-10 rounded-2xl border border-black bg-white" />}
             <div className="relative max-w-2xl flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6b7487]" />
               <Input
                 readOnly
                 value={activeMenuItem?.label === "Dashboard" ? "Search your notes, terms, and projects" : `Browse ${activeMenuItem?.label.toLowerCase()}`}
@@ -331,10 +333,18 @@ function DashboardLayoutContent({
               />
             </div>
             <div className="hidden items-center gap-3 sm:flex">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#56c5ea] text-black">
-                <span className="text-lg font-semibold">d</span>
+              <div className="flex items-center gap-3 rounded-full border border-[#13243f]/12 bg-white/72 px-3 py-2 shadow-[0_12px_24px_-20px_rgba(19,36,63,0.45)]">
+                <img
+                  src="/manus-storage/devanomy-logo-branding-refresh_2e8698f4.webp"
+                  alt="Devanomy logo"
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+                <div className="hidden pr-1 lg:block">
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-[#6b7487]">Devanomy</p>
+                  <p className="text-sm font-semibold text-[#13243f]">Editorial workspace</p>
+                </div>
               </div>
-              <Avatar className="h-12 w-12 border-2 border-black bg-[#f6f3ec]">
+              <Avatar className="h-12 w-12 border-2 border-[#13243f] bg-[#f6f3ec]">
                 <AvatarFallback className="bg-transparent font-semibold text-black">
                   {user?.name?.charAt(0).toUpperCase() || "D"}
                 </AvatarFallback>

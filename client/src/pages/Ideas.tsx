@@ -6,7 +6,22 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import CategorySelect from "@/components/CategorySelect";
-import { ArrowRight, Lightbulb, Link2, Orbit, Pencil, Plus, Sparkles, Target, Trash2, X } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  FileText,
+  Lightbulb,
+  Link2,
+  Orbit,
+  Pencil,
+  Plus,
+  Search,
+  Sparkles,
+  Target,
+  Trash2,
+  X,
+  Library,
+} from "lucide-react";
 
 const ideaStatuses = [
   { value: "seed", label: "Seed", tone: "bg-[#56c5ea] text-black" },
@@ -40,12 +55,24 @@ const sourceModules = [
 ] as const;
 
 const dikwTiers = ["data", "information", "knowledge", "wisdom"] as const;
+const linkedEntryTypes = ["notebook", "lexicon", "document"] as const;
 
 type IdeaStatus = (typeof ideaStatuses)[number]["value"];
 type SparkType = (typeof sparkTypes)[number]["value"];
 type InsightStage = (typeof insightStages)[number]["value"];
 type SourceModule = (typeof sourceModules)[number]["value"];
 type DikwTier = (typeof dikwTiers)[number];
+type LinkedEntryType = (typeof linkedEntryTypes)[number];
+
+type LinkedEntryReference = {
+  type: LinkedEntryType;
+  id: number;
+};
+
+type LinkedEntryOption = LinkedEntryReference & {
+  title: string;
+  preview: string;
+};
 
 type IdeaRecord = {
   id: number;
@@ -71,7 +98,7 @@ type IdeaFormState = {
   sourceModule: SourceModule;
   insightStage: InsightStage;
   tags: string;
-  linkedEntries: string;
+  linkedEntries: LinkedEntryReference[];
   categoryId: number | undefined;
   linkedGoalId: number | undefined;
 };
@@ -91,6 +118,32 @@ const dikwClassMap: Record<DikwTier, string> = {
   wisdom: "bg-[#e9dcfb] text-[#5b2aa7]",
 };
 
+function parseLinkedEntries(value?: string | null): LinkedEntryReference[] {
+  if (!value?.trim()) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const type = (item as { type?: unknown }).type;
+        const id = (item as { id?: unknown }).id;
+        if (!linkedEntryTypes.includes(type as LinkedEntryType)) return null;
+        if (typeof id !== "number" || Number.isNaN(id)) return null;
+        return { type: type as LinkedEntryType, id };
+      })
+      .filter((item): item is LinkedEntryReference => Boolean(item));
+  } catch {
+    return [];
+  }
+}
+
+function serializeLinkedEntries(entries: LinkedEntryReference[]): string {
+  return JSON.stringify(entries);
+}
+
 function createIdeaFormState(idea?: IdeaRecord): IdeaFormState {
   return {
     title: idea?.title ?? "",
@@ -101,10 +154,24 @@ function createIdeaFormState(idea?: IdeaRecord): IdeaFormState {
     sourceModule: (idea?.sourceModule as SourceModule | undefined) ?? "manual",
     insightStage: (idea?.insightStage as InsightStage | undefined) ?? "capture",
     tags: idea?.tags ?? "",
-    linkedEntries: idea?.linkedEntries ?? "",
+    linkedEntries: parseLinkedEntries(idea?.linkedEntries),
     categoryId: idea?.categoryId ?? undefined,
     linkedGoalId: idea?.linkedGoalId ?? undefined,
   };
+}
+
+function getLinkedEntryTypeLabel(type: LinkedEntryType): string {
+  return type === "document" ? "Document" : type === "lexicon" ? "Lexicon" : "Notebook";
+}
+
+function getLinkedEntryTypeIcon(type: LinkedEntryType) {
+  if (type === "document") return FileText;
+  if (type === "lexicon") return Library;
+  return BookOpen;
+}
+
+function describeLinkedEntryReference(reference: LinkedEntryReference): string {
+  return `${getLinkedEntryTypeLabel(reference.type)} #${reference.id}`;
 }
 
 function IdeaEditor({
@@ -128,6 +195,125 @@ function IdeaEditor({
   submitLabel: string;
   isPending: boolean;
 }) {
+  const [pickerMode, setPickerMode] = useState<LinkedEntryType>("notebook");
+  const [pickerSearch, setPickerSearch] = useState("");
+
+  const { data: notebookEntries = [] } = trpc.notebook.list.useQuery({
+    search: pickerMode === "notebook" ? pickerSearch || undefined : undefined,
+    sortBy: "recent",
+  });
+  const { data: lexiconEntries = [] } = trpc.lexicon.list.useQuery({
+    search: pickerMode === "lexicon" ? pickerSearch || undefined : undefined,
+  });
+  const { data: documents = [] } = trpc.documents.list.useQuery({
+    status: undefined,
+  });
+
+  const selectedReferenceOptions = useMemo<LinkedEntryOption[]>(() => {
+    const notebookMap = new Map(
+      notebookEntries.map((entry) => [
+        `notebook-${entry.id}`,
+        {
+          type: "notebook" as const,
+          id: entry.id,
+          title: entry.author ? `${entry.author}${entry.work ? ` — ${entry.work}` : ""}` : entry.work || "Notebook entry",
+          preview: entry.text || entry.note || "Notebook quotation or note",
+        },
+      ])
+    );
+
+    const lexiconMap = new Map(
+      lexiconEntries.map((entry) => [
+        `lexicon-${entry.id}`,
+        {
+          type: "lexicon" as const,
+          id: entry.id,
+          title: entry.term,
+          preview: entry.definition || entry.notes || "Lexicon term",
+        },
+      ])
+    );
+
+    const documentMap = new Map(
+      documents.map((entry) => [
+        `document-${entry.id}`,
+        {
+          type: "document" as const,
+          id: entry.id,
+          title: entry.title,
+          preview: entry.content || entry.project || "Writing Studio document",
+        },
+      ])
+    );
+
+    return formData.linkedEntries.map((reference) => {
+      const key = `${reference.type}-${reference.id}`;
+      const resolved = notebookMap.get(key) || lexiconMap.get(key) || documentMap.get(key);
+      return (
+        resolved || {
+          ...reference,
+          title: describeLinkedEntryReference(reference),
+          preview: "This linked record is already attached, but its current preview is not loaded in the picker results.",
+        }
+      );
+    });
+  }, [documents, formData.linkedEntries, lexiconEntries, notebookEntries]);
+
+  const availableOptions = useMemo<LinkedEntryOption[]>(() => {
+    const normalizedSearch = pickerSearch.trim().toLowerCase();
+
+    if (pickerMode === "notebook") {
+      return notebookEntries.slice(0, 8).map((entry) => ({
+        type: "notebook",
+        id: entry.id,
+        title: entry.author ? `${entry.author}${entry.work ? ` — ${entry.work}` : ""}` : entry.work || "Notebook entry",
+        preview: entry.text || entry.note || "Notebook quotation or note",
+      }));
+    }
+
+    if (pickerMode === "lexicon") {
+      return lexiconEntries.slice(0, 8).map((entry) => ({
+        type: "lexicon",
+        id: entry.id,
+        title: entry.term,
+        preview: entry.definition || entry.notes || "Lexicon term",
+      }));
+    }
+
+    return documents
+      .filter((entry) => {
+        if (!normalizedSearch) return true;
+        const haystack = `${entry.title} ${entry.project || ""} ${entry.folder || ""} ${entry.content || ""}`.toLowerCase();
+        return haystack.includes(normalizedSearch);
+      })
+      .slice(0, 8)
+      .map((entry) => ({
+        type: "document",
+        id: entry.id,
+        title: entry.title,
+        preview: entry.project || entry.folder || entry.content || "Writing Studio document",
+      }));
+  }, [documents, lexiconEntries, notebookEntries, pickerMode, pickerSearch]);
+
+  const addLinkedEntry = (option: LinkedEntryOption) => {
+    setFormData((current) => {
+      const exists = current.linkedEntries.some((entry) => entry.type === option.type && entry.id === option.id);
+      if (exists) return current;
+      return {
+        ...current,
+        linkedEntries: [...current.linkedEntries, { type: option.type, id: option.id }],
+        sourceModule: current.sourceModule === "manual" ? (option.type === "document" ? "documents" : option.type) : current.sourceModule,
+      };
+    });
+  };
+
+  const removeLinkedEntry = (reference: LinkedEntryReference) => {
+    setFormData((current) => ({
+      ...current,
+      linkedEntries: current.linkedEntries.filter((entry) => !(entry.type === reference.type && entry.id === reference.id)),
+    }));
+  };
+
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
@@ -161,16 +347,133 @@ function IdeaEditor({
             placeholder="Assign this idea to a synthesis category"
             onChange={(categoryId) => setFormData((current) => ({ ...current, categoryId }))}
           />
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-foreground">Linked entry references</label>
-            <Textarea
-              aria-label={`${mode === "create" ? "Create" : "Edit"} linked entries`}
-              value={formData.linkedEntries}
-              onChange={(event) => setFormData((current) => ({ ...current, linkedEntries: event.target.value }))}
-              placeholder='Optional JSON or shorthand reference list, for example: [{"type":"notebook","id":1}]'
-              rows={4}
-              className="rounded-[1.2rem] border-2 border-black/85 bg-white font-mono text-sm shadow-none"
-            />
+          <div className="rounded-[1.3rem] border border-black/10 bg-[#faf6fd] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-foreground">Linked records</label>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Attach notebook excerpts, Clavis Aurea terms, and Writing Studio drafts without touching JSON. Selections are still saved in the existing structured link format behind the scenes.
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#6c26b0]">
+                {formData.linkedEntries.length} linked
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+              <div className="space-y-3 rounded-[1.2rem] border border-black/10 bg-white p-4">
+                <div className="flex flex-wrap gap-2">
+                  {linkedEntryTypes.map((type) => {
+                    const Icon = getLinkedEntryTypeIcon(type);
+                    return (
+                      <button
+                        key={`${mode}-${type}`}
+                        type="button"
+                        onClick={() => setPickerMode(type)}
+                        className={`inline-flex items-center gap-2 rounded-full border-2 border-black px-3 py-2 text-sm font-semibold ${pickerMode === type ? "bg-[#b55af3] text-white" : "bg-white text-black hover:bg-[#f6f3ec]"}`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {type === "document" ? "Documents" : getLinkedEntryTypeLabel(type)}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    aria-label={`${mode === "create" ? "Create" : "Edit"} linked record search`}
+                    value={pickerSearch}
+                    onChange={(event) => setPickerSearch(event.target.value)}
+                    placeholder={`Search ${pickerMode === "document" ? "documents" : pickerMode}`}
+                    className="h-11 rounded-full border-2 border-black/85 bg-white pl-10 shadow-none"
+                  />
+                </div>
+                <div className="space-y-3">
+                  {availableOptions.length > 0 ? (
+                    availableOptions.map((option, index) => {
+                      const Icon = getLinkedEntryTypeIcon(option.type);
+                      const isSelected = formData.linkedEntries.some((entry) => entry.type === option.type && entry.id === option.id);
+                      return (
+                        <div key={`${option.type}-${option.id}`} className="overflow-hidden rounded-[1.2rem] border-2 border-black bg-white">
+                          <div
+                            className={`${index % 2 === 0 ? "dev-pattern-diamonds" : "dev-pattern-waves"} h-4 w-full`}
+                            style={{
+                              backgroundColor:
+                                option.type === "notebook" ? "#efb93a" : option.type === "lexicon" ? "#56c5ea" : "#b55af3",
+                            }}
+                          />
+                          <div className="space-y-3 p-4">
+                            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                              <Icon className="h-4 w-4" />
+                              {getLinkedEntryTypeLabel(option.type)}
+                            </div>
+                            <div>
+                              <p className="text-base font-bold leading-tight text-foreground">{option.title}</p>
+                              <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">{option.preview}</p>
+                            </div>
+                            <Button
+                              type="button"
+                              aria-label={`Add ${getLinkedEntryTypeLabel(option.type).toLowerCase()} record ${option.id}`}
+                              onClick={() => addLinkedEntry(option)}
+                              disabled={isSelected}
+                              className="h-10 w-full rounded-full border-2 border-black bg-white text-black shadow-none hover:bg-[#f6f3ec] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {isSelected ? "Already linked" : "Add link"}
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4 text-sm leading-6 text-muted-foreground">
+                      No {pickerMode === "document" ? "documents" : pickerMode} match the current search yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-[1.2rem] border border-black/10 bg-white p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Orbit className="h-4 w-4" />
+                  Selected references
+                </div>
+                {selectedReferenceOptions.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedReferenceOptions.map((reference) => {
+                      const Icon = getLinkedEntryTypeIcon(reference.type);
+                      return (
+                        <div key={`${reference.type}-${reference.id}`} className="rounded-[1.1rem] border border-black/10 bg-[#f6f3ec] p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                <Icon className="h-4 w-4" />
+                                {getLinkedEntryTypeLabel(reference.type)}
+                              </div>
+                              <p className="mt-2 text-sm font-semibold text-foreground">{reference.title}</p>
+                              <p className="mt-2 text-sm leading-6 text-muted-foreground">{reference.preview}</p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              aria-label={`Remove ${getLinkedEntryTypeLabel(reference.type).toLowerCase()} record ${reference.id}`}
+                              onClick={() => removeLinkedEntry(reference)}
+                              className="rounded-full border-2 border-black bg-white text-black shadow-none hover:bg-[#fff]"
+                            >
+                              <X className="mr-2 h-4 w-4" />
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-[1.1rem] border border-dashed border-black/15 bg-[#faf8f4] p-4 text-sm leading-6 text-muted-foreground">
+                    No linked records selected yet. Use the picker on the left to attach source notes, lexicon entries, or draft documents.
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -394,6 +697,8 @@ export default function Ideas() {
     event.preventDefault();
     if (!formData.title.trim()) return;
 
+    const linkedEntries = serializeLinkedEntries(formData.linkedEntries);
+
     createMutation.mutate({
       title: formData.title,
       summary: formData.summary || undefined,
@@ -405,13 +710,15 @@ export default function Ideas() {
       sourceModule: formData.sourceModule,
       insightStage: formData.insightStage,
       tags: formData.tags || undefined,
-      linkedEntries: formData.linkedEntries || undefined,
+      linkedEntries: formData.linkedEntries.length > 0 ? linkedEntries : undefined,
     });
   };
 
   const handleEditSubmit = (ideaId: number) => (event: React.FormEvent) => {
     event.preventDefault();
     if (!editFormData.title.trim()) return;
+
+    const linkedEntries = serializeLinkedEntries(editFormData.linkedEntries);
 
     updateMutation.mutate({
       id: ideaId,
@@ -424,7 +731,7 @@ export default function Ideas() {
       sourceModule: editFormData.sourceModule,
       insightStage: editFormData.insightStage,
       tags: editFormData.tags || undefined,
-      linkedEntries: editFormData.linkedEntries || undefined,
+      linkedEntries: editFormData.linkedEntries.length > 0 ? linkedEntries : undefined,
     });
   };
 
@@ -604,6 +911,7 @@ export default function Ideas() {
             const statusValue = (idea.status as IdeaStatus | undefined) ?? "seed";
             const dikwTier = (idea.dikwTier as DikwTier | undefined) ?? "knowledge";
             const sparkLabel = sparkTypes.find((option) => option.value === idea.sparkType)?.label ?? "Theme";
+            const parsedLinkedEntries = parseLinkedEntries(idea.linkedEntries);
 
             return (
               <Card key={idea.id} className="dev-card rounded-[1.5rem] p-5 shadow-none">
@@ -681,7 +989,7 @@ export default function Ideas() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-[1.2rem] border border-black/10 bg-[#f7f3fb] px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Source module</p>
                         <p className="mt-2 text-sm font-semibold capitalize text-foreground">{idea.sourceModule ?? "manual"}</p>
@@ -707,9 +1015,17 @@ export default function Ideas() {
                           <Orbit className="h-4 w-4" />
                           Linked references
                         </div>
-                        <p className="mt-3 break-words text-sm leading-6 text-muted-foreground">
-                          {idea.linkedEntries?.trim() || "No explicit linked entries stored yet."}
-                        </p>
+                        {parsedLinkedEntries.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {parsedLinkedEntries.map((reference) => (
+                              <span key={`${idea.id}-${reference.type}-${reference.id}`} className="dev-chip">
+                                {describeLinkedEntryReference(reference)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-sm leading-6 text-muted-foreground">No linked records attached yet.</p>
+                        )}
                       </div>
                     </div>
 
@@ -726,7 +1042,7 @@ export default function Ideas() {
                       </div>
                       <div className="inline-flex items-center gap-2 text-sm font-semibold text-[#6c26b0]">
                         <Link2 className="h-4 w-4" />
-                        {idea.linkedEntries?.trim() ? "Connected thread" : "Ready for connection"}
+                        {parsedLinkedEntries.length > 0 ? `${parsedLinkedEntries.length} connected reference${parsedLinkedEntries.length === 1 ? "" : "s"}` : "Ready for connection"}
                         <ArrowRight className="h-4 w-4" />
                       </div>
                     </div>
