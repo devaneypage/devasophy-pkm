@@ -235,6 +235,31 @@ export type InsertSearchIndex = typeof searchIndex.$inferInsert;
 
 
 /**
+ * Phase 3: Goals Module (Action Layer)
+ * Tracks guiding outcomes that shape projects and tasks
+ */
+export const goals = mysqlTable("goals", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  categoryId: int("categoryId"), // Johnny Decimal category
+  uuid: varchar("uuid", { length: 64 }).notNull().unique(),
+  zettelkastenId: varchar("zettelkasten_id", { length: 50 }).unique(), // Format: AC.ID-YYYYMMDD-Seq
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  status: mysqlEnum("status", ["active", "achieved", "paused", "archived"]).default("active"),
+  horizon: mysqlEnum("horizon", ["immediate", "seasonal", "annual", "long_term"]).default("seasonal"),
+  targetDate: timestamp("targetDate"),
+  tags: text("tags"), // Comma-separated or JSON array
+  linkedProjectId: int("linkedProjectId"), // Optional: connect to a primary project
+  favorite: boolean("favorite").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Goal = typeof goals.$inferSelect;
+export type InsertGoal = typeof goals.$inferInsert;
+
+/**
  * Phase 4: Projects Module (Action Layer)
  * Tracks long-term projects and initiatives
  */

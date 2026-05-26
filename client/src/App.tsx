@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Notebook from "./pages/Notebook";
 import Lexicon from "./pages/Lexicon";
 import Documents from "./pages/Documents";
+import Goals from "./pages/Goals";
 import BulkImport from "./pages/BulkImport";
 import Search from "./pages/Search";
 import NotebookDetail from "./pages/NotebookDetail";
@@ -44,6 +45,13 @@ function Router() {
         {() => (
           <DashboardLayout currentModule="documents">
             <Documents />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/goals"}>
+        {() => (
+          <DashboardLayout currentModule="goals">
+            <Goals />
           </DashboardLayout>
         )}
       </Route>

@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `goals` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`categoryId` int,\n\t`uuid` varchar(64) NOT NULL,\n\t`zettelkasten_id` varchar(50),\n\t`title` varchar(255) NOT NULL,\n\t`description` text,\n\t`status` enum('active','achieved','paused','archived') DEFAULT 'active',\n\t`horizon` enum('immediate','seasonal','annual','long_term') DEFAULT 'seasonal',\n\t`targetDate` timestamp,\n\t`tags` text,\n\t`linkedProjectId` int,\n\t`favorite` boolean DEFAULT false,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `goals_id` PRIMARY KEY(`id`),\n\tCONSTRAINT `goals_uuid_unique` UNIQUE(`uuid`),\n\tCONSTRAINT `goals_zettelkasten_id_unique` UNIQUE(`zettelkasten_id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ecwSL7MSEz9ShF.78c8e8770d20 --database EqCbheLsAyU2CJnijcBavG --execute CREATE TABLE `goals` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`categoryId` int,\n\t`uuid` varchar(64) NOT NULL,\n\t`zettelkasten_id` varchar(50),\n\t`title` varchar(255) NOT NULL,\n\t`description` text,\n\t`status` enum('active','achieved','paused','archived') DEFAULT 'active',\n\t`horizon` enum('immediate','seasonal','annual','long_term') DEFAULT 'seasonal',\n\t`targetDate` timestamp,\n\t`tags` text,\n\t`linkedProjectId` int,\n\t`favorite` boolean DEFAULT false,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `goals_id` PRIMARY KEY(`id`),\n\tCONSTRAINT `goals_uuid_unique` UNIQUE(`uuid`),\n\tCONSTRAINT `goals_zettelkasten_id_unique` UNIQUE(`zettelkasten_id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 3604
+}

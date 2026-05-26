@@ -43,6 +43,16 @@ const modules = [
     chips: ["Projects", "Drafts", "Essays"],
   },
   {
+    id: "goals",
+    title: "Goals",
+    description: "Keep immediate, seasonal, annual, and long-term aims visible so projects and tasks remain aligned with larger ends.",
+    icon: NotesIcon,
+    route: "/goals",
+    accent: "#116d6d",
+    pattern: "dev-pattern-waves",
+    chips: ["Action Layer", "Outcomes", "Horizon"],
+  },
+  {
     id: "glossary",
     title: "Clavis Aurea Glossary",
     description: "Explore philosophical and literary vocabulary with AI-powered composition and thematic organization.",
@@ -98,6 +108,7 @@ export default function Home() {
   const notebookQuery = trpc.notebook.list.useQuery({});
   const lexiconQuery = trpc.lexicon.list.useQuery({});
   const documentsQuery = trpc.documents.list.useQuery({});
+  const goalsQuery = trpc.goals.list.useQuery({});
   const projectsQuery = trpc.projects.list.useQuery({});
   const tasksQuery = trpc.tasks.list.useQuery({});
 
@@ -121,10 +132,10 @@ export default function Home() {
       pattern: "dev-pattern-stripes",
     },
     {
-      label: "Active Projects",
-      value: formatStatValue(projectsQuery.data?.length, projectsQuery.isLoading),
-      tone: "#bfd73d",
-      pattern: "dev-pattern-diamonds",
+      label: "Active Goals",
+      value: formatStatValue(goalsQuery.data?.filter((goal) => goal.status === "active").length, goalsQuery.isLoading),
+      tone: "#116d6d",
+      pattern: "dev-pattern-waves",
     },
   ];
 
@@ -162,7 +173,7 @@ export default function Home() {
       : [
           { label: "Import your first archive", date: "Start here", shape: "circle" as const, color: "#bfd73d" },
           { label: "Define your first lexicon term", date: "Next", shape: "square" as const, color: "#56c5ea" },
-          { label: "Draft a research note", date: "Then", shape: "diamond" as const, color: "#efb93a" },
+          { label: "Set your first workspace goal", date: "Then", shape: "diamond" as const, color: "#116d6d" },
         ];
 
   return (

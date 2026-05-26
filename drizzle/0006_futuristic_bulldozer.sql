@@ -1,0 +1,20 @@
+CREATE TABLE `goals` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`categoryId` int,
+	`uuid` varchar(64) NOT NULL,
+	`zettelkasten_id` varchar(50),
+	`title` varchar(255) NOT NULL,
+	`description` text,
+	`status` enum('active','achieved','paused','archived') DEFAULT 'active',
+	`horizon` enum('immediate','seasonal','annual','long_term') DEFAULT 'seasonal',
+	`targetDate` timestamp,
+	`tags` text,
+	`linkedProjectId` int,
+	`favorite` boolean DEFAULT false,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `goals_id` PRIMARY KEY(`id`),
+	CONSTRAINT `goals_uuid_unique` UNIQUE(`uuid`),
+	CONSTRAINT `goals_zettelkasten_id_unique` UNIQUE(`zettelkasten_id`)
+);

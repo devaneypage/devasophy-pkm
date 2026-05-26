@@ -159,8 +159,8 @@
 - [x] Phase 1: Implement Zettelkasten ID system (AC.ID-YYYYMMDD-Seq format)
 - [x] Phase 2: Enhance linking semantics with directional symbols (→, ←, ↔)
 - [ ] Phase 3: Implement Goals module (Action Layer)
-- [ ] Phase 4: Implement Projects module (Action Layer)
-- [ ] Phase 5: Implement Tasks module (Action Layer)
+- [x] Phase 4: Implement Projects module (Action Layer)
+- [x] Phase 5: Implement Tasks module (Action Layer)
 - [ ] Phase 6: Implement Ideas module (Synthesis Layer)
 
 
@@ -434,12 +434,12 @@
 - [x] Save a checkpoint for the navigation fix
 
 ## Phase 1 — Make the app feel alive
-- [ ] Fix the app theme so the interface defaults to the intended dark-first palette
-- [ ] Replace hardcoded Home dashboard quick stats with live data queries
-- [ ] Connect the Taxonomy sidebar to real taxonomy areas, categories, and entry counts from the database
-- [ ] Remove or gate ComponentShowcase from production routes
-- [ ] Verify the updated Phase 1 experience in the live app and test suite
-- [ ] Save a checkpoint for the Phase 1 operational fixes
+- [x] Fix the app theme so the interface defaults to the intended dark-first palette
+- [x] Replace hardcoded Home dashboard quick stats with live data queries
+- [x] Connect the Taxonomy sidebar to real taxonomy areas, categories, and entry counts from the database
+- [x] Remove or gate ComponentShowcase from production routes
+- [x] Verify the updated Phase 1 experience in the live app and test suite
+- [x] Save a checkpoint for the Phase 1 operational fixes
 
 ## Follow-up Enhancement — Phase 1 Make It Feel Alive
 - [x] Default the application theme to dark in App.tsx
@@ -465,3 +465,10 @@
 - [x] Surface DIKW selection and display in the notebook and document editing experiences
 - [x] Add regression tests for the new DIKW metadata flow
 - [x] Verify the DIKW slice in the live app and save a checkpoint
+
+## Phase 3 — Goals Module (Action Layer)
+- [x] Audit the current action-layer routes, dashboard surfaces, and shared patterns for Goals integration
+- [x] Add Goals schema and backend CRUD support
+- [x] Build the Goals page and integrate it into navigation and dashboard surfaces
+- [x] Add regression coverage for the Goals module workflows
+- [x] Verify the Goals slice in the live app and save a checkpoint

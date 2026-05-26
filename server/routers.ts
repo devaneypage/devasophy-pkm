@@ -29,6 +29,11 @@ import {
   getTaxonomyTree,
   seedJohnnyDecimalTaxonomy,
   searchAllModules,
+  createGoal,
+  getGoal,
+  listGoals,
+  updateGoal,
+  deleteGoal,
   createProject,
   getProject,
   listProjects,
@@ -498,6 +503,67 @@ Composition request: ${input.prompt}`,
       )
       .query(async ({ ctx, input }) => {
         return await searchAllModules(ctx.user.id, input.query, input);
+      }),
+  }),
+
+  // ============================================================================
+  // GOALS (Action Layer - Phase 3)
+  // ============================================================================
+  goals: router({
+    create: protectedProcedure
+      .input(
+        z.object({
+          title: z.string(),
+          description: z.string().optional(),
+          categoryId: z.number().optional(),
+          status: z.enum(["active", "achieved", "paused", "archived"]).optional(),
+          horizon: z.enum(["immediate", "seasonal", "annual", "long_term"]).optional(),
+          targetDate: z.date().optional(),
+          tags: z.string().optional(),
+          linkedProjectId: z.number().optional(),
+          zettelkastenId: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await createGoal(ctx.user.id, input);
+      }),
+    list: protectedProcedure
+      .input(
+        z.object({
+          status: z.enum(["active", "achieved", "paused", "archived"]).optional(),
+          horizon: z.enum(["immediate", "seasonal", "annual", "long_term"]).optional(),
+          linkedProjectId: z.number().optional(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        return await listGoals(ctx.user.id, input);
+      }),
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return await getGoal(ctx.user.id, input.id);
+      }),
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().optional(),
+          description: z.string().optional(),
+          status: z.enum(["active", "achieved", "paused", "archived"]).optional(),
+          horizon: z.enum(["immediate", "seasonal", "annual", "long_term"]).optional(),
+          targetDate: z.date().optional(),
+          tags: z.string().optional(),
+          linkedProjectId: z.number().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        return await updateGoal(ctx.user.id, id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return await deleteGoal(ctx.user.id, input.id);
       }),
   }),
 

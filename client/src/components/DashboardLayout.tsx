@@ -38,7 +38,8 @@ import TaxonomySidebar from "./TaxonomySidebar";
 
 const menuItems = [
   { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
-  { icon: EssaysIcon, label: "Projects", path: "/documents", accent: "#e25b33" },
+  { icon: EssaysIcon, label: "Writing Studio", path: "/documents", accent: "#e25b33" },
+  { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#116d6d" },
   { icon: NotesIcon, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
   { icon: QuotationsIcon, label: "Notes", path: "/notebook", accent: "#efb93a" },
   { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#b55af3" },
@@ -54,7 +55,7 @@ const DEFAULT_WIDTH = 292;
 const MIN_WIDTH = 240;
 const MAX_WIDTH = 420;
 
-type ModuleKey = "home" | "notebook" | "lexicon" | "documents" | "glossary";
+type ModuleKey = "home" | "notebook" | "lexicon" | "documents" | "goals" | "glossary";
 
 export default function DashboardLayout({
   children,
@@ -143,6 +144,7 @@ function DashboardLayoutContent({
     "/notebook": "notebook",
     "/lexicon": "lexicon",
     "/documents": "documents",
+    "/goals": "goals",
   };
 
   const activeMenuItem = menuItems.find((item) => item.path === location) ?? menuItems[0];

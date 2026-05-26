@@ -14,6 +14,7 @@ import {
   importHistory,
   exportHistory,
   searchIndex,
+  goals,
   projects,
   tasks,
 } from "../drizzle/schema";
@@ -656,6 +657,123 @@ export async function searchAllModules(userId: number, query: string, filters?: 
   };
 }
 
+
+// ============================================================================
+// Goals Module (Action Layer)
+// ============================================================================
+
+export async function createGoal(
+  userId: number,
+  data: {
+    title: string;
+    description?: string;
+    categoryId?: number;
+    status?: string;
+    horizon?: string;
+    targetDate?: Date;
+    tags?: string;
+    linkedProjectId?: number;
+    zettelkastenId?: string;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { v4: uuidv4 } = await import("uuid");
+  const result = await db.insert(goals).values({
+    userId,
+    uuid: uuidv4(),
+    title: data.title,
+    description: data.description,
+    categoryId: data.categoryId,
+    status: (data.status || "active") as any,
+    horizon: (data.horizon || "seasonal") as any,
+    targetDate: data.targetDate,
+    tags: data.tags,
+    linkedProjectId: data.linkedProjectId,
+    zettelkastenId: data.zettelkastenId,
+  });
+
+  return result;
+}
+
+export async function getGoal(userId: number, goalId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .select()
+    .from(goals)
+    .where(and(eq(goals.userId, userId), eq(goals.id, goalId)))
+    .limit(1)
+    .then((rows) => rows[0]);
+}
+
+export async function listGoals(
+  userId: number,
+  filters?: { status?: string; horizon?: string; linkedProjectId?: number }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const conditions = [eq(goals.userId, userId)];
+
+  if (filters?.status) {
+    conditions.push(eq(goals.status, filters.status as any));
+  }
+  if (filters?.horizon) {
+    conditions.push(eq(goals.horizon, filters.horizon as any));
+  }
+  if (filters?.linkedProjectId) {
+    conditions.push(eq(goals.linkedProjectId, filters.linkedProjectId));
+  }
+
+  return db
+    .select()
+    .from(goals)
+    .where(and(...conditions))
+    .orderBy(asc(goals.targetDate), desc(goals.createdAt));
+}
+
+export async function updateGoal(
+  userId: number,
+  goalId: number,
+  data: Partial<{
+    title: string;
+    description: string;
+    status: "active" | "achieved" | "paused" | "archived";
+    horizon: "immediate" | "seasonal" | "annual" | "long_term";
+    targetDate: Date;
+    tags: string;
+    linkedProjectId: number;
+  }>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const updateData: Record<string, any> = { updatedAt: new Date() };
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.horizon !== undefined) updateData.horizon = data.horizon;
+  if (data.targetDate !== undefined) updateData.targetDate = data.targetDate;
+  if (data.tags !== undefined) updateData.tags = data.tags;
+  if (data.linkedProjectId !== undefined) updateData.linkedProjectId = data.linkedProjectId;
+
+  return db
+    .update(goals)
+    .set(updateData)
+    .where(and(eq(goals.userId, userId), eq(goals.id, goalId)));
+}
+
+export async function deleteGoal(userId: number, goalId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .delete(goals)
+    .where(and(eq(goals.userId, userId), eq(goals.id, goalId)));
+}
 
 // ============================================================================
 // Projects Module (Action Layer)
