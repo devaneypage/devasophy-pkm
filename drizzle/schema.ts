@@ -71,6 +71,7 @@ export const notebookEntries = mysqlTable("notebook_entries", {
   note: text("note"), // User's personal notes
   tags: text("tags"), // Comma-separated or JSON array
   collections: varchar("collections", { length: 255 }), // Collection/category label
+  dikwTier: varchar("dikw_tier", { length: 20 }).default("information"), // wisdom, knowledge, information, data
   favorite: boolean("favorite").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -121,6 +122,7 @@ export const documents = mysqlTable("documents", {
   project: varchar("project", { length: 255 }), // Project name
   folder: varchar("folder", { length: 255 }), // Folder path
   status: mysqlEnum("status", ["draft", "in_progress", "completed", "archived"]).default("draft"),
+  dikwTier: varchar("dikw_tier", { length: 20 }).default("information"), // wisdom, knowledge, information, data
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

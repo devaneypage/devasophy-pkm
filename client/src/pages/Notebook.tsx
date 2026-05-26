@@ -9,6 +9,29 @@ import { v4 as uuidv4 } from "uuid";
 import CategorySelect from "@/components/CategorySelect";
 import ZettelkastenIdDisplay from "@/components/ZettelkastenIdDisplay";
 
+const dikwOptions = [
+  { value: "data", label: "Data", tone: "bg-[#56c5ea]" },
+  { value: "information", label: "Information", tone: "bg-[#efb93a]" },
+  { value: "knowledge", label: "Knowledge", tone: "bg-[#bfd73d]" },
+  { value: "wisdom", label: "Wisdom", tone: "bg-[#e25b33] text-white" },
+] as const;
+
+type DikwTier = (typeof dikwOptions)[number]["value"];
+
+const getDikwBadgeClass = (tier?: string | null) => {
+  switch (tier) {
+    case "data":
+      return "bg-[#56c5ea] text-black";
+    case "knowledge":
+      return "bg-[#bfd73d] text-black";
+    case "wisdom":
+      return "bg-[#e25b33] text-white";
+    case "information":
+    default:
+      return "bg-[#efb93a] text-black";
+  }
+};
+
 export default function Notebook() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,6 +47,7 @@ export default function Notebook() {
     note: "",
     tags: "",
     collections: "",
+    dikwTier: "information" as DikwTier,
     favorite: false,
     categoryId: undefined as number | undefined,
   });
@@ -36,6 +60,7 @@ export default function Notebook() {
     note: "",
     tags: "",
     collections: "",
+    dikwTier: "information" as DikwTier,
     favorite: false,
     categoryId: undefined as number | undefined,
   });
@@ -77,6 +102,7 @@ export default function Notebook() {
         note: "",
         tags: "",
         collections: "",
+        dikwTier: "information",
         favorite: false,
         categoryId: undefined,
       });
@@ -152,6 +178,7 @@ export default function Notebook() {
       note: entry.note || "",
       tags: entry.tags || "",
       collections: entry.collections || "",
+      dikwTier: (entry.dikwTier as DikwTier | undefined) || "information",
       favorite: entry.favorite || false,
       categoryId: entry.categoryId || undefined,
     });
@@ -171,6 +198,7 @@ export default function Notebook() {
       note: editFormData.note || undefined,
       tags: editFormData.tags || undefined,
       collections: editFormData.collections || undefined,
+      dikwTier: editFormData.dikwTier,
       favorite: editFormData.favorite,
       categoryId: editFormData.categoryId,
     });
@@ -365,6 +393,25 @@ export default function Notebook() {
               onChange={(categoryId) => setFormData({ ...formData, categoryId })}
             />
 
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-foreground">DIKW tier</label>
+              <div className="flex flex-wrap gap-2">
+                {dikwOptions.map((option) => {
+                  const selected = formData.dikwTier === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, dikwTier: option.value })}
+                      className={`rounded-full border-2 border-black px-3 py-2 text-sm font-semibold transition ${selected ? option.tone : "bg-white text-black hover:bg-[#f6f3ec]"}`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">Tags</label>
@@ -437,6 +484,9 @@ export default function Notebook() {
                     {entry.work && <span className="dev-chip">{entry.work}</span>}
                     {entry.location && <span className="dev-chip">{entry.location}</span>}
                     {entry.sourceType && <span className="dev-chip">{entry.sourceType}</span>}
+                    <span className={`rounded-full border border-black/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getDikwBadgeClass(entry.dikwTier)}`}>
+                      {entry.dikwTier || "information"}
+                    </span>
                   </div>
                   {entry.note && <p className="text-sm leading-6 text-muted-foreground">{entry.note}</p>}
                   {entry.categoryId && (
@@ -507,6 +557,24 @@ export default function Notebook() {
                       placeholder="Reassign this entry to a seeded category"
                       onChange={(categoryId) => setEditFormData({ ...editFormData, categoryId })}
                     />
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-foreground">DIKW tier</label>
+                      <div className="flex flex-wrap gap-2">
+                        {dikwOptions.map((option) => {
+                          const selected = editFormData.dikwTier === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setEditFormData({ ...editFormData, dikwTier: option.value })}
+                              className={`rounded-full border-2 border-black px-3 py-2 text-sm font-semibold transition ${selected ? option.tone : "bg-white text-black hover:bg-[#f6f3ec]"}`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <div className="flex flex-wrap gap-3">
                       <Button type="submit" disabled={updateMutation.isPending} className="h-11 rounded-full border-2 border-black bg-[#116d6d] px-5 text-white shadow-none hover:bg-[#0f5959]">
                         {updateMutation.isPending ? "Saving..." : "Save changes"}

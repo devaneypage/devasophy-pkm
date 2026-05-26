@@ -1,0 +1,9 @@
+{
+  "query": "SELECT TABLE_NAME, COLUMN_NAME, COLUMN_DEFAULT\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE()\n  AND TABLE_NAME IN ('notebook_entries', 'documents')\n  AND COLUMN_NAME = 'dikw_tier'\nORDER BY TABLE_NAME;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ecwSL7MSEz9ShF.78c8e8770d20 --database EqCbheLsAyU2CJnijcBavG --execute SELECT TABLE_NAME, COLUMN_NAME, COLUMN_DEFAULT\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE()\n  AND TABLE_NAME IN ('notebook_entries', 'documents')\n  AND COLUMN_NAME = 'dikw_tier'\nORDER BY TABLE_NAME;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 11155
+}

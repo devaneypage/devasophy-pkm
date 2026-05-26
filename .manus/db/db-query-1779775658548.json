@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE `documents` ADD `dikw_tier` varchar(20) DEFAULT 'information';\nALTER TABLE `notebook_entries` ADD `dikw_tier` varchar(20) DEFAULT 'information';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ecwSL7MSEz9ShF.78c8e8770d20 --database EqCbheLsAyU2CJnijcBavG --execute ALTER TABLE `documents` ADD `dikw_tier` varchar(20) DEFAULT 'information';\nALTER TABLE `notebook_entries` ADD `dikw_tier` varchar(20) DEFAULT 'information';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2014
+}

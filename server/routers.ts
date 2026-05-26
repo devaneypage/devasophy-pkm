@@ -82,6 +82,7 @@ export const appRouter = router({
           note: z.string().optional(),
           tags: z.string().optional(),
           collections: z.string().optional(),
+          dikwTier: z.enum(["data", "information", "knowledge", "wisdom"]).optional(),
           favorite: z.boolean().optional(),
           uuid: z.string(),
           categoryId: z.number().optional(),
@@ -122,6 +123,7 @@ export const appRouter = router({
           note: z.string().optional(),
           tags: z.string().optional(),
           collections: z.string().optional(),
+          dikwTier: z.enum(["data", "information", "knowledge", "wisdom"]).optional(),
           favorite: z.boolean().optional(),
           categoryId: z.number().optional(),
         })
@@ -192,6 +194,7 @@ export const appRouter = router({
           sourceType: z.string().optional(),
           imageNum: z.string().optional(),
           notes: z.string().optional(),
+          dikwTier: z.enum(["data", "information", "knowledge", "wisdom"]).optional(),
           categoryId: z.number().optional(),
         })
       )
@@ -219,6 +222,7 @@ export const appRouter = router({
           project: z.string().optional(),
           folder: z.string().optional(),
           status: z.enum(["draft", "in_progress", "completed", "archived"]).optional(),
+          dikwTier: z.enum(["data", "information", "knowledge", "wisdom"]).optional(),
           uuid: z.string(),
           categoryId: z.number().optional(),
         })
@@ -318,6 +322,7 @@ export const appRouter = router({
           project: z.string().optional(),
           folder: z.string().optional(),
           status: z.enum(["draft", "in_progress", "completed", "archived"]).optional(),
+          dikwTier: z.enum(["data", "information", "knowledge", "wisdom"]).optional(),
           categoryId: z.number().optional(),
         })
       )

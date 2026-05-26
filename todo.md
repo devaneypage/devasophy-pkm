@@ -458,3 +458,10 @@
 - [x] Document the relational collections migration path for notebook and related entry types
 - [x] Document the DIKW tier expansion path across notebook, documents, projects, and tasks
 - [x] Verify the full Phase 2 slice in the live app and save a checkpoint
+
+## Phase 2 — DIKW Metadata Expansion Slice
+- [x] Add DIKW tier support to notebook entries at the schema and backend layers
+- [x] Add DIKW tier support to documents at the schema and backend layers
+- [x] Surface DIKW selection and display in the notebook and document editing experiences
+- [x] Add regression tests for the new DIKW metadata flow
+- [x] Verify the DIKW slice in the live app and save a checkpoint

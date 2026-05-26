@@ -36,6 +36,13 @@
       "when": 1777073126187,
       "tag": "0004_panoramic_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1779775581451,
+      "tag": "0005_chemical_vance_astro",
+      "breakpoints": true
     }
   ]
 }

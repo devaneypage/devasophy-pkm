@@ -36,6 +36,15 @@ const statusColors: Record<string, string> = {
   archived: "#b55af3",
 };
 
+const dikwOptions = [
+  { value: "data", label: "Data", tone: "bg-[#56c5ea]" },
+  { value: "information", label: "Information", tone: "bg-[#efb93a]" },
+  { value: "knowledge", label: "Knowledge", tone: "bg-[#bfd73d]" },
+  { value: "wisdom", label: "Wisdom", tone: "bg-[#e25b33] text-white" },
+] as const;
+
+type DikwTier = (typeof dikwOptions)[number]["value"];
+
 type ReferenceMode = "notebook" | "lexicon";
 
 type InsertableReference = {
@@ -57,11 +66,13 @@ export default function Documents() {
   const [selectedRelationship, setSelectedRelationship] = useState<SemanticLinkPresetKey>("supports");
   const [editContent, setEditContent] = useState("");
   const [assistantMessages, setAssistantMessages] = useState<Message[]>([]);
+  const [selectedDocTier, setSelectedDocTier] = useState<DikwTier>("information");
   const [formData, setFormData] = useState({
     title: "",
     project: "",
     folder: "",
     status: "draft" as const,
+    dikwTier: "information" as DikwTier,
     categoryId: undefined as number | undefined,
   });
 
@@ -88,8 +99,9 @@ export default function Documents() {
   useEffect(() => {
     if (selectedDoc) {
       setEditContent(selectedDoc.content || "");
+      setSelectedDocTier((selectedDoc.dikwTier as DikwTier | undefined) || "information");
     }
-  }, [selectedDoc?.id, selectedDoc?.content]);
+  }, [selectedDoc?.id, selectedDoc?.content, selectedDoc?.dikwTier]);
 
   useEffect(() => {
     setAssistantMessages([]);
@@ -107,6 +119,7 @@ export default function Documents() {
         project: "",
         folder: "",
         status: "draft",
+        dikwTier: "information",
         categoryId: undefined,
       });
       setShowForm(false);
@@ -219,6 +232,7 @@ export default function Documents() {
     updateMutation.mutate({
       id: selectedDocId,
       content: editContent,
+      dikwTier: selectedDocTier,
     });
   };
 
@@ -315,6 +329,24 @@ export default function Documents() {
                 placeholder="Assign this document to a seeded writing category"
                 onChange={(categoryId) => setFormData({ ...formData, categoryId })}
               />
+              <div>
+                <p className="mb-2 text-sm font-semibold text-foreground">DIKW tier</p>
+                <div className="flex flex-wrap gap-2">
+                  {dikwOptions.map((option) => {
+                    const selected = formData.dikwTier === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, dikwTier: option.value })}
+                        className={`rounded-full border-2 border-black px-3 py-2 text-sm font-semibold transition ${selected ? option.tone : "bg-white text-black hover:bg-[#f6f3ec]"}`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="submit"
@@ -367,6 +399,8 @@ export default function Documents() {
                         <span>{doc.folder || "General"}</span>
                         <span>•</span>
                         <span>{(doc.status || "draft").replace("_", " ")}</span>
+                        <span>•</span>
+                        <span>{doc.dikwTier || "information"}</span>
                       </div>
                     </div>
                   </button>
@@ -392,6 +426,7 @@ export default function Documents() {
                   {selectedDoc.project && <span className="dev-chip">{selectedDoc.project}</span>}
                   {selectedDoc.folder && <span className="dev-chip">{selectedDoc.folder}</span>}
                   <span className="dev-chip">{(selectedDoc.status || "draft").replace("_", " ")}</span>
+                  <span className="dev-chip">{selectedDocTier}</span>
                   <span className="dev-chip">{linkedReferences?.length || 0} linked sources</span>
                 </div>
               </div>
@@ -422,6 +457,24 @@ export default function Documents() {
                 <div className="space-y-4 p-5">
                   <div className="rounded-[1.2rem] border border-black/10 bg-[#f6f3ec] p-4 text-sm leading-6 text-muted-foreground">
                     Draft with your document on the left, pull structured references from notebook or Clavis Aurea on the right, and use the assistant to synthesize what is already linked into this file.
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-foreground">DIKW tier</p>
+                    <div className="flex flex-wrap gap-2">
+                      {dikwOptions.map((option) => {
+                        const selected = selectedDocTier === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setSelectedDocTier(option.value)}
+                            className={`rounded-full border-2 border-black px-3 py-2 text-sm font-semibold transition ${selected ? option.tone : "bg-white text-black hover:bg-[#f6f3ec]"}`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <Textarea
                     value={editContent}
@@ -616,6 +669,11 @@ export default function Documents() {
                         {(selectedDoc.status || "draft").replace("_", " ")}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">document status reflected in the AI context packet</p>
+                    </div>
+                    <div className="rounded-[1.1rem] border border-black/10 bg-white p-4 sm:col-span-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Knowledge tier</p>
+                      <p className="mt-2 text-2xl font-bold text-foreground">{selectedDocTier}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">used to signal whether this draft currently behaves like raw data, organized information, developed knowledge, or distilled wisdom</p>
                     </div>
                   </div>
                 </Card>

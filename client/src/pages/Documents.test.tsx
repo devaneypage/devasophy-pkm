@@ -22,6 +22,7 @@ const mockDocuments = [
     project: "Contrarian Pedagogy",
     folder: "Working drafts",
     status: "draft",
+    dikwTier: "knowledge",
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -228,5 +229,23 @@ describe("Documents Writing Studio", () => {
     });
 
     expect(screen.getByText("Assistant synthesis returned.")).toBeTruthy();
+  });
+
+  it("saves the selected document with the updated DIKW tier", async () => {
+    render(<Documents />);
+
+    fireEvent.click(screen.getByText("Essay Draft"));
+    fireEvent.click(await screen.findByRole("button", { name: "Wisdom" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+
+    await waitFor(() => {
+      expect(mockUpdateDocument).toHaveBeenCalledWith({
+        id: 1,
+        content: "Draft paragraph about education.",
+        dikwTier: "wisdom",
+      });
+    });
+
+    expect(document.body.textContent).toContain("wisdom");
   });
 });
