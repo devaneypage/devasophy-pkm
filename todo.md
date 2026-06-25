@@ -557,3 +557,27 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Implement CSV download functionality with proper headers and formatting
 - [x] Add tests for export procedures and CSV generation
 - [x] Verify export workflows in live app and save checkpoint
+
+
+## CSV Import Feature — Populate Library and Notes from Files
+- [x] Design CSV import procedures for books and notebook entries with format validation
+- [x] Implement backend CSV parsing with Papa Parse or similar library
+- [x] Add duplicate detection and conflict resolution logic
+- [x] Create ImportModal component with file upload and preview UI
+- [x] Implement validation feedback and error reporting
+- [x] Add import button to Library page
+- [x] Add import button to Notes page (or use existing bulk-import)
+- [x] Write tests for CSV parsing and import procedures
+- [x] Verify import workflows in live app and save checkpoint
+
+
+## Advanced Export Formats — JSON, Markdown, PDF
+- [x] Design export format procedures with customizable templates
+- [x] Implement JSON export for data interchange and API compatibility
+- [x] Implement Markdown export for publishing and sharing
+- [x] Implement PDF export for printing and archival
+- [x] Create template system for customizing export layouts
+- [x] Add format selection to ExportModal component
+- [x] Write tests for all export format procedures
+- [x] Verify export workflows in live app and save checkpoint
+- [x] Verify advanced export formats with webapp testing workflow and capture UI validation evidence

@@ -1,5 +1,16 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { exportBooksAsCSV, exportNotebookEntriesAsCSV, exportCombinedAsCSV, createBook } from "./db";
+import {
+  exportBooksAsCSV,
+  exportNotebookEntriesAsCSV,
+  exportCombinedAsCSV,
+  exportBooksAsJSON,
+  exportNotebookEntriesAsJSON,
+  exportBooksAsMarkdown,
+  exportNotebookEntriesAsMarkdown,
+  exportBooksAsPDF,
+  exportNotebookEntriesAsPDF,
+  createBook,
+} from "./db";
 
 describe("Export Procedures", () => {
   const testUserId = 9999;
@@ -99,6 +110,61 @@ describe("Export Procedures", () => {
       expect(result.csv).toContain("Test Book 1");
       expect(result.csv).toContain("Test Book 2");
       expect(result.filename).toMatch(/^devanomy_export_\d{4}-\d{2}-\d{2}\.csv$/);
+    });
+  });
+
+  describe("advanced export formats", () => {
+    it("should export books as JSON with metadata", async () => {
+      const result = await exportBooksAsJSON(testUserId, { status: "reading" });
+
+      expect(result.format).toBe("json");
+      expect(result.filename).toMatch(/^books_export_\d{4}-\d{2}-\d{2}\.json$/);
+      expect(Array.isArray(result.data)).toBe(true);
+      expect(result.metadata.count).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should export notebook entries as JSON with metadata", async () => {
+      const result = await exportNotebookEntriesAsJSON(testUserId);
+
+      expect(result.format).toBe("json");
+      expect(result.filename).toMatch(/^notebook_export_\d{4}-\d{2}-\d{2}\.json$/);
+      expect(Array.isArray(result.data)).toBe(true);
+      expect(result.metadata).toHaveProperty("exportDate");
+    });
+
+    it("should export books as Markdown", async () => {
+      const result = await exportBooksAsMarkdown(testUserId);
+
+      expect(result.format).toBe("markdown");
+      expect(result.filename).toMatch(/^books_export_\d{4}-\d{2}-\d{2}\.md$/);
+      expect(result.content).toContain("# Book Collection");
+      expect(result.content).toContain("Test Book 1");
+    });
+
+    it("should export notebook entries as Markdown", async () => {
+      const result = await exportNotebookEntriesAsMarkdown(testUserId);
+
+      expect(result.format).toBe("markdown");
+      expect(result.filename).toMatch(/^notebook_export_\d{4}-\d{2}-\d{2}\.md$/);
+      expect(result.content).toContain("# Notebook Entries");
+    });
+
+    it("should export books as PDF", async () => {
+      const result = await exportBooksAsPDF(testUserId);
+
+      expect(result.format).toBe("pdf");
+      expect(result.filename).toMatch(/^books_export_\d{4}-\d{2}-\d{2}\.pdf$/);
+      expect(typeof result.base64).toBe("string");
+      expect(result.base64.length).toBeGreaterThan(10);
+    });
+
+    it("should export notebook entries as PDF", async () => {
+      const result = await exportNotebookEntriesAsPDF(testUserId);
+
+      expect(result.format).toBe("pdf");
+      expect(result.filename).toMatch(/^notebook_export_\d{4}-\d{2}-\d{2}\.pdf$/);
+      expect(typeof result.base64).toBe("string");
+      expect(result.base64.length).toBeGreaterThan(10);
     });
   });
 });

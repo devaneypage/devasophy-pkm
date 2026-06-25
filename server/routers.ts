@@ -10,6 +10,8 @@ import {
   getNotebookEntry,
   updateNotebookEntry,
   deleteNotebookEntry,
+  importBooksFromCSV,
+  importNotebookEntriesFromCSV,
   createLexiconEntry,
   getLexiconEntries,
   getLexiconEntry,
@@ -87,6 +89,42 @@ export const exportRouter = router({
     .query(async ({ ctx }) => {
       const { exportCombinedAsCSV } = await import("./db");
       return exportCombinedAsCSV(ctx.user.id);
+    }),
+  booksJSON: protectedProcedure
+    .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), sortBy: z.enum(["recent", "oldest", "rating"]).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { exportBooksAsJSON } = await import("./db");
+      return exportBooksAsJSON(ctx.user.id, input);
+    }),
+  notesJSON: protectedProcedure
+    .input(z.object({ categoryId: z.number().optional() }))
+    .query(async ({ ctx, input }) => {
+      const { exportNotebookEntriesAsJSON } = await import("./db");
+      return exportNotebookEntriesAsJSON(ctx.user.id, input);
+    }),
+  booksMarkdown: protectedProcedure
+    .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), template: z.enum(["annotated", "catalog"]).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { exportBooksAsMarkdown } = await import("./db");
+      return exportBooksAsMarkdown(ctx.user.id, input);
+    }),
+  notesMarkdown: protectedProcedure
+    .input(z.object({ categoryId: z.number().optional(), template: z.enum(["reader", "research"]).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { exportNotebookEntriesAsMarkdown } = await import("./db");
+      return exportNotebookEntriesAsMarkdown(ctx.user.id, input);
+    }),
+  booksPDF: protectedProcedure
+    .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), sortBy: z.enum(["recent", "oldest", "rating"]).optional(), template: z.enum(["annotated", "catalog"]).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { exportBooksAsPDF } = await import("./db");
+      return exportBooksAsPDF(ctx.user.id, input);
+    }),
+  notesPDF: protectedProcedure
+    .input(z.object({ categoryId: z.number().optional(), template: z.enum(["reader", "research"]).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { exportNotebookEntriesAsPDF } = await import("./db");
+      return exportNotebookEntriesAsPDF(ctx.user.id, input);
     }),
 });
 
@@ -929,6 +967,14 @@ Composition request: ${input.prompt}`,
       .mutation(async ({ ctx, input }) => deleteBook(ctx.user.id, input.id)),
   }),
   export: exportRouter,
+  import: router({
+    books: protectedProcedure
+      .input(z.object({ csvContent: z.string() }))
+      .mutation(async ({ ctx, input }) => importBooksFromCSV(ctx.user.id, input.csvContent)),
+    notes: protectedProcedure
+      .input(z.object({ csvContent: z.string() }))
+      .mutation(async ({ ctx, input }) => importNotebookEntriesFromCSV(ctx.user.id, input.csvContent)),
+  }),
 
 });
 export type AppRouter = typeof appRouter;
