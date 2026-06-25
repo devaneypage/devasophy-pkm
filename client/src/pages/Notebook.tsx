@@ -1,16 +1,18 @@
 import React from "react";
-import { Filter, NotebookPen, Plus, Quote, Search, Upload } from "lucide-react";
+import { Filter, NotebookPen, Plus, Quote, Search, Upload, Download } from "lucide-react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ExportModal } from "@/components/ExportModal";
 
 export default function Notebook() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [collectionFilter, setCollectionFilter] = React.useState<string>("all");
+  const [showExportModal, setShowExportModal] = React.useState(false);
   const { data: entries = [], isLoading } = trpc.notebook.list.useQuery({ search: searchTerm });
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
 
@@ -44,7 +46,9 @@ export default function Notebook() {
   }, [filteredEntries, selectedEntry]);
 
   return (
-    <div className="space-y-6">
+    <>
+      <ExportModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} exportType="notes" />
+      <div className="space-y-6">
       <section className="dev-soft-card p-6 sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
@@ -55,6 +59,10 @@ export default function Notebook() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <Button onClick={() => setShowExportModal(true)} variant="outline" className="h-11 rounded-full border border-black/10 bg-white px-5 text-[#13243f] hover:bg-[#fffaf2]">
+              <Download className="mr-2 h-4 w-4" />
+              Export notes
+            </Button>
             <Button onClick={() => setLocation("/bulk-import")} className="h-11 rounded-full border border-[#13243f]/15 bg-[#e85b3e] px-5 text-white hover:bg-[#d94d31]">
               <Upload className="mr-2 h-4 w-4" />
               Import notes
@@ -166,5 +174,6 @@ export default function Notebook() {
         </Card>
       </section>
     </div>
+    </>
   );
 }

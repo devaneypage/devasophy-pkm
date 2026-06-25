@@ -1,10 +1,11 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, SlidersHorizontal, LayoutGrid, List, Star } from "lucide-react";
+import { ArrowLeft, Plus, SlidersHorizontal, LayoutGrid, List, Star, Download } from "lucide-react";
+import { ExportModal } from "@/components/ExportModal";
 
 const COVER_COLORS = ["#E84D20", "#2D6BE4", "#D4A017", "#1A8F6E", "#7B4FD4", "#E05C94", "#2A9D8F", "#E76F51"];
 
@@ -43,6 +44,7 @@ export default function Library() {
   const [activeTab, setActiveTab] = useState<"books" | "authors" | "sources" | "tags">("books");
   const [isGrid, setIsGrid] = useState(false);
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [newBook, setNewBook] = useState({ title: "", author: "", coverColor: COVER_COLORS[0], rating: "4.0", readingProgress: 0, status: "want_to_read" as const });
   const [, setLocation] = useLocation();
 
@@ -73,6 +75,9 @@ export default function Library() {
         </button>
         <h1 className="text-sm font-bold uppercase tracking-[0.2em] text-black">Library</h1>
         <div className="flex gap-2">
+          <button onClick={() => setShowExportModal(true)} className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10" title="Export books">
+            <Download className="h-4 w-4 text-black" />
+          </button>
           <button className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10">
             <SlidersHorizontal className="h-4 w-4 text-black" />
           </button>
@@ -164,6 +169,9 @@ export default function Library() {
           ))
         )}
       </div>
+
+      {/* Export Modal */}
+      <ExportModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} exportType="books" />
 
       {/* New Book Dialog */}
       <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>

@@ -546,3 +546,14 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Wire the new sidebar navigation items and route integration across the launchpad shell
 - [x] Verify the new launchpad views in tests and live project health, then save a checkpoint
 - [x] Nest the existing legacy module destinations inside the six new top-level launchpad views instead of keeping them as primary sidebar items
+
+
+## Export Feature — Book Collections and Notes as CSV
+- [x] Design export procedures for books and notebook entries with filtering options
+- [x] Implement backend procedures for CSV generation (books, notes, combined exports)
+- [x] Create ExportModal component with format and filtering options
+- [x] Add export button to Library page with collection selection UI
+- [x] Add export button to Notes page with entry selection UI
+- [x] Implement CSV download functionality with proper headers and formatting
+- [x] Add tests for export procedures and CSV generation
+- [x] Verify export workflows in live app and save checkpoint

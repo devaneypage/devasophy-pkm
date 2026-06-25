@@ -69,6 +69,27 @@ import {
 } from "./zettelkasten";
 import { duplicateDetectionRouter } from "./duplicateDetectionRoutes";
 
+// Export procedures - added after main router definition
+export const exportRouter = router({
+  books: protectedProcedure
+    .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), sortBy: z.enum(["recent", "oldest", "rating"]).optional(), selectedIds: z.array(z.number()).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { exportBooksAsCSV } = await import("./db");
+      return exportBooksAsCSV(ctx.user.id, input);
+    }),
+  notes: protectedProcedure
+    .input(z.object({ categoryId: z.number().optional(), selectedIds: z.array(z.number()).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { exportNotebookEntriesAsCSV } = await import("./db");
+      return exportNotebookEntriesAsCSV(ctx.user.id, input);
+    }),
+  combined: protectedProcedure
+    .query(async ({ ctx }) => {
+      const { exportCombinedAsCSV } = await import("./db");
+      return exportCombinedAsCSV(ctx.user.id);
+    }),
+});
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -907,5 +928,9 @@ Composition request: ${input.prompt}`,
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => deleteBook(ctx.user.id, input.id)),
   }),
+  export: exportRouter,
+
 });
 export type AppRouter = typeof appRouter;
+
+

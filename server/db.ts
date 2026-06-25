@@ -1862,3 +1862,129 @@ export async function bulkImportLexiconWithDuplicateDetection(
 
   return results;
 }
+
+
+/**
+ * Export books as CSV
+ */
+export async function exportBooksAsCSV(
+  userId: number,
+  filters?: {
+    status?: "reading" | "completed" | "want_to_read";
+    sortBy?: "recent" | "oldest" | "rating";
+    selectedIds?: number[];
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Get books based on filters
+  let booksToExport = await listBooks(userId, {
+    status: filters?.status,
+    sortBy: filters?.sortBy,
+  });
+
+  // Filter by selected IDs if provided
+  if (filters?.selectedIds && filters.selectedIds.length > 0) {
+    booksToExport = booksToExport.filter((b) => filters.selectedIds!.includes(b.id));
+  }
+
+  // Generate CSV content
+  const headers = ["ID", "Title", "Author", "Status", "Reading Progress", "Rating", "Date Added", "Notes", "Tags"];
+  const rows = booksToExport.map((book) => [
+    book.id.toString(),
+    `"${(book.title || "").replace(/"/g, '""')}"`, // Escape quotes in CSV
+    `"${(book.author || "").replace(/"/g, '""')}"`,
+    book.status || "",
+    book.readingProgress?.toString() || "0",
+    book.rating?.toString() || "",
+    book.dateAdded ? new Date(book.dateAdded).toISOString().split("T")[0] : "",
+    `"${(book.notes || "").replace(/"/g, '""')}"`,
+    `"${(book.tags || "").replace(/"/g, '""')}"`,
+  ]);
+
+  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+
+  return {
+    csv,
+    filename: `books_export_${new Date().toISOString().split("T")[0]}.csv`,
+    count: booksToExport.length,
+  };
+}
+
+/**
+ * Export notebook entries as CSV
+ */
+export async function exportNotebookEntriesAsCSV(
+  userId: number,
+  filters?: {
+    categoryId?: number;
+    selectedIds?: number[];
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Get notebook entries
+  let entriesToExport = await getNotebookEntries(userId, {
+    categoryId: filters?.categoryId,
+  });
+
+  // Filter by selected IDs if provided
+  if (filters?.selectedIds && filters.selectedIds.length > 0) {
+    entriesToExport = entriesToExport.filter((e) => filters.selectedIds!.includes(e.id));
+  }
+
+  // Generate CSV content
+  const headers = ["ID", "Zettelkasten ID", "Text", "Author", "Work", "Source Type", "Location", "Note", "Tags", "Collections", "Category", "Favorite", "Date Added"];
+  const rows = entriesToExport.map((entry) => [
+    entry.id.toString(),
+    entry.zettelkastenId || "",
+    `"${(entry.text || "").replace(/"/g, '""')}"`,
+    `"${(entry.author || "").replace(/"/g, '""')}"`,
+    `"${(entry.work || "").replace(/"/g, '""')}"`,
+    entry.sourceType || "",
+    entry.location || "",
+    `"${(entry.note || "").replace(/"/g, '""')}"`,
+    `"${(entry.tags || "").replace(/"/g, '""')}"`,
+    `"${(entry.collections || "").replace(/"/g, '""')}"`,
+    entry.categoryId?.toString() || "",
+    entry.favorite ? "Yes" : "No",
+    entry.createdAt ? new Date(entry.createdAt).toISOString().split("T")[0] : "",
+  ]);
+
+  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+
+  return {
+    csv,
+    filename: `notebook_export_${new Date().toISOString().split("T")[0]}.csv`,
+    count: entriesToExport.length,
+  };
+}
+
+/**
+ * Export combined books and notes as CSV
+ */
+export async function exportCombinedAsCSV(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const booksExport = await exportBooksAsCSV(userId);
+  const notesExport = await exportNotebookEntriesAsCSV(userId);
+
+  // Combine exports with section headers
+  const combined = [
+    "=== BOOKS ===",
+    booksExport.csv,
+    "",
+    "=== NOTEBOOK ENTRIES ===",
+    notesExport.csv,
+  ].join("\n");
+
+  return {
+    csv: combined,
+    filename: `devanomy_export_${new Date().toISOString().split("T")[0]}.csv`,
+    booksCount: booksExport.count,
+    notesCount: notesExport.count,
+  };
+}
