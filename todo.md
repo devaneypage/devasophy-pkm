@@ -531,9 +531,9 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Verify import category suggestions in tests and live project health, then save a checkpoint
 
 ## Import Taxonomy Override Controls
-- [ ] Review the current taxonomy suggestion review flow to identify where one-click per-row overrides should appear
-- [ ] Implement one-click per-row category override controls in the import review UI and supporting logic
-- [ ] Verify the override workflow in tests and live project health, then save a checkpoint
+- [x] Review the current taxonomy suggestion review flow to identify where one-click per-row overrides should appear
+- [x] Implement one-click per-row category override controls in the import review UI and supporting logic
+- [x] Verify the override workflow in tests and live project health, then save a checkpoint
 
 ## Launchpad Dashboard and Sidebar Views
 - [x] Review the current dashboard shell, routes, and reusable components for the new launchpad views

@@ -57,6 +57,13 @@
       "when": 1779777955024,
       "tag": "0007_perfect_otto_octavius",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1782403103484,
+      "tag": "0008_even_silver_fox",
+      "breakpoints": true
     }
   ]
 }

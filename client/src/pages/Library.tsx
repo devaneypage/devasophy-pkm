@@ -59,7 +59,7 @@ export default function Library() {
 
   const tabs = [
     { key: "books", label: "BOOKS", count: books.length },
-    { key: "authors", label: "AUTHORS", count: [...new Set(books.map((b: any) => b.author).filter(Boolean))].length },
+    { key: "authors", label: "AUTHORS", count: Array.from(new Set(books.map((b: any) => b.author).filter(Boolean))).length },
     { key: "sources", label: "SOURCES" },
     { key: "tags", label: "TAGS" },
   ];
