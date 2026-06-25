@@ -544,5 +544,5 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Create the Calendar view with a month grid, event dots, and event sidebar
 - [x] Create the Settings view with account, preferences, and workspace sections
 - [x] Wire the new sidebar navigation items and route integration across the launchpad shell
-- [ ] Verify the new launchpad views in tests and live project health, then save a checkpoint
+- [x] Verify the new launchpad views in tests and live project health, then save a checkpoint
 - [x] Nest the existing legacy module destinations inside the six new top-level launchpad views instead of keeping them as primary sidebar items
