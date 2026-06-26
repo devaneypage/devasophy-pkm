@@ -327,7 +327,6 @@ export type PreImportValidationIssue = {
 };
 
 export type PreImportTaxonomySuggestion = {
-  rowIndex: number;
   rowLabel: string;
   preview: string;
   categoryNumber: string;
@@ -478,7 +477,7 @@ function resolveTaxonomyCategoryName(categoryNumber: string): string {
   return getJohnnyDecimalSeedByCategoryNumber(categoryNumber)?.categoryName ?? categoryNumber;
 }
 
-function buildNotebookTaxonomySuggestion(entry: NormalizedNotebookImport, rowIndex: number): Omit<PreImportTaxonomySuggestion, "rowLabel" | "preview"> {
+function buildNotebookTaxonomySuggestion(entry: NormalizedNotebookImport): Omit<PreImportTaxonomySuggestion, "rowLabel" | "preview"> {
   const corpus = [entry.text, entry.note, entry.author, entry.work, entry.sourceType]
     .filter(Boolean)
     .join(" ")
@@ -486,7 +485,6 @@ function buildNotebookTaxonomySuggestion(entry: NormalizedNotebookImport, rowInd
 
   if (["insight", "synthesis", "framework", "realization", "discovery", "argument", "thesis"].some((keyword) => corpus.includes(keyword))) {
     return {
-      rowIndex,
       categoryNumber: "44.03",
       categoryName: resolveTaxonomyCategoryName("44.03"),
       reason: "Matched synthesis and insight language in the imported note.",
@@ -496,7 +494,6 @@ function buildNotebookTaxonomySuggestion(entry: NormalizedNotebookImport, rowInd
 
   if (["observation", "general note", "reflection", "research fragment", "annotation"].some((keyword) => corpus.includes(keyword))) {
     return {
-      rowIndex,
       categoryNumber: johnnyDecimalModuleDefaults.notebookNote,
       categoryName: resolveTaxonomyCategoryName(johnnyDecimalModuleDefaults.notebookNote),
       reason: "Matched note-like and observational language in the imported entry.",
@@ -505,7 +502,6 @@ function buildNotebookTaxonomySuggestion(entry: NormalizedNotebookImport, rowInd
   }
 
   return {
-    rowIndex,
     categoryNumber: johnnyDecimalModuleDefaults.notebookQuote,
     categoryName: resolveTaxonomyCategoryName(johnnyDecimalModuleDefaults.notebookQuote),
     reason: "Defaulted to the quotation lane for notebook imports without stronger note or synthesis cues.",
@@ -513,7 +509,7 @@ function buildNotebookTaxonomySuggestion(entry: NormalizedNotebookImport, rowInd
   };
 }
 
-function buildLexiconTaxonomySuggestion(entry: NormalizedLexiconImport, rowIndex: number): Omit<PreImportTaxonomySuggestion, "rowLabel" | "preview"> {
+function buildLexiconTaxonomySuggestion(entry: NormalizedLexiconImport): Omit<PreImportTaxonomySuggestion, "rowLabel" | "preview"> {
   const corpus = [entry.term, entry.definition, entry.etymology, entry.origin, entry.notes, entry.sourceType]
     .filter(Boolean)
     .join(" ")
@@ -523,7 +519,6 @@ function buildLexiconTaxonomySuggestion(entry: NormalizedLexiconImport, rowIndex
 
   if (corpus.includes("latin")) {
     return {
-      rowIndex,
       categoryNumber: "14.01",
       categoryName: resolveTaxonomyCategoryName("14.01"),
       reason: "Matched Latin-language cues in the imported lexicon entry.",
@@ -533,7 +528,6 @@ function buildLexiconTaxonomySuggestion(entry: NormalizedLexiconImport, rowIndex
 
   if (corpus.includes("french")) {
     return {
-      rowIndex,
       categoryNumber: "14.02",
       categoryName: resolveTaxonomyCategoryName("14.02"),
       reason: "Matched French-language cues in the imported lexicon entry.",
@@ -543,7 +537,6 @@ function buildLexiconTaxonomySuggestion(entry: NormalizedLexiconImport, rowIndex
 
   if (["etymology", "origin", "root", "proto", "derived from"].some((keyword) => corpus.includes(keyword))) {
     return {
-      rowIndex,
       categoryNumber: johnnyDecimalModuleDefaults.lexiconEtymology,
       categoryName: resolveTaxonomyCategoryName(johnnyDecimalModuleDefaults.lexiconEtymology),
       reason: "Matched etymology and origin language in the imported lexicon entry.",
@@ -553,7 +546,6 @@ function buildLexiconTaxonomySuggestion(entry: NormalizedLexiconImport, rowIndex
 
   if (["concordance", "reference", "index", "cross-reference", "see also"].some((keyword) => corpus.includes(keyword))) {
     return {
-      rowIndex,
       categoryNumber: johnnyDecimalModuleDefaults.lexiconConcordance,
       categoryName: resolveTaxonomyCategoryName(johnnyDecimalModuleDefaults.lexiconConcordance),
       reason: "Matched concordance or reference cues in the imported lexicon entry.",
@@ -562,7 +554,6 @@ function buildLexiconTaxonomySuggestion(entry: NormalizedLexiconImport, rowIndex
   }
 
   return {
-    rowIndex,
     categoryNumber: generalVocabularyCategory,
     categoryName: resolveTaxonomyCategoryName(generalVocabularyCategory),
     reason: `Placed the term in the general vocabulary band for the ${firstLetter >= "N" ? "N–Z" : "A–M"} range.`,
@@ -576,8 +567,8 @@ function buildTaxonomySuggestions(
 ): { suggestions: PreImportTaxonomySuggestion[]; groups: PreImportTaxonomyGroup[] } {
   const suggestions = entries.map((entry, index) => {
     const baseSuggestion = importType === "quotes"
-      ? buildNotebookTaxonomySuggestion(entry as NormalizedNotebookImport, index)
-      : buildLexiconTaxonomySuggestion(entry as NormalizedLexiconImport, index);
+      ? buildNotebookTaxonomySuggestion(entry as NormalizedNotebookImport)
+      : buildLexiconTaxonomySuggestion(entry as NormalizedLexiconImport);
 
     const preview = importType === "quotes"
       ? (entry as NormalizedNotebookImport).text.slice(0, 96)

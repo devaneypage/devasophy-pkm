@@ -1,0 +1,44 @@
+{
+  "build_command": "pnpm run build",
+  "capabilities": [
+    "db",
+    "server",
+    "user"
+  ],
+  "dev_command": "pnpm run dev",
+  "env_vars": {
+    "DATABASE_URL": "mysql://3ecwSL7MSEz9ShF.78c8e8770d20:NL6HAsEauq162HLRh5i4@gateway02.us-east-1.prod.aws.tidbcloud.com:4000/EqCbheLsAyU2CJnijcBavG?ssl={\"rejectUnauthorized\":true}"
+  },
+  "experiments": [
+    "no_db_push"
+  ],
+  "git_remote": {
+    "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663296889444/EqCbheLsAyU2CJnijcBavG",
+    "access_key_id": "ASIAZV3A2ECZDPB3T57T",
+    "secret_access_key": "70mexmrHTutk/aK4rs2pLQbVjA/U1fScK8tPOdXF",
+    "session_token": "IQoJb3JpZ2luX2VjEI3//////////wEaCXVzLWVhc3QtMSJGMEQCIGCiVLzucdTHGghSGkyXV90+4kp7w3ZMKzUaJbA/+locAiB0byKnIE5rA4h57j7k3x8Nc9JFo0WqD+ZxOp9615EZzir2AwhVEAQaDDY2NTM4NjA5ODg2NiIMjHmVs0tgQTOTuDdbKtMDUKAG5YGVGvdkyWsv6fag/mIJpWaBD9gagYmVPW25Jpmc27WbKGchLhkYSMrnEc6EOMuMZnRkf1gGO2U1C9wqgNvPyWGr+zBRQHWKwIydKCxsgFARxiXYDl7XLJ7eY0WivQ+PY6IZcpufkTmaB4453wniP92+HQ2EdO+7Tl9IXvs9xG5BLl9RduH3WhQ68fa/kGMsfO/5+/8EAC4cK/TwqnAaSxn9YOSrKniVb0HTRhnEABN7knNdbbf5Fyk5jl11TdTsR2E9Z8Up+AwXEH7yn3waXkTFXteNR9sGq+YzNOZ4W2jf1dm8DIwy6/au2dkBKORBPvJO6M7cOa43/yiyVKg0db9xfT3tgglxU3EZfCa9xxT1HG7UMCkXd38LOBvr3z4TdGp6lDBs5HQ0CkaYCQ9qd2b+yi+J2zOEgey4FvEIw1C106xUkT6Lump7XEPXTt9EddtoKUZgeF9D7CZjgbhccRt/ay6sOcjacyysWg7XVnC70nAXN6FXemjCwRr9jB2kNNstS3YVFPMa/eqQS6udBudo9PIJ9/fWRaK0VfMe+B/P6LlCwvXNrNtaW70bJUzLKuClo4zGcvREo4Hzje+uihSiOiIBX1+Vz7CvqdMF51YwkpX20QY6ngFQqo0RLx+oVoLVrBI6u+4ucUA4LXQ+xlZEgTay2IueK4mO9WxTR8I/XGRfdsg4DZgO/5iw8Wzd4CY7XIa9K9VzFDV8KPCsAsECIUf9pzhyLnxPn+Z54AiIFLYAmm1Dwqa5Og3a1wlW7+HXgonL+VmiwaxhEJkbOc3++m85LYgwqGKIwqNbtkIFAYNCvVT4+TkatIWrlvjidqXa36C/vw==",
+    "expiration": "2026-06-26T08:07:46.000Z",
+    "backend": "GIT_BACKEND_S3"
+  },
+  "name": "devasophy-pkm",
+  "path": "/home/ubuntu/devasophy-pkm",
+  "port": 3000,
+  "secrets": {
+    "BUILT_IN_FORGE_API_KEY": "o6owcNKyZhqPhiMzjmbgFb",
+    "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
+    "JWT_SECRET": "TsJGyLAfoNrKzmBEw4XB68",
+    "OAUTH_SERVER_URL": "https://api.manus.im",
+    "OWNER_NAME": "Devaney Page",
+    "OWNER_OPEN_ID": "RhuxJ9LactXrqRhmHLDSGP",
+    "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
+    "VITE_ANALYTICS_WEBSITE_ID": "3ea3eae0-fca8-4114-a313-9a5cb167f5ab",
+    "VITE_APP_ID": "EqCbheLsAyU2CJnijcBavG",
+    "VITE_APP_LOGO": "https://files.manuscdn.com/user_upload_by_module/web_dev_logo/310519663296889444/agRfEKZaKeeMrPUa.jpg",
+    "VITE_APP_TITLE": "devanomy",
+    "VITE_FRONTEND_FORGE_API_KEY": "iTkPM8Tpe6oZsyUUQjws4N",
+    "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",
+    "VITE_OAUTH_PORTAL_URL": "https://manus.im"
+  },
+  "template_id": "web-db-user",
+  "test_command": "pnpm test"
+}

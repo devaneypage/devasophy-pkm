@@ -1,13 +1,13 @@
-import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sidebar,
   SidebarContent,
@@ -23,53 +23,41 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { useAuth } from "@/../src/_core/hooks/useAuth";
+import { Download, FolderOpen, Grid2x2, LogOut, PanelLeft, Search, Settings2, Upload } from "lucide-react";
 import {
-  Bell,
-  BookOpen,
-  Home,
-  Library,
-  LogOut,
-  Network,
-  PanelLeft,
-  PenLine,
-  Search,
-  Settings2,
-  ArrowRight,
-} from "lucide-react";
+  CategoriesIcon,
+  EssaysIcon,
+  NotesIcon,
+  QuotationsIcon,
+  ResearchIcon,
+  VocabularyIcon,
+} from "./DevanomyIcons";
+import { CSSProperties, useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
+import TaxonomySidebar from "./TaxonomySidebar";
 
-// JD categories for splash sidebar and sidebar widget
-const JD_CATEGORIES = [
-  { num: "10", label: "LANGUAGE" },
-  { num: "20", label: "LITERATURE" },
-  { num: "30", label: "QUOTATIONS", active: true },
-  { num: "40", label: "RESEARCH" },
-  { num: "50", label: "CONCEPTS" },
-  { num: "60", label: "METHODS" },
-  { num: "90", label: "SYSTEM" },
+const menuItems = [
+  { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
+  { icon: EssaysIcon, label: "Writing Studio", path: "/documents", accent: "#e25b33" },
+  { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#f03878" },
+  { icon: ResearchIcon, label: "Ideas", path: "/ideas", accent: "#5c61ff" },
+  { icon: NotesIcon, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
+  { icon: QuotationsIcon, label: "Notes", path: "/notebook", accent: "#efb93a" },
+  { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#5c61ff" },
+  { icon: VocabularyIcon, label: "Lexicon", path: "/lexicon", accent: "#56c5ea" },
+  { icon: Upload, label: "Import", path: "/bulk-import", accent: "#f03878" },
+  { icon: Download, label: "Export", path: "/export", accent: "#56c5ea" },
 ];
 
-// Sidebar navigation items
-const NAV_ITEMS = [
-  { icon: Home, label: "Dashboard", path: "/" },
-  { icon: Library, label: "Library", path: "/library" },
-  { icon: BookOpen, label: "Notes", path: "/notes" },
-  { icon: Search, label: "Search", path: "/search" },
-  { icon: PenLine, label: "Writing", path: "/documents" },
-  { icon: Settings2, label: "Settings", path: "/settings" },
-];
+const utilityItems = [{ icon: Settings2, label: "Settings", path: "/export", accent: "#5c61ff" }];
 
-// Bottom tab navigation (mobile-first)
-const BOTTOM_TABS = [
-  { icon: Home, label: "HOME", path: "/" },
-  { icon: Library, label: "LIBRARY", path: "/library" },
-  { icon: Network, label: "GRAPH", path: "/knowledge-base" },
-  { icon: PenLine, label: "CREATE", path: "/notes" },
-  { icon: Settings2, label: "OS", path: "/settings" },
-];
+const SIDEBAR_WIDTH_KEY = "sidebar-width";
+const DEFAULT_WIDTH = 292;
+const MIN_WIDTH = 240;
+const MAX_WIDTH = 420;
 
-export type ModuleKey = "dashboard" | "projects" | "knowledge-base" | "notes" | "calendar" | "settings" | "library";
+type ModuleKey = "home" | "notebook" | "lexicon" | "documents" | "goals" | "ideas" | "glossary";
 
 export default function DashboardLayout({
   children,
@@ -78,290 +66,293 @@ export default function DashboardLayout({
   children: React.ReactNode;
   currentModule?: ModuleKey;
 }) {
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
+  });
   const { loading, user } = useAuth();
 
-  if (loading) return <DashboardLayoutSkeleton />;
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
+  }, [sidebarWidth]);
+
+  if (loading) {
+    return <DashboardLayoutSkeleton />;
+  }
 
   if (!user) {
-    return <SplashScreen />;
+    return (
+      <div className="min-h-screen bg-background px-6 py-12">
+        <div className="mx-auto flex min-h-[80vh] max-w-md items-center justify-center">
+          <div className="dev-card w-full p-8 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              Devanomy Workspace
+            </p>
+            <h1 className="mb-4 text-4xl">Sign in to continue</h1>
+            <p className="mb-8 text-sm leading-6 text-muted-foreground">
+              Access your knowledge hub, lexicon, and research studio from a single integrated workspace.
+            </p>
+            <Button
+              onClick={() => {
+                window.location.href = getLoginUrl();
+              }}
+              size="lg"
+              className="h-12 w-full rounded-full border-2 border-black bg-primary text-primary-foreground shadow-none hover:bg-primary/90"
+            >
+              Enter Devanomy
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <SidebarProvider>
-      <DashboardLayoutContent currentModule={currentModule}>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": `${sidebarWidth}px`,
+        } as CSSProperties
+      }
+    >
+      <DashboardLayoutContent currentModule={currentModule} setSidebarWidth={setSidebarWidth}>
         {children}
       </DashboardLayoutContent>
     </SidebarProvider>
   );
 }
 
-// ─── Splash / Sign-in Screen ────────────────────────────────────────────────
-function SplashScreen() {
-  return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white">
-      {/* Left JD sidebar */}
-      <aside className="hidden md:flex w-44 flex-shrink-0 flex-col border-r border-black/8 bg-[#FAFAFA] py-8 pl-6">
-        <p className="mb-6 text-[0.6rem] font-bold uppercase tracking-[0.3em] text-black/30">Index</p>
-        {JD_CATEGORIES.map((cat) => (
-          <div key={cat.num} className={`mb-4 flex items-baseline gap-2 ${cat.active ? "text-[#E84D20]" : "text-black/30"}`}>
-            <span className="text-xs font-bold tabular-nums">{cat.num}</span>
-            <span className={`text-xs font-semibold uppercase tracking-[0.12em] ${cat.active ? "text-[#E84D20]" : ""}`}>{cat.label}</span>
-            {cat.active && <span className="ml-auto mr-4 h-1.5 w-1.5 rounded-full bg-[#E84D20]" />}
-          </div>
-        ))}
-        <div className="mt-auto">
-          <p className="text-[0.55rem] font-medium uppercase tracking-[0.2em] text-black/20 leading-relaxed">No system is final.<br />All axioms are revision.</p>
-        </div>
-      </aside>
+type DashboardLayoutContentProps = {
+  children: React.ReactNode;
+  setSidebarWidth: (width: number) => void;
+  currentModule?: ModuleKey;
+};
 
-      {/* Main content */}
-      <main className="flex flex-1 flex-col items-start justify-center px-8 md:px-16 py-12">
-        {/* Wordmark */}
-        <div className="mb-8">
-          <div className="flex items-center gap-1.5">
-            <span className="text-3xl font-black tracking-[-0.04em] text-black lowercase">devanomy</span>
-            <span className="h-2.5 w-2.5 rounded-full bg-[#F16A43]" />
-          </div>
-          <p className="mt-0.5 text-[0.6rem] font-bold uppercase tracking-[0.28em] text-black/30">Ember Red Dot</p>
-        </div>
-
-        {/* Tagline */}
-        <h1
-          className="mb-4 max-w-xs text-4xl font-black leading-[1.05] tracking-tight text-black md:text-5xl"
-          style={{ fontFamily: "'Playfair Display', serif" }}
-        >
-          The laws, order, and architecture of your mind.
-        </h1>
-        <p className="mb-10 max-w-xs text-[0.7rem] font-bold uppercase tracking-[0.2em] text-black/40">
-          A personal knowledge system built for a life of intent.
-        </p>
-
-        {/* Spider-web decorative element */}
-        <div className="mb-10 flex h-24 w-24 items-center justify-center opacity-20">
-          <svg viewBox="0 0 100 100" className="h-full w-full" fill="none" stroke="currentColor" strokeWidth="0.8">
-            {[0, 30, 60, 90, 120, 150].map((angle) => (
-              <line
-                key={angle}
-                x1="50"
-                y1="50"
-                x2={50 + 45 * Math.cos((angle * Math.PI) / 180)}
-                y2={50 + 45 * Math.sin((angle * Math.PI) / 180)}
-                className="text-black"
-              />
-            ))}
-            {[10, 20, 30, 40].map((r) => (
-              <circle key={r} cx="50" cy="50" r={r} className="text-black" />
-            ))}
-            <circle cx="50" cy="50" r="4" fill="#F16A43" stroke="none" />
-          </svg>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex w-full max-w-xs flex-col gap-3">
-          <Button
-            onClick={() => { window.location.href = getLoginUrl(); }}
-            className="flex h-12 items-center justify-between rounded-full bg-[#E84D20] px-6 text-sm font-bold uppercase tracking-[0.15em] text-white hover:bg-[#d43b10]"
-          >
-            Enter Devanomy
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={() => { window.location.href = getLoginUrl(); }}
-            variant="outline"
-            className="h-12 rounded-full border-black/20 bg-transparent text-sm font-bold uppercase tracking-[0.15em] text-black hover:bg-black/4"
-          >
-            Continue Last Session
-          </Button>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-// ─── Main Authenticated Layout ───────────────────────────────────────────────
 function DashboardLayoutContent({
   children,
+  setSidebarWidth,
   currentModule,
-}: {
-  children: React.ReactNode;
-  currentModule?: ModuleKey;
-}) {
+}: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const isCollapsed = state === "collapsed";
   const isMobile = useIsMobile();
 
-  const routeModuleMap: Record<string, ModuleKey> = {
-    "/": "dashboard",
-    "/projects": "projects",
-    "/knowledge-base": "knowledge-base",
-    "/notes": "notes",
-    "/calendar": "calendar",
-    "/settings": "settings",
-    "/documents": "projects",
-    "/goals": "projects",
-    "/search": "knowledge-base",
-    "/lexicon": "knowledge-base",
-    "/ideas": "knowledge-base",
-    "/glossary": "knowledge-base",
-    "/notebook": "notes",
-    "/bulk-import": "settings",
-    "/export": "settings",
-    "/library": "library",
+  const pathToModule: Record<string, ModuleKey> = {
+    "/": "home",
+    "/notebook": "notebook",
+    "/lexicon": "lexicon",
+    "/documents": "documents",
+    "/goals": "goals",
+    "/ideas": "ideas",
   };
 
-  const resolvedModule = currentModule ?? routeModuleMap[location] ?? "dashboard";
+  const activeMenuItem = menuItems.find((item) => item.path === location) ?? menuItems[0];
+
+  useEffect(() => {
+    if (isCollapsed) {
+      setIsResizing(false);
+    }
+  }, [isCollapsed]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
+      const newWidth = e.clientX - sidebarLeft;
+      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
+        setSidebarWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => setIsResizing(false);
+
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing, setSidebarWidth]);
 
   return (
     <>
-      <Sidebar collapsible="icon" className="border-r border-black/8 bg-white">
-        <SidebarHeader className="border-b border-black/8 px-4 py-4">
-          <div className="flex items-center justify-between">
-            {!isCollapsed ? (
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-black tracking-[-0.04em] text-black lowercase">devanomy</span>
-                <span className="h-2 w-2 rounded-full bg-[#F16A43]" />
-              </div>
-            ) : (
-              <span className="h-2 w-2 rounded-full bg-[#F16A43]" />
-            )}
-            <button
-              onClick={toggleSidebar}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/10 text-black/50 hover:bg-black/5"
-            >
-              <PanelLeft className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </SidebarHeader>
-
-        <SidebarContent className="bg-white">
-          <SidebarMenu className="px-2 py-2">
-            {NAV_ITEMS.map((item) => {
-              const isActive = item.path === "/"
-                ? resolvedModule === "dashboard"
-                : location.startsWith(item.path);
-              return (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton
-                    isActive={isActive}
-                    onClick={() => setLocation(item.path)}
-                    tooltip={item.label}
-                    className={`h-10 rounded-xl px-3 text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-[#E84D20]/8 text-[#E84D20]"
-                        : "text-black/60 hover:bg-black/4 hover:text-black"
-                    }`}
-                  >
-                    <item.icon className={`h-4 w-4 ${isActive ? "text-[#E84D20]" : ""}`} />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-
-          {!isCollapsed && (
-            <div className="mx-3 mt-2 rounded-xl border border-black/6 bg-[#FAFAFA] p-3">
-              <p className="mb-2 text-[0.6rem] font-bold uppercase tracking-[0.22em] text-black/30">JD Index</p>
-              {JD_CATEGORIES.map((cat) => (
+      <div className="relative" ref={sidebarRef}>
+        <Sidebar collapsible="icon" className="border-r-0" disableTransition={isResizing}>
+          <SidebarHeader className="dev-sidebar-panel relative h-28 overflow-hidden border-b border-sidebar-border px-4 py-4">
+            <div className="absolute inset-x-0 bottom-0 h-10 dev-sidebar-pattern" />
+            <div className="relative z-10 flex items-start justify-between gap-3">
+              {!isCollapsed ? (
+                <div className="min-w-0">
+                  <img
+                    src="/manus-storage/devanomy-logo-branding-refresh_2e8698f4.webp"
+                    alt="Devanomy"
+                    className="h-16 w-auto max-w-[13rem] rounded-xl object-contain"
+                  />
+                  <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-white/72">a personal knowledge taxonomy</p>
+                </div>
+              ) : (
                 <button
-                  key={cat.num}
-                  onClick={() => setLocation("/knowledge-base")}
-                  className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors ${
-                    cat.active ? "text-[#E84D20]" : "text-black/40 hover:text-black/70"
-                  }`}
+                  onClick={toggleSidebar}
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white"
+                  aria-label="Toggle navigation"
                 >
-                  <span className="text-[0.65rem] font-bold tabular-nums">{cat.num}</span>
-                  <span className="text-[0.65rem] font-semibold uppercase tracking-[0.1em]">{cat.label}</span>
+                  <PanelLeft className="h-4 w-4" />
                 </button>
-              ))}
+              )}
+
+              {!isCollapsed && (
+                <button
+                  onClick={toggleSidebar}
+                  className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
+                  aria-label="Toggle navigation"
+                >
+                  <PanelLeft className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          )}
-        </SidebarContent>
+          </SidebarHeader>
 
-        <SidebarFooter className="border-t border-black/8 bg-white p-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex w-full items-center gap-3 rounded-xl border border-black/8 px-2 py-2 text-left hover:bg-black/4 focus:outline-none">
-                <Avatar className="h-8 w-8 border border-black/10 bg-[#E84D20]/10">
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-[#E84D20]">
-                    {user?.name?.charAt(0).toUpperCase() || "D"}
-                  </AvatarFallback>
-                </Avatar>
-                {!isCollapsed && (
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-black">{user?.name || "Scholar"}</p>
-                    <p className="truncate text-[0.6rem] text-black/40">{user?.email || "Personal workspace"}</p>
+          <SidebarContent className="dev-sidebar-panel relative gap-0 overflow-hidden">
+            <div className="absolute inset-x-0 bottom-0 h-28 dev-sidebar-pattern" />
+            <div className="relative z-10 flex h-full flex-col">
+              <SidebarMenu className="px-3 py-3">
+                {menuItems.map((item) => {
+                  const isActive = currentModule
+                    ? pathToModule[item.path] === currentModule || location === item.path
+                    : location === item.path;
+
+                  return (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        onClick={() => setLocation(item.path)}
+                        tooltip={item.label}
+                        className="h-13 rounded-[1.15rem] border border-transparent px-3 text-sidebar-foreground transition-all hover:bg-white/9 data-[active=true]:border-white/10 data-[active=true]:bg-white/8 data-[active=true]:shadow-none"
+                      >
+                        <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-transparent transition data-[active=true]:bg-white/80" />
+                        <span
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 text-black shadow-sm"
+                          style={{ backgroundColor: isActive ? item.accent : "rgba(255,255,255,0.08)", color: isActive ? "#13243f" : "rgba(255,255,255,0.92)" }}
+                        >
+                          <item.icon className="h-5 w-5" />
+                        </span>
+                        <span className="font-medium tracking-[0.01em]">{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+
+              {!isCollapsed && (
+                <div className="mx-3 mt-2 rounded-[1.35rem] border border-white/12 bg-white/8 backdrop-blur-sm">
+                  <TaxonomySidebar />
+                </div>
+              )}
+
+              <SidebarMenu className="mt-auto px-3 pb-3">
+                {utilityItems.map((item) => (
+                  <SidebarMenuItem key={item.label}>
+                      <SidebarMenuButton
+                        onClick={() => setLocation(item.path)}
+                        tooltip={item.label}
+                        className="h-12 rounded-[1.15rem] border border-transparent px-3 text-sidebar-foreground transition-all hover:bg-white/8"
+                      >
+                        <span
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 text-black shadow-sm"
+                          style={{ backgroundColor: item.accent }}
+                        >
+                          <item.icon className="h-4 w-4" />
+                        </span>
+                        <span className="font-medium tracking-[0.01em]">{item.label}</span>
+                      </SidebarMenuButton>
+
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </div>
+          </SidebarContent>
+
+          <SidebarFooter className="dev-sidebar-panel border-t border-white/10 p-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex w-full items-center gap-3 rounded-2xl border border-white/12 bg-white/8 px-2 py-2 text-left transition hover:bg-white/12 group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+                  <Avatar className="h-10 w-10 border-2 border-white/20 bg-[#5c61ff]">
+                    <AvatarFallback className="bg-transparent font-semibold text-black">
+                      {user?.name?.charAt(0).toUpperCase() || "D"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+                    <p className="truncate text-sm font-semibold text-white">{user?.name || "Scholar"}</p>
+                    <p className="mt-1 truncate text-xs text-white/70">{user?.email || "Personal workspace"}</p>
                   </div>
-                )}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl border border-black/10 bg-white p-1 shadow-lg">
-              <DropdownMenuItem
-                onClick={logout}
-                className="cursor-pointer rounded-lg text-sm text-red-500 focus:bg-red-50 focus:text-red-500"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </SidebarFooter>
-      </Sidebar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="dev-card w-52 rounded-2xl border-2 border-black bg-white p-2 shadow-none">
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="cursor-pointer rounded-xl text-destructive focus:bg-destructive/10 focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarFooter>
+        </Sidebar>
 
-      <SidebarInset className="bg-white">
-        {/* Top Header */}
-        <div className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-black/8 bg-white px-4">
-          {isMobile && (
-            <SidebarTrigger className="h-9 w-9 rounded-xl border border-black/10" />
-          )}
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-lg font-black tracking-[-0.04em] text-black lowercase">devanomy</span>
-            <span className="h-2 w-2 rounded-full bg-[#F16A43]" />
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setLocation("/search")}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10"
-            >
-              <Search className="h-4 w-4 text-black/60" />
-            </button>
-            <button className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10">
-              <Bell className="h-4 w-4 text-black/60" />
-            </button>
+        <div
+          className={`absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-black/20 ${isCollapsed ? "hidden" : ""}`}
+          onMouseDown={() => {
+            if (!isCollapsed) setIsResizing(true);
+          }}
+          style={{ zIndex: 50 }}
+        />
+      </div>
+
+      <SidebarInset className="bg-transparent">
+        <div className="dev-topbar sticky top-0 z-40">
+          <div className="flex h-20 items-center gap-3 px-4 sm:px-6">
+            {isMobile && <SidebarTrigger className="h-10 w-10 rounded-2xl border border-black bg-white" />}
+            <div className="relative max-w-2xl flex-1">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6b7487]" />
+              <Input
+                readOnly
+                value={activeMenuItem?.label === "Dashboard" ? "Search your notes, terms, and projects" : `Browse ${activeMenuItem?.label.toLowerCase()}`}
+                className="dev-search h-14 pl-12 text-base text-foreground shadow-none placeholder:text-muted-foreground"
+              />
+            </div>
+            <div className="hidden items-center gap-3 sm:flex">
+              <div className="flex items-center gap-3 rounded-full border border-[#13243f]/12 bg-white/72 px-3 py-2 shadow-[0_12px_24px_-20px_rgba(19,36,63,0.45)]">
+                <img
+                  src="/manus-storage/devanomy-logo-branding-refresh_2e8698f4.webp"
+                  alt="Devanomy logo"
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+                <div className="hidden pr-1 lg:block">
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-[#6b7487]">Devanomy</p>
+                  <p className="text-sm font-semibold text-[#13243f]">Editorial workspace</p>
+                </div>
+              </div>
+              <Avatar className="h-12 w-12 border-2 border-[#13243f] bg-[#f6f3ec]">
+                <AvatarFallback className="bg-transparent font-semibold text-black">
+                  {user?.name?.charAt(0).toUpperCase() || "D"}
+                </AvatarFallback>
+              </Avatar>
+            </div>
           </div>
         </div>
-
-        {/* Page content */}
-        <main className="min-h-[calc(100vh-4rem)] flex-1 bg-white pb-20">
-          {children}
-        </main>
-
-        {/* Bottom Tab Navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t border-black/8 bg-white">
-          {BOTTOM_TABS.map((tab) => {
-            const isActive = tab.path === "/" ? location === "/" : location.startsWith(tab.path);
-            return (
-              <button
-                key={tab.path}
-                onClick={() => setLocation(tab.path)}
-                className="flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors"
-              >
-                <tab.icon
-                  className={`h-5 w-5 transition-colors ${isActive ? "text-[#E84D20]" : "text-black/30"}`}
-                />
-                <span
-                  className={`text-[0.55rem] font-bold uppercase tracking-[0.1em] transition-colors ${
-                    isActive ? "text-[#E84D20]" : "text-black/30"
-                  }`}
-                >
-                  {tab.label}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
+        <main className="min-h-[calc(100vh-5rem)] flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </SidebarInset>
     </>
   );

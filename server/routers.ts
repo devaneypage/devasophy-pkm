@@ -10,8 +10,6 @@ import {
   getNotebookEntry,
   updateNotebookEntry,
   deleteNotebookEntry,
-  importBooksFromCSV,
-  importNotebookEntriesFromCSV,
   createLexiconEntry,
   getLexiconEntries,
   getLexiconEntry,
@@ -59,74 +57,12 @@ import {
   bulkImportLexiconFromText,
   bulkImportNotebookWithDuplicateDetection,
   bulkImportLexiconWithDuplicateDetection,
-  createBook,
-  listBooks,
-  getBook,
-  updateBook,
-  deleteBook,
 } from "./db";
 import {
   generateNotebookZettelkastenId,
   generateLexiconZettelkastenId,
 } from "./zettelkasten";
 import { duplicateDetectionRouter } from "./duplicateDetectionRoutes";
-
-// Export procedures - added after main router definition
-export const exportRouter = router({
-  books: protectedProcedure
-    .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), sortBy: z.enum(["recent", "oldest", "rating"]).optional(), selectedIds: z.array(z.number()).optional() }))
-    .query(async ({ ctx, input }) => {
-      const { exportBooksAsCSV } = await import("./db");
-      return exportBooksAsCSV(ctx.user.id, input);
-    }),
-  notes: protectedProcedure
-    .input(z.object({ categoryId: z.number().optional(), selectedIds: z.array(z.number()).optional() }))
-    .query(async ({ ctx, input }) => {
-      const { exportNotebookEntriesAsCSV } = await import("./db");
-      return exportNotebookEntriesAsCSV(ctx.user.id, input);
-    }),
-  combined: protectedProcedure
-    .query(async ({ ctx }) => {
-      const { exportCombinedAsCSV } = await import("./db");
-      return exportCombinedAsCSV(ctx.user.id);
-    }),
-  booksJSON: protectedProcedure
-    .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), sortBy: z.enum(["recent", "oldest", "rating"]).optional() }))
-    .query(async ({ ctx, input }) => {
-      const { exportBooksAsJSON } = await import("./db");
-      return exportBooksAsJSON(ctx.user.id, input);
-    }),
-  notesJSON: protectedProcedure
-    .input(z.object({ categoryId: z.number().optional() }))
-    .query(async ({ ctx, input }) => {
-      const { exportNotebookEntriesAsJSON } = await import("./db");
-      return exportNotebookEntriesAsJSON(ctx.user.id, input);
-    }),
-  booksMarkdown: protectedProcedure
-    .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), template: z.enum(["annotated", "catalog"]).optional() }))
-    .query(async ({ ctx, input }) => {
-      const { exportBooksAsMarkdown } = await import("./db");
-      return exportBooksAsMarkdown(ctx.user.id, input);
-    }),
-  notesMarkdown: protectedProcedure
-    .input(z.object({ categoryId: z.number().optional(), template: z.enum(["reader", "research"]).optional() }))
-    .query(async ({ ctx, input }) => {
-      const { exportNotebookEntriesAsMarkdown } = await import("./db");
-      return exportNotebookEntriesAsMarkdown(ctx.user.id, input);
-    }),
-  booksPDF: protectedProcedure
-    .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), sortBy: z.enum(["recent", "oldest", "rating"]).optional(), template: z.enum(["annotated", "catalog"]).optional() }))
-    .query(async ({ ctx, input }) => {
-      const { exportBooksAsPDF } = await import("./db");
-      return exportBooksAsPDF(ctx.user.id, input);
-    }),
-  notesPDF: protectedProcedure
-    .input(z.object({ categoryId: z.number().optional(), template: z.enum(["reader", "research"]).optional() }))
-    .query(async ({ ctx, input }) => {
-      const { exportNotebookEntriesAsPDF } = await import("./db");
-      return exportNotebookEntriesAsPDF(ctx.user.id, input);
-    }),
-});
 
 export const appRouter = router({
   system: systemRouter,
@@ -945,38 +881,5 @@ Composition request: ${input.prompt}`,
       }),
     ...duplicateDetectionRouter._def.procedures,
   }),
-
-  // ============================================================================
-  // BOOKS MODULE (Library Layer)
-  // ============================================================================
-  books: router({
-    list: protectedProcedure
-      .input(z.object({ status: z.enum(["reading", "completed", "want_to_read"]).optional(), sortBy: z.enum(["recent", "oldest", "rating"]).optional() }))
-      .query(async ({ ctx, input }) => listBooks(ctx.user.id, input)),
-    get: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ ctx, input }) => getBook(ctx.user.id, input.id)),
-    create: protectedProcedure
-      .input(z.object({ title: z.string(), author: z.string().optional(), coverColor: z.string().optional(), rating: z.string().optional(), readingProgress: z.number().optional(), status: z.enum(["reading", "completed", "want_to_read"]).optional(), notes: z.string().optional(), tags: z.string().optional() }))
-      .mutation(async ({ ctx, input }) => createBook(ctx.user.id, input)),
-    update: protectedProcedure
-      .input(z.object({ id: z.number(), title: z.string().optional(), author: z.string().optional(), coverColor: z.string().optional(), rating: z.string().optional(), readingProgress: z.number().optional(), status: z.enum(["reading", "completed", "want_to_read"]).optional(), notes: z.string().optional(), tags: z.string().optional() }))
-      .mutation(async ({ ctx, input }) => { const { id, ...data } = input; return updateBook(ctx.user.id, id, data); }),
-    delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ ctx, input }) => deleteBook(ctx.user.id, input.id)),
-  }),
-  export: exportRouter,
-  import: router({
-    books: protectedProcedure
-      .input(z.object({ csvContent: z.string() }))
-      .mutation(async ({ ctx, input }) => importBooksFromCSV(ctx.user.id, input.csvContent)),
-    notes: protectedProcedure
-      .input(z.object({ csvContent: z.string() }))
-      .mutation(async ({ ctx, input }) => importNotebookEntriesFromCSV(ctx.user.id, input.csvContent)),
-  }),
-
 });
 export type AppRouter = typeof appRouter;
-
-

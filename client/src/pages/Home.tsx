@@ -1,190 +1,360 @@
-import React, { useState } from "react";
-import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
+import React from "react";
 import { trpc } from "@/lib/trpc";
-import { BookOpen, FileText, Lightbulb, MessageSquareQuote, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ArrowRight, Plus, Search } from "lucide-react";
+import {
+  EssaysIcon,
+  NotesIcon,
+  QuotationsIcon,
+  ResearchIcon,
+  VocabularyIcon,
+} from "@/components/DevanomyIcons";
+import { useLocation } from "wouter";
 
-const FOCUS_QUOTES = [
-  { text: "The person you are becoming is more important than the person you have been.", author: "Alex Aubrey" },
-  { text: "The unexamined life is not worth living.", author: "Socrates" },
-  { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
+const modules = [
+  {
+    id: "notebook",
+    title: "Commonplace Notebook",
+    description: "Capture quotations, passages, annotations, and source metadata in a richly structured notebook.",
+    icon: QuotationsIcon,
+    route: "/notebook",
+    accent: "#efb93a",
+    pattern: "dev-pattern-waves",
+    chips: ["Quotes", "Passages", "Observations"],
+  },
+  {
+    id: "lexicon",
+    title: "Clavis Aurea",
+    description: "Browse, define, and connect your personal lexicon through concordance and etymological detail.",
+    icon: VocabularyIcon,
+    route: "/lexicon",
+    accent: "#56c5ea",
+    pattern: "dev-pattern-dots",
+    chips: ["Vocabulary", "Etymology", "Concordance"],
+  },
+  {
+    id: "documents",
+    title: "Research & Writing Studio",
+    description: "Organize research projects, build essays, and pull linked references directly into your drafts.",
+    icon: EssaysIcon,
+    route: "/documents",
+    accent: "#e25b33",
+    pattern: "dev-pattern-diamonds",
+    chips: ["Projects", "Drafts", "Essays"],
+  },
+  {
+    id: "goals",
+    title: "Goals",
+    description: "Keep immediate, seasonal, annual, and long-term aims visible so projects and tasks remain aligned with larger ends.",
+    icon: NotesIcon,
+    route: "/goals",
+    accent: "#f03878",
+    pattern: "dev-pattern-waves",
+    chips: ["Action Layer", "Outcomes", "Horizon"],
+  },
+  {
+    id: "ideas",
+    title: "Ideas Lab",
+    description: "Develop questions, frameworks, arguments, and synthesis threads that connect your archive to future writing and teaching.",
+    icon: ResearchIcon,
+    route: "/ideas",
+    accent: "#5c61ff",
+    pattern: "dev-pattern-diamonds",
+    chips: ["Synthesis Layer", "Frameworks", "Questions"],
+  },
+  {
+    id: "glossary",
+    title: "Clavis Aurea Glossary",
+    description: "Explore philosophical and literary vocabulary with AI-powered composition and thematic organization.",
+    icon: VocabularyIcon,
+    route: "/glossary",
+    accent: "#5c61ff",
+    pattern: "dev-pattern-stripes",
+    chips: ["Lexicon", "Scribe", "Themes"],
+  },
 ];
 
-const ITEM_ICONS: Record<string, React.FC<any>> = {
-  notebook: MessageSquareQuote,
-  lexicon: BookOpen,
-  document: FileText,
-  idea: Lightbulb,
-};
+const knowledgeHighlights = [
+  {
+    title: "Definition, Synonym, Antonym",
+    description: "Use Clavis Aurea as a living concordance with semantic relationships inspired by your Devanomy taxonomy system.",
+    accent: "#efb93a",
+    pattern: "dev-pattern-waves",
+  },
+  {
+    title: "Research Linking Workflow",
+    description: "Supports, contradicts, develops, questions, and synthesizes relationships are reflected in the workspace structure.",
+    accent: "#56c5ea",
+    pattern: "dev-pattern-dots",
+  },
+];
 
-function formatRelTime(dateVal: Date | string | null | undefined): string {
-  if (!dateVal) return "";
-  const date = dateVal instanceof Date ? dateVal : new Date(dateVal);
-  if (Number.isNaN(date.getTime())) return "";
-  const now = Date.now();
-  const diff = now - date.getTime();
-  if (diff < 60_000) return "Just now";
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) {
-    const h = date.getHours().toString().padStart(2, "0");
-    const m = date.getMinutes().toString().padStart(2, "0");
-    return `${h}:${m}`;
+function StatusShape({ shape, color }: { shape: "circle" | "square" | "diamond"; color: string }) {
+  const common = { backgroundColor: color };
+
+  if (shape === "circle") {
+    return <span className="h-4 w-4 rounded-full border border-black/70" style={common} />;
   }
-  if (diff < 7 * 86_400_000) return date.toLocaleDateString("en-US", { weekday: "short" });
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+  if (shape === "diamond") {
+    return <span className="h-4 w-4 rotate-45 border border-black/70" style={common} />;
+  }
+
+  return <span className="h-4 w-4 rounded-[0.2rem] border border-black/70" style={common} />;
+}
+
+function formatStatValue(value: number | undefined, isLoading: boolean) {
+  if (isLoading) {
+    return "—";
+  }
+
+  return String(value ?? 0).padStart(2, "0");
 }
 
 export default function Home() {
-  const [focusIndex, setFocusIndex] = useState(0);
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  const notebookQuery = trpc.notebook.list.useQuery({ sortBy: "recent" });
+  const notebookQuery = trpc.notebook.list.useQuery({});
   const lexiconQuery = trpc.lexicon.list.useQuery({});
-  const booksQuery = trpc.books.list.useQuery({ sortBy: "recent" });
+  const documentsQuery = trpc.documents.list.useQuery({});
+  const goalsQuery = trpc.goals.list.useQuery({});
   const ideasQuery = trpc.ideas.list.useQuery({});
+  const projectsQuery = trpc.projects.list.useQuery({});
+  const tasksQuery = trpc.tasks.list.useQuery({});
 
-  const notes = notebookQuery.data ?? [];
-  const lexicon = lexiconQuery.data ?? [];
-  const books = booksQuery.data ?? [];
-  const ideas = ideasQuery.data ?? [];
-
-  // Quotes = notebook entries that are actual quotes (have author field)
-  const quotes = notes.filter((n: any) => n.author);
-
-  // Knowledge overview stats
   const stats = [
-    { label: "NOTES", count: notes.length, delta: 0, color: "#E84D20" },
-    { label: "QUOTES", count: quotes.length, delta: 0, color: "#2D6BE4" },
-    { label: "BOOKS", count: books.length, delta: 0, color: "#1A8F6E" },
-    { label: "CONCEPTS", count: lexicon.length + ideas.length, delta: 0, color: "#7B4FD4" },
+    {
+      label: "Notebook Entries",
+      value: formatStatValue(notebookQuery.data?.length, notebookQuery.isLoading),
+      tone: "#efb93a",
+      pattern: "dev-pattern-waves",
+    },
+    {
+      label: "Lexicon Terms",
+      value: formatStatValue(lexiconQuery.data?.length, lexiconQuery.isLoading),
+      tone: "#56c5ea",
+      pattern: "dev-pattern-dots",
+    },
+    {
+      label: "Documents",
+      value: formatStatValue(documentsQuery.data?.length, documentsQuery.isLoading),
+      tone: "#e25b33",
+      pattern: "dev-pattern-stripes",
+    },
+    {
+      label: "Ideas in Play",
+      value: formatStatValue(ideasQuery.data?.filter((idea) => idea.status !== "archived").length, ideasQuery.isLoading),
+      tone: "#5c61ff",
+      pattern: "dev-pattern-diamonds",
+    },
   ];
 
-  // Recently opened — combine notes + lexicon + ideas, sort by updatedAt
-  type RecentItem = { id: number; type: string; title: string; jdLabel: string; updatedAt: Date | string | null; path: string };
-  const recentItems: RecentItem[] = [
-    ...notes.slice(0, 8).map((n: any) => ({
-      id: n.id,
-      type: "notebook",
-      title: n.work || n.author || n.text?.slice(0, 50) || "Untitled note",
-      jdLabel: n.collections || "30.01 Quotations",
-      updatedAt: n.updatedAt,
-      path: `/notebook/${n.id}`,
-    })),
-    ...lexicon.slice(0, 4).map((l: any) => ({
-      id: l.id,
-      type: "lexicon",
-      title: l.term,
-      jdLabel: "20.01 Vocabulary",
-      updatedAt: l.updatedAt,
-      path: `/lexicon/${l.id}`,
-    })),
-    ...ideas.slice(0, 4).map((i: any) => ({
-      id: i.id,
-      type: "idea",
-      title: i.title,
-      jdLabel: "50.01 Concepts",
-      updatedAt: i.updatedAt,
-      path: "/ideas",
-    })),
-  ]
-    .sort((a, b) => {
-      const at = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-      const bt = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-      return bt - at;
-    })
-    .slice(0, 6);
+  const liveTasks = (tasksQuery.data ?? []).slice(0, 3).map((task) => ({
+    label: task.title,
+    date:
+      task.dueDate instanceof Date
+        ? task.dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+        : task.status === "completed"
+          ? "Completed"
+          : task.status === "blocked"
+            ? "Blocked"
+            : task.status === "in-progress"
+              ? "In progress"
+              : "Open",
+    shape:
+      task.priority === "urgent"
+        ? "diamond"
+        : task.priority === "high"
+          ? "square"
+          : "circle",
+    color:
+      task.priority === "urgent"
+        ? "#e25b33"
+        : task.priority === "high"
+          ? "#efb93a"
+          : task.status === "completed"
+            ? "#5c61ff"
+            : "#56c5ea",
+  }));
 
-  const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase();
-
-  // Use quotes from notebook as focus quotes, fall back to static
-  const focusQuotes = quotes.length > 0
-    ? quotes.slice(0, 3).map((q: any) => ({ text: q.text, author: q.author }))
-    : FOCUS_QUOTES;
-  const currentFocus = focusQuotes[focusIndex % focusQuotes.length];
+  const tasks =
+    liveTasks.length > 0
+        ? liveTasks
+      : [
+          { label: "Import your first archive", date: "Start here", shape: "circle" as const, color: "#efb93a" },
+          { label: "Define your first lexicon term", date: "Next", shape: "square" as const, color: "#56c5ea" },
+          { label: "Set your first workspace goal", date: "Then", shape: "diamond" as const, color: "#5c61ff" },
+        ];
 
   return (
-    <div className="min-h-screen bg-white px-0 pb-24">
-      {/* Today's Focus Header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#E84D20] text-[10px] font-bold text-white">1</span>
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-black">Today's Focus</span>
-          <span className="ml-1 h-1.5 w-1.5 rounded-full bg-[#E84D20]" />
-        </div>
-        <span className="text-xs font-medium text-black/40">{today}</span>
-      </div>
+    <div className="space-y-8">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="dev-soft-card overflow-hidden p-6 sm:p-8" style={{ backgroundColor: "rgba(249,246,239,0.9)" }}>
+          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="mb-5 flex items-center gap-4">
+                <img src="/manus-storage/devanomy-logo-branding-refresh_2e8698f4.webp" alt="Devanomy" className="h-18 w-auto rounded-[1.35rem] shadow-[0_18px_30px_-24px_rgba(19,36,63,0.65)]" />
+              </div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#6b7487]">
+                Devanomy editorial workspace
+              </p>
+              <h1 className="dev-hero-accent dev-hero-striped relative inline-block pr-16 text-balance text-[#13243f]">
+                Good morning, {user?.name?.split(" ")[0] || "Devaney"}
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[#48546a] sm:text-lg">
+                An editorial command center for notes, concepts, drafts, and synthesis—now tuned to the off-white, indigo, coral, gold, and sky-blue Devanomy visual language.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                onClick={() => setLocation("/notebook")}
+                className="h-11 rounded-full border border-[#13243f]/15 bg-[#e85b3e] px-5 text-white shadow-[0_18px_30px_-22px_rgba(232,91,62,0.7)] hover:bg-[#d94d31]"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Quick capture
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setLocation("/search")}
+                className="h-11 rounded-full border border-[#13243f]/14 bg-white/88 px-5 text-[#13243f] shadow-[0_14px_30px_-24px_rgba(19,36,63,0.48)] hover:bg-[#fffaf2]"
+              >
+                <Search className="mr-2 h-4 w-4" />
+                Unified search
+              </Button>
+            </div>
+          </div>
 
-      {/* Quote Carousel Card */}
-      <div className="mx-4 mb-5 overflow-hidden rounded-2xl border border-black/8 bg-white p-5 shadow-sm">
-        <div className="mb-3">
-          <span className="text-5xl font-black leading-none text-[#E84D20]">"</span>
-          <p className="mt-1 text-base font-medium leading-relaxed text-black">{currentFocus.text}</p>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="dev-stat-card" style={{ backgroundColor: "rgba(255,255,255,0.92)" }}>
+                <div className={`${stat.pattern} h-3 w-full`} style={{ backgroundColor: stat.tone }} />
+                <div className="space-y-2 px-5 py-4">
+                  <p className="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-[#6b7487]">Live metric</p>
+                  <div className="text-5xl font-black tracking-tight text-[#13243f]">{stat.value}</div>
+                  <p className="text-base font-medium text-[#13243f]">{stat.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-black/50">— {currentFocus.author}</p>
-        <div className="mt-4 flex items-center gap-1.5">
-          {focusQuotes.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setFocusIndex(i)}
-              className={`h-1.5 rounded-full transition-all ${i === focusIndex % focusQuotes.length ? "w-5 bg-[#E84D20]" : "w-1.5 bg-black/15"}`}
-            />
-          ))}
-        </div>
-      </div>
 
-      {/* Knowledge Overview */}
-      <div className="px-4 mb-5">
-        <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-[0.25em] text-black/40">Knowledge Overview</p>
-        <div className="grid grid-cols-4 gap-2">
-          {stats.map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-black/8 bg-white p-2.5 text-center">
-              <p className="text-[0.6rem] font-bold uppercase tracking-[0.12em]" style={{ color: stat.color }}>{stat.label}</p>
-              <p className="mt-0.5 text-xl font-black tabular-nums text-black">{stat.count.toLocaleString()}</p>
-              <p className="mt-0.5 text-[0.6rem] font-medium text-black/30">+{stat.delta} today</p>
+        <aside className="dev-card overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.9)" }}>
+          <div className="border-b-2 border-black px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Live task queue</p>
+          </div>
+          <div className="space-y-4 p-5">
+            {tasks.map((task) => (
+              <div key={`${task.label}-${task.date}`} className="rounded-[1.35rem] border border-[#13243f]/10 p-4 shadow-[0_12px_22px_-24px_rgba(19,36,63,0.35)]" style={{ backgroundColor: "rgba(249,246,239,0.82)" }}>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <span className="text-sm font-semibold text-foreground">{task.date}</span>
+                  <StatusShape shape={task.shape as "circle" | "square" | "diamond"} color={task.color} />
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">{task.label}</p>
+              </div>
+            ))}
+          </div>
+        </aside>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h2>Explore your modules</h2>
+          <Button
+            variant="ghost"
+            onClick={() => setLocation("/bulk-import")}
+            className="rounded-full border-b-2 border-[#116d6d] px-0 text-[#116d6d] shadow-none hover:bg-transparent hover:text-[#0f5959]"
+          >
+            Import your archive
+          </Button>
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-3">
+          {modules.map((module) => {
+            const Icon = module.icon;
+            return (
+              <Card
+                key={module.id}
+                className="dev-card overflow-hidden rounded-[1.65rem] p-0 shadow-none transition-transform duration-200 hover:-translate-y-1.5"
+              >
+                <div
+                  className={`dev-module-banner ${module.pattern} flex min-h-[9rem] items-end justify-between border-b-2 border-black px-5 py-5`}
+                  style={{ backgroundColor: module.accent }}
+                >
+                  <Icon className="h-11 w-11" />
+                    <span className="rounded-full border border-[#13243f]/14 bg-white/86 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[#13243f] shadow-[0_8px_18px_-18px_rgba(19,36,63,0.6)]">
+
+                    {module.id}
+                  </span>
+                </div>
+                <div className="space-y-5 p-5">
+                  <div>
+                    <h3 className="mb-2 text-[1.9rem] leading-none">{module.title}</h3>
+                    <p className="text-sm leading-6 text-muted-foreground">{module.description}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {module.chips.map((chip) => (
+                      <span key={chip} className="dev-chip">
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                  <Button
+                    onClick={() => setLocation(module.route)}
+                    className="h-11 w-full rounded-full border border-[#13243f]/14 bg-white/86 text-[#13243f] shadow-[0_14px_28px_-24px_rgba(19,36,63,0.52)] hover:bg-[#fffaf2]"
+                  >
+                    Open module
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid gap-6 lg:grid-cols-2">
+          {knowledgeHighlights.map((item) => (
+            <div key={item.title} className="dev-card overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.86)" }}>
+              <div className={`${item.pattern} h-5 w-full`} style={{ backgroundColor: item.accent }} />
+              <div className="space-y-3 p-5">
+                <h3 className="text-[2rem] leading-none">{item.title}</h3>
+                <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
+              </div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Recently Opened */}
-      <div className="px-4">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.25em] text-black/40">Recently Opened</p>
-          <button onClick={() => setLocation("/search")} className="text-[0.65rem] font-bold uppercase tracking-[0.15em] text-[#E84D20]">View All</button>
+        <div className="dev-soft-card p-5" style={{ backgroundColor: "rgba(249,246,239,0.88)" }}>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#13243f]/14 bg-[#54b5dd] shadow-[0_16px_28px_-24px_rgba(84,181,221,0.75)]">
+              <NotesIcon className="h-8 w-8" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Knowledge rhythm</p>
+              <p className="text-lg font-semibold text-foreground">Weekly scholarly cadence</p>
+            </div>
+          </div>
+          <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+            <p>
+              Capture primary sources in the notebook, distill terminology in Clavis Aurea, then translate insights into structured documents.
+            </p>
+            <p>
+              The sidebar taxonomy now reflects your real category structure, so area, category, and activity remain legible at every step.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setLocation("/documents")}
+            className="mt-5 h-11 w-full rounded-full border border-[#13243f]/14 bg-[#0d706b] text-white shadow-[0_18px_30px_-24px_rgba(13,112,107,0.72)] hover:bg-[#0a5e5b]"
+          >
+            Open writing studio
+          </Button>
         </div>
-        <div className="divide-y divide-black/6 overflow-hidden rounded-2xl border border-black/8 bg-white">
-          {recentItems.length === 0 ? (
-            <div className="py-8 text-center text-sm text-black/40">Your recent items will appear here.</div>
-          ) : (
-            recentItems.map((item) => {
-              const Icon = ITEM_ICONS[item.type] ?? FileText;
-              return (
-                <button
-                  key={`${item.type}-${item.id}`}
-                  onClick={() => setLocation(item.path)}
-                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-black/2"
-                >
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-black/8 bg-black/3">
-                    <Icon className="h-4 w-4 text-black/60" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-black">{item.title}</p>
-                    <p className="text-xs text-black/40">{item.jdLabel}</p>
-                  </div>
-                  <span className="text-xs font-medium text-black/30 whitespace-nowrap">{formatRelTime(item.updatedAt)}</span>
-                </button>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Quick capture FAB */}
-      <button
-        onClick={() => setLocation("/notes")}
-        className="fixed bottom-24 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#E84D20] text-white shadow-lg shadow-[#E84D20]/30 transition hover:bg-[#d43b10] z-30"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
+      </section>
     </div>
   );
 }

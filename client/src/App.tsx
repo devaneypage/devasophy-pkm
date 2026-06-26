@@ -17,151 +17,113 @@ import NotebookDetail from "./pages/NotebookDetail";
 import LexiconDetail from "./pages/LexiconDetail";
 import Export from "./pages/Export";
 import Glossary from "./pages/Glossary";
-import Projects from "./pages/Projects";
-import CalendarPage from "./pages/Calendar";
-import SettingsPage from "./pages/Settings";
-import Library from "./pages/Library";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"}>
         {() => (
-          <DashboardLayout currentModule="dashboard">
+          <DashboardLayout currentModule="home">
             <Home />
           </DashboardLayout>
         )}
       </Route>
-      <Route path={"/projects"}>
-        {() => (
-          <DashboardLayout currentModule="projects">
-            <Projects />
-          </DashboardLayout>
-        )}
-      </Route>
-      <Route path={"/knowledge-base"}>
-        {() => (
-          <DashboardLayout currentModule="knowledge-base">
-            <Search />
-          </DashboardLayout>
-        )}
-      </Route>
-      <Route path={"/notes"}>
-        {() => (
-          <DashboardLayout currentModule="notes">
-            <Notebook />
-          </DashboardLayout>
-        )}
-      </Route>
-      <Route path={"/calendar"}>
-        {() => (
-          <DashboardLayout currentModule="calendar">
-            <CalendarPage />
-          </DashboardLayout>
-        )}
-      </Route>
-      <Route path={"/settings"}>
-        {() => (
-          <DashboardLayout currentModule="settings">
-            <SettingsPage />
-          </DashboardLayout>
-        )}
-      </Route>
-
       <Route path={"/notebook"}>
         {() => (
-          <DashboardLayout currentModule="notes">
+          <DashboardLayout currentModule="notebook">
             <Notebook />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/lexicon"}>
         {() => (
-          <DashboardLayout currentModule="knowledge-base">
+          <DashboardLayout currentModule="lexicon">
             <Lexicon />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/documents"}>
         {() => (
-          <DashboardLayout currentModule="projects">
+          <DashboardLayout currentModule="documents">
             <Documents />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/goals"}>
         {() => (
-          <DashboardLayout currentModule="projects">
+          <DashboardLayout currentModule="goals">
             <Goals />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/ideas"}>
         {() => (
-          <DashboardLayout currentModule="knowledge-base">
+          <DashboardLayout currentModule="ideas">
             <Ideas />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/bulk-import"}>
         {() => (
-          <DashboardLayout currentModule="settings">
+          <DashboardLayout>
             <BulkImport />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/search"}>
         {() => (
-          <DashboardLayout currentModule="knowledge-base">
+          <DashboardLayout>
             <Search />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/notebook/:id"}>
         {() => (
-          <DashboardLayout currentModule="notes">
+          <DashboardLayout currentModule="notebook">
             <NotebookDetail />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/lexicon/:id"}>
         {() => (
-          <DashboardLayout currentModule="knowledge-base">
+          <DashboardLayout currentModule="lexicon">
             <LexiconDetail />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/glossary"}>
         {() => (
-          <DashboardLayout currentModule="knowledge-base">
+          <DashboardLayout currentModule="glossary">
             <Glossary />
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/export"}>
         {() => (
-          <DashboardLayout currentModule="settings">
+          <DashboardLayout>
             <Export />
           </DashboardLayout>
         )}
       </Route>
-      <Route path={"/library"}>
-        {() => (
-          <DashboardLayout currentModule="library">
-            <Library />
-          </DashboardLayout>
-        )}
-      </Route>
       <Route path={"/404"} component={NotFound} />
+      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
 }
 
+// NOTE: About Theme
+// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
+//   to keep consistent foreground/background color across components
+// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
+
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider
+        defaultTheme="dark"
+        // switchable
+      >
         <TooltipProvider>
           <Toaster />
           <Router />

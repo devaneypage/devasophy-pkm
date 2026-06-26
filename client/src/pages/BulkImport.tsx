@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -77,7 +77,6 @@ export default function BulkImport() {
   const [duplicateConflicts, setDuplicateConflicts] = useState<DuplicateConflict[]>([]);
   const [pendingImportPayload, setPendingImportPayload] = useState<PendingImportPayload | null>(null);
   const [isReviewingDuplicates, setIsReviewingDuplicates] = useState(false);
-  const [rowCategoryOverrides, setRowCategoryOverrides] = useState<Map<number, string>>(new Map());
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const notebookJSONMutation = trpc.bulkImport.notebookJSON.useMutation();
@@ -354,7 +353,6 @@ export default function BulkImport() {
     setDuplicateConflicts([]);
     setPendingImportPayload(null);
     setIsReviewingDuplicates(false);
-    setRowCategoryOverrides(new Map());
   };
 
   const handleFile = async (file: File) => {
@@ -386,12 +384,18 @@ export default function BulkImport() {
         </p>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-6">
           <Card className="dev-card rounded-[1.5rem] p-6 shadow-none">
-            <h2 className="mb-4 text-[2rem] leading-none">Choose import module</h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-[2rem] leading-none">Select import mode</h2>
+              <span className="rounded-full border border-black/15 bg-[#f6f3ec] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Auto-categorization ready
+              </span>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {(Object.entries(importModes) as Array<[ImportType, typeof importModes.quotes]>).map(([key, item]) => {
+              {(Object.keys(importModes) as Array<keyof typeof importModes>).map((key) => {
+                const item = importModes[key];
                 const selected = importType === key;
                 return (
                   <button
@@ -723,47 +727,19 @@ export default function BulkImport() {
                   )}
 
                   <div className="space-y-3">
-                    {preImportSummary.taxonomySuggestions.map((suggestion) => {
-                      const selectedCategory = rowCategoryOverrides.get(suggestion.rowIndex) ?? suggestion.categoryNumber;
-                      const selectedCategoryName = preImportSummary.taxonomyGroups.find((g) => g.categoryNumber === selectedCategory)?.categoryName ?? suggestion.categoryName;
-                      const alternativeCategories = preImportSummary.taxonomyGroups
-                        .filter((group) => group.categoryNumber !== suggestion.categoryNumber)
-                        .slice(0, 3);
-
-                      return (
-                        <div key={`${suggestion.rowLabel}-${suggestion.categoryNumber}-${suggestion.preview}`} className="rounded-[1rem] border border-black/10 bg-[#f6f3ec] p-4">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{suggestion.rowLabel}</p>
-                            <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                              {suggestion.confidence} confidence
-                            </span>
-                          </div>
-                          <p className="mt-3 text-sm font-semibold text-foreground">
-                            {selectedCategory} · {selectedCategoryName}
-                          </p>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">{suggestion.preview}</p>
-                          <p className="mt-2 text-xs leading-5 text-muted-foreground">{suggestion.reason}</p>
-                          {alternativeCategories.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <p className="w-full text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Override to:</p>
-                              {alternativeCategories.map((alt) => (
-                                <button
-                                  key={alt.categoryNumber}
-                                  onClick={() => {
-                                    const newOverrides = new Map(rowCategoryOverrides);
-                                    newOverrides.set(suggestion.rowIndex, alt.categoryNumber);
-                                    setRowCategoryOverrides(newOverrides);
-                                  }}
-                                  className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-foreground transition hover:bg-[#f6f3ec]"
-                                >
-                                  {alt.categoryNumber} · {alt.categoryName.slice(0, 20)}
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                    {preImportSummary.taxonomySuggestions.map((suggestion) => (
+                      <div key={`${suggestion.rowLabel}-${suggestion.categoryNumber}-${suggestion.preview}`} className="rounded-[1rem] border border-black/10 bg-[#f6f3ec] p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{suggestion.rowLabel}</p>
+                          <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                            {suggestion.confidence} confidence
+                          </span>
                         </div>
-                      );
-                    })}
+                        <p className="mt-3 text-sm font-semibold text-foreground">{suggestion.categoryNumber} · {suggestion.categoryName}</p>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{suggestion.preview}</p>
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">{suggestion.reason}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -869,13 +845,13 @@ export default function BulkImport() {
               <li>✓ Auto-categorization</li>
               <li>✓ Unique ID generation</li>
               <li>✓ Error handling</li>
-              <li>✓ Taxonomy overrides</li>
-              <li>✓ Duplicate detection</li>
-              <li>✓ Batch validation</li>
+              <li>✓ Progress tracking</li>
+              <li>✓ Batch processing</li>
+              <li>✓ Multiple formats</li>
             </ul>
           </Card>
         </aside>
-      </div>
+      </section>
     </div>
   );
 }
