@@ -16,13 +16,13 @@ import { useLocation } from "wouter";
 const modules = [
   {
     id: "notebook",
-    title: "Commonplace Notebook",
-    description: "Capture quotations, passages, annotations, and source metadata in a richly structured notebook.",
+    title: "Commonplace Workspace",
+    description: "Shape research notes, quotes, books, lists, bookmarks, and glossary fragments on a card-based drafting wall.",
     icon: QuotationsIcon,
-    route: "/notebook",
-    accent: "#efb93a",
+    route: "/commonplace",
+    accent: "#e04f2f",
     pattern: "dev-pattern-waves",
-    chips: ["Quotes", "Passages", "Observations"],
+    chips: ["Research Notes", "Quotes", "Bookmarks"],
   },
   {
     id: "lexicon",
@@ -127,7 +127,7 @@ export default function Home() {
 
   const stats = [
     {
-      label: "Notebook Entries",
+      label: "Commonplace Cards",
       value: formatStatValue(notebookQuery.data?.length, notebookQuery.isLoading),
       tone: "#efb93a",
       pattern: "dev-pattern-waves",
@@ -209,8 +209,9 @@ export default function Home() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={() => setLocation("/notebook")}
+                              <Button
+                  onClick={() => setLocation("/commonplace")}
+
                 className="h-11 rounded-full border border-[#13243f]/15 bg-[#e85b3e] px-5 text-white shadow-[0_18px_30px_-22px_rgba(232,91,62,0.7)] hover:bg-[#d94d31]"
               >
                 <Plus className="mr-2 h-4 w-4" />

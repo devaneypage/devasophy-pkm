@@ -346,3 +346,87 @@ export const lexiconEnhancements = {
   partOfSpeech: varchar('part_of_speech', { length: 50 }), // noun, verb, adjective, adverb, phrase
   etymology: text('etymology'), // word origins and linguistic history
 };
+
+/**
+ * Books Module (Library Layer)
+ * Tracks reading list, progress, and ratings
+ */
+export const books = mysqlTable("books", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 500 }).notNull(),
+  author: varchar("author", { length: 255 }),
+  coverColor: varchar("coverColor", { length: 20 }).default("#E84D20"),
+  dateAdded: timestamp("dateAdded").defaultNow().notNull(),
+  rating: decimal("rating", { precision: 2, scale: 1 }),
+  readingProgress: int("readingProgress").default(0),
+  status: mysqlEnum("status", ["reading", "completed", "want_to_read"]).default("want_to_read"),
+  notes: text("notes"),
+  tags: text("tags"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Book = typeof books.$inferSelect;
+export type InsertBook = typeof books.$inferInsert;
+
+
+/**
+ * Commonplace Board System
+ * Fresh kanban-style workspace for research notes, bookmarks, ideas, quotes, books, articles, glossary terms, and lists.
+ */
+export const commonplaceBoards = mysqlTable("commonplace_boards", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  isDefault: boolean("isDefault").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const commonplaceColumns = mysqlTable("commonplace_columns", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  boardId: int("boardId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  colorToken: varchar("colorToken", { length: 50 }),
+  position: int("position").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const commonplaceEntryTypeEnum = mysqlEnum("commonplace_entry_type", [
+  "research_note",
+  "bookmark",
+  "idea",
+  "quote",
+  "book",
+  "article",
+  "glossary_term",
+  "list",
+]);
+
+export const commonplaceEntries = mysqlTable("commonplace_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  boardId: int("boardId").notNull(),
+  columnId: int("columnId").notNull(),
+  entryType: commonplaceEntryTypeEnum.notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  summary: text("summary"),
+  content: json("content"),
+  metadata: json("metadata"),
+  tags: text("tags"),
+  position: int("position").notNull().default(0),
+  isArchived: boolean("isArchived").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CommonplaceBoard = typeof commonplaceBoards.$inferSelect;
+export type InsertCommonplaceBoard = typeof commonplaceBoards.$inferInsert;
+export type CommonplaceColumn = typeof commonplaceColumns.$inferSelect;
+export type InsertCommonplaceColumn = typeof commonplaceColumns.$inferInsert;
+export type CommonplaceEntry = typeof commonplaceEntries.$inferSelect;
+export type InsertCommonplaceEntry = typeof commonplaceEntries.$inferInsert;
+export type CommonplaceEntryType = typeof commonplaceEntries.$inferSelect.entryType;

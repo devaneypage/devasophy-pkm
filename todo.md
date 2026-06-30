@@ -529,3 +529,23 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Review the current notebook and lexicon import flows to identify where category suggestions should appear before save
 - [x] Implement taxonomy-aware category suggestion logic and pre-save suggestion UI for imports
 - [ ] Verify import category suggestions in tests and live project health, then save a checkpoint
+
+
+## Rolled-Back Version Stability Verification
+- [x] Run the automated test suite against the rolled-back version 38e07c0b
+- [x] Review failures and assess whether core functionality is stable
+- [x] Report verification findings to the user
+
+
+## Commonplace Kanban Editor
+- [x] Implement database schema for `commonplace_entries` and `kanban_columns`
+- [x] Create backend tRPC procedures for CRUD operations on `commonplace_entries` and `kanban_columns`
+- [x] Develop the Kanban board UI with drag-and-drop functionality
+- [x] Implement specialized card editors for each content type (Research Notes, Bookmarks, Ideas, Quotes, Books, Articles, Glossary Terms, Lists)
+- [x] Integrate the color taxonomy system using CSS variables/Tailwind custom properties
+- [x] Apply color taxonomy consistently across the site (sidebar, filters, search, exports)
+- [x] Update main navigation to point to the new Commonplace module
+- [x] Replace legacy Notebook and Library pages with the new Commonplace editor
+- [x] Write comprehensive tests for backend procedures and UI components
+- [ ] Verify the Kanban editor and color taxonomy in live app
+- [ ] Save checkpoint and deliver the Commonplace Kanban editor

@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import Home from "./pages/Home";
 import Notebook from "./pages/Notebook";
+import Commonplace from "./pages/Commonplace";
 import Lexicon from "./pages/Lexicon";
 import Documents from "./pages/Documents";
 import Goals from "./pages/Goals";
@@ -25,6 +26,20 @@ function Router() {
         {() => (
           <DashboardLayout currentModule="home">
             <Home />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/commonplace"}>
+        {() => (
+          <DashboardLayout currentModule="notebook">
+            <Commonplace />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/library"}>
+        {() => (
+          <DashboardLayout currentModule="notebook">
+            <Commonplace />
           </DashboardLayout>
         )}
       </Route>

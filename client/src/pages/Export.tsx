@@ -6,9 +6,9 @@ import { Download, FileJson, FileText, Library, NotebookTabs, PenSquare } from "
 
 const exportTypes = {
   notebook: {
-    title: "Commonplace Notebook",
-    description: "All quotations, passages, notes, metadata, and tags.",
-    accent: "#efb93a",
+    title: "Commonplace Workspace",
+    description: "Research notes, quotations, books, lists, bookmarks, and metadata from the active drafting wall.",
+    accent: "#e04f2f",
     pattern: "dev-pattern-waves",
     icon: NotebookTabs,
   },

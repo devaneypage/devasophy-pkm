@@ -6,9 +6,9 @@ import { BookOpen, Library, PenSquare, Search as SearchIcon } from "lucide-react
 
 const moduleMeta = {
   notebook: {
-    label: "Commonplace Notebook",
+    label: "Commonplace Workspace",
     icon: BookOpen,
-    accent: "#efb93a",
+    accent: "#e04f2f",
     pattern: "dev-pattern-waves",
   },
   lexicon: {

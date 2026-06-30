@@ -18,6 +18,13 @@ import {
   projects,
   tasks,
   ideas,
+  commonplaceBoards,
+  commonplaceColumns,
+  commonplaceEntries,
+  type InsertCommonplaceBoard,
+  type InsertCommonplaceColumn,
+  type InsertCommonplaceEntry,
+  type CommonplaceEntryType,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { johnnyDecimalModuleDefaults, johnnyDecimalSeeds } from "../shared/johnnyDecimal";
@@ -1811,4 +1818,446 @@ export async function bulkImportLexiconWithDuplicateDetection(
   }
 
   return results;
+}
+
+
+// ============================================================================
+// COMMONPLACE BOARD SYSTEM
+// ============================================================================
+
+const DEFAULT_COMMONPLACE_COLUMNS = [
+  { title: "Inbox", colorToken: "grey", position: 0 },
+  { title: "In Motion", colorToken: "bright_blue", position: 1 },
+  { title: "Shaping", colorToken: "vermillion", position: 2 },
+  { title: "Archive", colorToken: "green", position: 3 },
+] as const;
+
+export type CommonplaceBoardSnapshot = {
+  board: Awaited<ReturnType<typeof ensureDefaultCommonplaceBoard>>;
+  columns: Array<typeof commonplaceColumns.$inferSelect>;
+  entries: Array<typeof commonplaceEntries.$inferSelect>;
+};
+
+export async function createCommonplaceBoard(userId: number, input: Pick<InsertCommonplaceBoard, "title" | "description"> & { isDefault?: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(commonplaceBoards).values({
+    userId,
+    title: input.title,
+    description: input.description ?? null,
+    isDefault: input.isDefault ?? false,
+  });
+
+  const createdBoard = await db
+    .select()
+    .from(commonplaceBoards)
+    .where(
+      and(
+        eq(commonplaceBoards.userId, userId),
+        eq(commonplaceBoards.title, input.title),
+        eq(commonplaceBoards.isDefault, input.isDefault ?? false)
+      )
+    )
+    .orderBy(desc(commonplaceBoards.id))
+    .limit(1);
+
+  if (!createdBoard[0]) {
+    throw new Error("Failed to create commonplace board");
+  }
+
+  return createdBoard[0];
+}
+
+export async function listCommonplaceBoards(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .select()
+    .from(commonplaceBoards)
+    .where(eq(commonplaceBoards.userId, userId))
+    .orderBy(desc(commonplaceBoards.isDefault), asc(commonplaceBoards.title));
+}
+
+export async function ensureDefaultCommonplaceBoard(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existingBoard = await db
+    .select()
+    .from(commonplaceBoards)
+    .where(and(eq(commonplaceBoards.userId, userId), eq(commonplaceBoards.isDefault, true)))
+    .limit(1);
+
+  let board = existingBoard[0];
+
+  if (!board) {
+    const created = await createCommonplaceBoard(userId, {
+      title: "Commonplace",
+      description: "Fresh working board for research notes, books, quotes, and other captures.",
+      isDefault: true,
+    });
+
+    await db.insert(commonplaceColumns).values(
+      DEFAULT_COMMONPLACE_COLUMNS.map((column) => ({
+        userId,
+        boardId: created.id,
+        title: column.title,
+        colorToken: column.colorToken,
+        position: column.position,
+      }))
+    );
+
+    const seededBoard = await db
+      .select()
+      .from(commonplaceBoards)
+      .where(eq(commonplaceBoards.id, created.id))
+      .limit(1);
+
+    board = seededBoard[0];
+  }
+
+  if (!board) {
+    throw new Error("Unable to initialize default commonplace board");
+  }
+
+  return board;
+}
+
+export async function getCommonplaceBoardSnapshot(userId: number, boardId?: number): Promise<CommonplaceBoardSnapshot> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const board = boardId
+    ? (
+        await db
+          .select()
+          .from(commonplaceBoards)
+          .where(and(eq(commonplaceBoards.userId, userId), eq(commonplaceBoards.id, boardId)))
+          .limit(1)
+      )[0]
+    : await ensureDefaultCommonplaceBoard(userId);
+
+  if (!board) {
+    throw new Error("Commonplace board not found");
+  }
+
+  const [columns, entries] = await Promise.all([
+    db
+      .select()
+      .from(commonplaceColumns)
+      .where(and(eq(commonplaceColumns.userId, userId), eq(commonplaceColumns.boardId, board.id)))
+      .orderBy(asc(commonplaceColumns.position), asc(commonplaceColumns.id)),
+    db
+      .select()
+      .from(commonplaceEntries)
+      .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.boardId, board.id)))
+      .orderBy(asc(commonplaceEntries.position), desc(commonplaceEntries.updatedAt)),
+  ]);
+
+  return { board, columns, entries };
+}
+
+export async function createCommonplaceColumn(userId: number, input: Pick<InsertCommonplaceColumn, "boardId" | "title" | "colorToken"> & { position?: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existingColumns = await db
+    .select()
+    .from(commonplaceColumns)
+    .where(and(eq(commonplaceColumns.userId, userId), eq(commonplaceColumns.boardId, input.boardId)))
+    .orderBy(desc(commonplaceColumns.position));
+
+  const position = input.position ?? ((existingColumns[0]?.position ?? -1) + 1);
+
+  await db.insert(commonplaceColumns).values({
+    userId,
+    boardId: input.boardId,
+    title: input.title,
+    colorToken: input.colorToken ?? null,
+    position,
+  });
+
+  const createdColumn = await db
+    .select()
+    .from(commonplaceColumns)
+    .where(
+      and(
+        eq(commonplaceColumns.userId, userId),
+        eq(commonplaceColumns.boardId, input.boardId),
+        eq(commonplaceColumns.title, input.title),
+        eq(commonplaceColumns.position, position)
+      )
+    )
+    .orderBy(desc(commonplaceColumns.id))
+    .limit(1);
+
+  if (!createdColumn[0]) {
+    throw new Error("Failed to create commonplace column");
+  }
+
+  return createdColumn[0];
+}
+
+export async function updateCommonplaceColumn(userId: number, columnId: number, data: Partial<Pick<InsertCommonplaceColumn, "title" | "colorToken" | "position">>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .update(commonplaceColumns)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(commonplaceColumns.userId, userId), eq(commonplaceColumns.id, columnId)));
+}
+
+export async function deleteCommonplaceColumn(userId: number, columnId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(commonplaceColumns)
+    .where(and(eq(commonplaceColumns.userId, userId), eq(commonplaceColumns.id, columnId)))
+    .limit(1);
+
+  const column = existing[0];
+  if (!column) {
+    return { success: false } as const;
+  }
+
+  const boardColumns = await db
+    .select()
+    .from(commonplaceColumns)
+    .where(and(eq(commonplaceColumns.userId, userId), eq(commonplaceColumns.boardId, column.boardId)))
+    .orderBy(asc(commonplaceColumns.position));
+
+  if (boardColumns.length <= 1) {
+    throw new Error("Cannot delete the only remaining board column");
+  }
+
+  const fallbackColumn = boardColumns.find((item) => item.id !== columnId);
+  if (!fallbackColumn) {
+    throw new Error("Fallback column not available");
+  }
+
+  await db
+    .update(commonplaceEntries)
+    .set({ columnId: fallbackColumn.id, updatedAt: new Date() })
+    .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.columnId, columnId)));
+
+  await db
+    .delete(commonplaceColumns)
+    .where(and(eq(commonplaceColumns.userId, userId), eq(commonplaceColumns.id, columnId)));
+
+  return { success: true } as const;
+}
+
+export async function createCommonplaceEntry(
+  userId: number,
+  input: Pick<InsertCommonplaceEntry, "boardId" | "columnId" | "entryType" | "title" | "summary" | "content" | "metadata" | "tags"> & { position?: number }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existingEntries = await db
+    .select()
+    .from(commonplaceEntries)
+    .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.columnId, input.columnId)))
+    .orderBy(desc(commonplaceEntries.position));
+
+  const position = input.position ?? ((existingEntries[0]?.position ?? -1) + 1);
+
+  await db.insert(commonplaceEntries).values({
+    userId,
+    boardId: input.boardId,
+    columnId: input.columnId,
+    entryType: input.entryType,
+    title: input.title,
+    summary: input.summary ?? null,
+    content: input.content ?? null,
+    metadata: input.metadata ?? null,
+    tags: input.tags ?? null,
+    position,
+  });
+
+  const createdEntry = await db
+    .select()
+    .from(commonplaceEntries)
+    .where(
+      and(
+        eq(commonplaceEntries.userId, userId),
+        eq(commonplaceEntries.boardId, input.boardId),
+        eq(commonplaceEntries.columnId, input.columnId),
+        eq(commonplaceEntries.entryType, input.entryType),
+        eq(commonplaceEntries.title, input.title),
+        eq(commonplaceEntries.position, position)
+      )
+    )
+    .orderBy(desc(commonplaceEntries.id))
+    .limit(1);
+
+  if (!createdEntry[0]) {
+    throw new Error("Failed to create commonplace entry");
+  }
+
+  return createdEntry[0];
+}
+
+export async function updateCommonplaceEntry(
+  userId: number,
+  entryId: number,
+  data: Partial<Pick<InsertCommonplaceEntry, "columnId" | "entryType" | "title" | "summary" | "content" | "metadata" | "tags" | "position">> & { isArchived?: boolean }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .update(commonplaceEntries)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.id, entryId)));
+}
+
+export async function deleteCommonplaceEntry(userId: number, entryId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .delete(commonplaceEntries)
+    .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.id, entryId)));
+}
+
+export async function moveCommonplaceEntry(
+  userId: number,
+  entryId: number,
+  input: {
+    columnId: number;
+    position: number;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .update(commonplaceEntries)
+    .set({
+      columnId: input.columnId,
+      position: input.position,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.id, entryId)));
+}
+
+export async function reorderCommonplaceColumns(
+  userId: number,
+  orderedColumnIds: number[]
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await Promise.all(
+    orderedColumnIds.map((columnId, index) =>
+      db
+        .update(commonplaceColumns)
+        .set({ position: index, updatedAt: new Date() })
+        .where(and(eq(commonplaceColumns.userId, userId), eq(commonplaceColumns.id, columnId)))
+    )
+  );
+
+  return { success: true } as const;
+}
+
+export async function listCommonplaceEntries(
+  userId: number,
+  filters?: {
+    boardId?: number;
+    columnId?: number;
+    entryType?: CommonplaceEntryType;
+    search?: string;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const conditions = [eq(commonplaceEntries.userId, userId)];
+
+  if (filters?.boardId) {
+    conditions.push(eq(commonplaceEntries.boardId, filters.boardId));
+  }
+
+  if (filters?.columnId) {
+    conditions.push(eq(commonplaceEntries.columnId, filters.columnId));
+  }
+
+  if (filters?.entryType) {
+    conditions.push(eq(commonplaceEntries.entryType, filters.entryType));
+  }
+
+  if (filters?.search) {
+    conditions.push(like(commonplaceEntries.title, `%${filters.search}%`));
+  }
+
+  return db
+    .select()
+    .from(commonplaceEntries)
+    .where(and(...conditions))
+    .orderBy(asc(commonplaceEntries.position), desc(commonplaceEntries.updatedAt));
+}
+
+export async function saveCommonplaceBoardSnapshot(
+  userId: number,
+  input: {
+    sourceBoardId: number;
+    title: string;
+    description?: string;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const source = await getCommonplaceBoardSnapshot(userId, input.sourceBoardId);
+  const savedBoard = await createCommonplaceBoard(userId, {
+    title: input.title,
+    description: input.description ?? `Saved snapshot of ${source.board.title}`,
+    isDefault: false,
+  });
+
+  const columnIdMap = new Map<number, number>();
+
+  for (const column of source.columns) {
+    const clonedColumn = await createCommonplaceColumn(userId, {
+      boardId: savedBoard.id,
+      title: column.title,
+      colorToken: column.colorToken ?? undefined,
+      position: column.position,
+    });
+
+    columnIdMap.set(column.id, clonedColumn.id);
+  }
+
+  for (const entry of source.entries) {
+    const targetColumnId = columnIdMap.get(entry.columnId);
+    if (!targetColumnId) {
+      continue;
+    }
+
+    await createCommonplaceEntry(userId, {
+      boardId: savedBoard.id,
+      columnId: targetColumnId,
+      entryType: entry.entryType,
+      title: entry.title,
+      summary: entry.summary ?? undefined,
+      content: entry.content ?? undefined,
+      metadata: entry.metadata ?? undefined,
+      tags: entry.tags ?? undefined,
+      position: entry.position,
+    });
+  }
+
+  return getCommonplaceBoardSnapshot(userId, savedBoard.id);
 }

@@ -43,7 +43,7 @@ const menuItems = [
   { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#f03878" },
   { icon: ResearchIcon, label: "Ideas", path: "/ideas", accent: "#5c61ff" },
   { icon: NotesIcon, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
-  { icon: QuotationsIcon, label: "Notes", path: "/notebook", accent: "#efb93a" },
+  { icon: NotesIcon, label: "Commonplace", path: "/commonplace", accent: "#e04f2f" },
   { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#5c61ff" },
   { icon: VocabularyIcon, label: "Lexicon", path: "/lexicon", accent: "#56c5ea" },
   { icon: Upload, label: "Import", path: "/bulk-import", accent: "#f03878" },
@@ -143,6 +143,8 @@ function DashboardLayoutContent({
 
   const pathToModule: Record<string, ModuleKey> = {
     "/": "home",
+    "/commonplace": "notebook",
+    "/library": "notebook",
     "/notebook": "notebook",
     "/lexicon": "lexicon",
     "/documents": "documents",

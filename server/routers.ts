@@ -49,6 +49,20 @@ import {
   listIdeas,
   updateIdea,
   deleteIdea,
+  ensureDefaultCommonplaceBoard,
+  getCommonplaceBoardSnapshot,
+  listCommonplaceBoards,
+  createCommonplaceBoard,
+  saveCommonplaceBoardSnapshot,
+  createCommonplaceColumn,
+  updateCommonplaceColumn,
+  deleteCommonplaceColumn,
+  reorderCommonplaceColumns,
+  listCommonplaceEntries,
+  createCommonplaceEntry,
+  updateCommonplaceEntry,
+  deleteCommonplaceEntry,
+  moveCommonplaceEntry,
   bulkImportNotebookEntries,
   bulkImportLexiconEntries,
   bulkImportNotebookFromCSV,
@@ -756,6 +770,154 @@ Composition request: ${input.prompt}`,
       .mutation(async ({ ctx, input }) => {
         return await deleteIdea(ctx.user.id, input.id);
       }),
+  }),
+
+  // ============================================================================
+  // COMMONPLACE MODULE
+  // ============================================================================
+  commonplace: router({
+    bootstrap: protectedProcedure
+      .input(z.object({ boardId: z.number().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        await ensureDefaultCommonplaceBoard(ctx.user.id);
+        return await getCommonplaceBoardSnapshot(ctx.user.id, input?.boardId);
+      }),
+
+    boards: router({
+      list: protectedProcedure.query(async ({ ctx }) => {
+        return await listCommonplaceBoards(ctx.user.id);
+      }),
+      create: protectedProcedure
+        .input(
+          z.object({
+            title: z.string().min(1),
+            description: z.string().optional(),
+            isDefault: z.boolean().optional(),
+          })
+        )
+        .mutation(async ({ ctx, input }) => {
+          return await createCommonplaceBoard(ctx.user.id, input);
+        }),
+      saveSnapshot: protectedProcedure
+        .input(
+          z.object({
+            sourceBoardId: z.number(),
+            title: z.string().min(1),
+            description: z.string().optional(),
+          })
+        )
+        .mutation(async ({ ctx, input }) => {
+          return await saveCommonplaceBoardSnapshot(ctx.user.id, input);
+        }),
+    }),
+
+    columns: router({
+      create: protectedProcedure
+        .input(
+          z.object({
+            boardId: z.number(),
+            title: z.string().min(1),
+            colorToken: z.string().optional(),
+            position: z.number().optional(),
+          })
+        )
+        .mutation(async ({ ctx, input }) => {
+          return await createCommonplaceColumn(ctx.user.id, input);
+        }),
+      update: protectedProcedure
+        .input(
+          z.object({
+            id: z.number(),
+            title: z.string().min(1).optional(),
+            colorToken: z.string().optional(),
+            position: z.number().optional(),
+          })
+        )
+        .mutation(async ({ ctx, input }) => {
+          const { id, ...data } = input;
+          return await updateCommonplaceColumn(ctx.user.id, id, data);
+        }),
+      reorder: protectedProcedure
+        .input(z.object({ orderedColumnIds: z.array(z.number()) }))
+        .mutation(async ({ ctx, input }) => {
+          return await reorderCommonplaceColumns(ctx.user.id, input.orderedColumnIds);
+        }),
+      delete: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ ctx, input }) => {
+          return await deleteCommonplaceColumn(ctx.user.id, input.id);
+        }),
+    }),
+
+    entries: router({
+      list: protectedProcedure
+        .input(
+          z.object({
+            boardId: z.number().optional(),
+            columnId: z.number().optional(),
+            entryType: z.enum(["research_note", "bookmark", "idea", "quote", "book", "article", "glossary_term", "list"]).optional(),
+            search: z.string().optional(),
+          }).optional()
+        )
+        .query(async ({ ctx, input }) => {
+          return await listCommonplaceEntries(ctx.user.id, input);
+        }),
+      create: protectedProcedure
+        .input(
+          z.object({
+            boardId: z.number(),
+            columnId: z.number(),
+            entryType: z.enum(["research_note", "bookmark", "idea", "quote", "book", "article", "glossary_term", "list"]),
+            title: z.string().min(1),
+            summary: z.string().optional(),
+            content: z.record(z.string(), z.any()).or(z.array(z.any())).optional(),
+            metadata: z.record(z.string(), z.any()).optional(),
+            tags: z.string().optional(),
+            position: z.number().optional(),
+          })
+        )
+        .mutation(async ({ ctx, input }) => {
+          return await createCommonplaceEntry(ctx.user.id, input);
+        }),
+      update: protectedProcedure
+        .input(
+          z.object({
+            id: z.number(),
+            columnId: z.number().optional(),
+            entryType: z.enum(["research_note", "bookmark", "idea", "quote", "book", "article", "glossary_term", "list"]).optional(),
+            title: z.string().min(1).optional(),
+            summary: z.string().optional(),
+            content: z.record(z.string(), z.any()).or(z.array(z.any())).nullable().optional(),
+            metadata: z.record(z.string(), z.any()).nullable().optional(),
+            tags: z.string().optional(),
+            position: z.number().optional(),
+            isArchived: z.boolean().optional(),
+          })
+        )
+        .mutation(async ({ ctx, input }) => {
+          const { id, ...data } = input;
+          return await updateCommonplaceEntry(ctx.user.id, id, data);
+        }),
+      move: protectedProcedure
+        .input(
+          z.object({
+            id: z.number(),
+            columnId: z.number(),
+            position: z.number(),
+          })
+        )
+        .mutation(async ({ ctx, input }) => {
+          return await moveCommonplaceEntry(ctx.user.id, input.id, {
+            columnId: input.columnId,
+            position: input.position,
+          });
+        }),
+      delete: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ ctx, input }) => {
+          return await deleteCommonplaceEntry(ctx.user.id, input.id);
+        }),
+    }),
   }),
 
   // ============================================================================

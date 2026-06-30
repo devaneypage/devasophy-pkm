@@ -95,7 +95,7 @@ describe("Home dashboard branding refresh", () => {
     fireEvent.click(screen.getByRole("button", { name: /Quick capture/i }));
     fireEvent.click(screen.getByRole("button", { name: /Unified search/i }));
 
-    expect(setLocation).toHaveBeenNthCalledWith(1, "/notebook");
+    expect(setLocation).toHaveBeenNthCalledWith(1, "/commonplace");
     expect(setLocation).toHaveBeenNthCalledWith(2, "/search");
   });
 });
