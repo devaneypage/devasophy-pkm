@@ -528,7 +528,7 @@ Identify which request or route returns the unexpected HTML payload
 ## Taxonomy-Aware Import Suggestions
 - [x] Review the current notebook and lexicon import flows to identify where category suggestions should appear before save
 - [x] Implement taxonomy-aware category suggestion logic and pre-save suggestion UI for imports
-- [ ] Verify import category suggestions in tests and live project health, then save a checkpoint
+- [x] Verify import category suggestions in tests and live project health, then save a checkpoint
 
 
 ## Rolled-Back Version Stability Verification
