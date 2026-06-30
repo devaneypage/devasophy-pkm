@@ -547,8 +547,8 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Update main navigation to point to the new Commonplace module
 - [x] Replace legacy Notebook and Library pages with the new Commonplace editor
 - [x] Write comprehensive tests for backend procedures and UI components
-- [ ] Verify the Kanban editor and color taxonomy in live app
-- [ ] Save checkpoint and deliver the Commonplace Kanban editor
+- [x] Verify the Kanban editor and color taxonomy in live app
+- [x] Save checkpoint and deliver the Commonplace Kanban editor
 
 ## Commonplace Feature Flag Rollout
 - [x] Design a feature flag strategy for gating the Commonplace workspace and its navigation entry points
