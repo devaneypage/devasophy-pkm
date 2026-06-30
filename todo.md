@@ -549,3 +549,10 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Write comprehensive tests for backend procedures and UI components
 - [ ] Verify the Kanban editor and color taxonomy in live app
 - [ ] Save checkpoint and deliver the Commonplace Kanban editor
+
+## Commonplace Feature Flag Rollout
+- [x] Design a feature flag strategy for gating the Commonplace workspace and its navigation entry points
+- [x] Implement shared feature-flag configuration and runtime helpers for Commonplace
+- [x] Gate Commonplace routes, sidebar links, and page fallbacks behind the new feature flag
+- [x] Add tests covering enabled and disabled Commonplace states
+- [x] Verify flagged behavior in project health checks and save a checkpoint

@@ -63,6 +63,8 @@ import {
   updateCommonplaceEntry,
   deleteCommonplaceEntry,
   moveCommonplaceEntry,
+  listWorkspaceFeatureFlags,
+  updateWorkspaceFeatureFlag,
   bulkImportNotebookEntries,
   bulkImportLexiconEntries,
   bulkImportNotebookFromCSV,
@@ -77,6 +79,11 @@ import {
   generateLexiconZettelkastenId,
 } from "./zettelkasten";
 import { duplicateDetectionRouter } from "./duplicateDetectionRoutes";
+import {
+  getWorkspaceFeatureFlagDefinition,
+  isKnownWorkspaceFeatureFlag,
+  workspaceFeatureFlagDefinitions,
+} from "../shared/featureFlags";
 
 export const appRouter = router({
   system: systemRouter,
@@ -89,6 +96,32 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+  }),
+
+  featureFlags: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const flags = await listWorkspaceFeatureFlags(ctx.user.id);
+      return flags.map((flag) => ({
+        key: flag.flagKey,
+        label: isKnownWorkspaceFeatureFlag(flag.flagKey)
+          ? getWorkspaceFeatureFlagDefinition(flag.flagKey).label
+          : flag.flagKey,
+        description: isKnownWorkspaceFeatureFlag(flag.flagKey)
+          ? getWorkspaceFeatureFlagDefinition(flag.flagKey).description
+          : flag.description,
+        enabled: flag.enabled,
+      }));
+    }),
+    update: protectedProcedure
+      .input(
+        z.object({
+          flagKey: z.enum(Object.keys(workspaceFeatureFlagDefinitions) as [keyof typeof workspaceFeatureFlagDefinitions, ...(keyof typeof workspaceFeatureFlagDefinitions)[]]),
+          enabled: z.boolean(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await updateWorkspaceFeatureFlag(ctx.user.id, input.flagKey, input.enabled);
+      }),
   }),
 
   // ============================================================================

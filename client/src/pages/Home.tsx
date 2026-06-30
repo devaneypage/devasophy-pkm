@@ -1,6 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import React from "react";
-import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Plus, Search } from "lucide-react";
@@ -12,6 +11,8 @@ import {
   VocabularyIcon,
 } from "@/components/DevanomyIcons";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { useCommonplaceFeatureFlag } from "@/lib/featureFlags";
 
 const modules = [
   {
@@ -114,8 +115,17 @@ function formatStatValue(value: number | undefined, isLoading: boolean) {
 }
 
 export default function Home() {
+  const utils = trpc.useUtils();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { commonplaceEnabled } = useCommonplaceFeatureFlag();
+
+  const enableCommonplaceMutation = trpc.featureFlags.update.useMutation({
+    onSuccess: async () => {
+      await utils.featureFlags.list.invalidate();
+      setLocation("/commonplace");
+    },
+  });
 
   const notebookQuery = trpc.notebook.list.useQuery({});
   const lexiconQuery = trpc.lexicon.list.useQuery({});
@@ -210,12 +220,19 @@ export default function Home() {
             </div>
             <div className="flex flex-wrap gap-3">
                               <Button
-                  onClick={() => setLocation("/commonplace")}
+                onClick={() => {
+                  if (commonplaceEnabled) {
+                    setLocation("/commonplace");
+                    return;
+                  }
 
+                  enableCommonplaceMutation.mutate({ flagKey: "commonplace_workspace", enabled: true });
+                }}
+                disabled={enableCommonplaceMutation.isPending}
                 className="h-11 rounded-full border border-[#13243f]/15 bg-[#e85b3e] px-5 text-white shadow-[0_18px_30px_-22px_rgba(232,91,62,0.7)] hover:bg-[#d94d31]"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Quick capture
+                {commonplaceEnabled ? "Quick capture" : enableCommonplaceMutation.isPending ? "Enabling Commonplace…" : "Enable Commonplace"}
               </Button>
               <Button
                 variant="outline"
@@ -303,10 +320,22 @@ export default function Home() {
                     ))}
                   </div>
                   <Button
-                    onClick={() => setLocation(module.route)}
+                    onClick={() => {
+                      if (module.id === "notebook" && !commonplaceEnabled) {
+                        enableCommonplaceMutation.mutate({ flagKey: "commonplace_workspace", enabled: true });
+                        return;
+                      }
+
+                      setLocation(module.route);
+                    }}
+                    disabled={module.id === "notebook" && enableCommonplaceMutation.isPending}
                     className="h-11 w-full rounded-full border border-[#13243f]/14 bg-white/86 text-[#13243f] shadow-[0_14px_28px_-24px_rgba(19,36,63,0.52)] hover:bg-[#fffaf2]"
                   >
-                    Open module
+                    {module.id === "notebook" && !commonplaceEnabled
+                      ? enableCommonplaceMutation.isPending
+                        ? "Enabling workspace…"
+                        : "Enable workspace"
+                      : "Open module"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>

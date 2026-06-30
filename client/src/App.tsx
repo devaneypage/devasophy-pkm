@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
+import CommonplaceWorkspaceGate from "./components/CommonplaceWorkspaceGate";
 import Home from "./pages/Home";
 import Notebook from "./pages/Notebook";
 import Commonplace from "./pages/Commonplace";
@@ -32,21 +33,27 @@ function Router() {
       <Route path={"/commonplace"}>
         {() => (
           <DashboardLayout currentModule="notebook">
-            <Commonplace />
+            <CommonplaceWorkspaceGate>
+              <Commonplace />
+            </CommonplaceWorkspaceGate>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/library"}>
         {() => (
           <DashboardLayout currentModule="notebook">
-            <Commonplace />
+            <CommonplaceWorkspaceGate>
+              <Commonplace />
+            </CommonplaceWorkspaceGate>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/notebook"}>
         {() => (
           <DashboardLayout currentModule="notebook">
-            <Notebook />
+            <CommonplaceWorkspaceGate>
+              <Notebook />
+            </CommonplaceWorkspaceGate>
           </DashboardLayout>
         )}
       </Route>

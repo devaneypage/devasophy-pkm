@@ -71,6 +71,13 @@
       "when": 1782600072179,
       "tag": "0009_lush_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1782808222044,
+      "tag": "0010_lovely_pride",
+      "breakpoints": true
     }
   ]
 }

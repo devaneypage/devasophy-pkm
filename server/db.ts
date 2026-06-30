@@ -21,13 +21,22 @@ import {
   commonplaceBoards,
   commonplaceColumns,
   commonplaceEntries,
+  workspaceFeatureFlags,
   type InsertCommonplaceBoard,
   type InsertCommonplaceColumn,
   type InsertCommonplaceEntry,
   type CommonplaceEntryType,
+  type InsertWorkspaceFeatureFlag,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { johnnyDecimalModuleDefaults, johnnyDecimalSeeds } from "../shared/johnnyDecimal";
+import {
+  COMMONPLACE_WORKSPACE_FLAG,
+  getWorkspaceFeatureFlagDefinition,
+  isKnownWorkspaceFeatureFlag,
+  workspaceFeatureFlagDefinitions,
+  type WorkspaceFeatureFlagKey,
+} from "../shared/featureFlags";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -2260,4 +2269,103 @@ export async function saveCommonplaceBoardSnapshot(
   }
 
   return getCommonplaceBoardSnapshot(userId, savedBoard.id);
+}
+
+const DEFAULT_WORKSPACE_FEATURE_FLAGS: Array<Pick<InsertWorkspaceFeatureFlag, "flagKey" | "description" | "enabled">> = Object.entries(
+  workspaceFeatureFlagDefinitions
+).map(([flagKey, definition]) => ({
+  flagKey: flagKey as WorkspaceFeatureFlagKey,
+  description: definition.description,
+  enabled: definition.defaultEnabled,
+}));
+
+async function seedWorkspaceFeatureFlags(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(workspaceFeatureFlags)
+    .where(eq(workspaceFeatureFlags.userId, userId));
+
+  const existingKeys = new Set(existing.map((flag) => flag.flagKey));
+  const missingFlags = DEFAULT_WORKSPACE_FEATURE_FLAGS.filter((flag) => !existingKeys.has(flag.flagKey));
+
+  if (missingFlags.length > 0) {
+    await db.insert(workspaceFeatureFlags).values(
+      missingFlags.map((flag) => ({
+        userId,
+        flagKey: flag.flagKey,
+        description: flag.description,
+        enabled: flag.enabled,
+      }))
+    );
+  }
+}
+
+export async function listWorkspaceFeatureFlags(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await seedWorkspaceFeatureFlags(userId);
+
+  return db
+    .select()
+    .from(workspaceFeatureFlags)
+    .where(eq(workspaceFeatureFlags.userId, userId))
+    .orderBy(asc(workspaceFeatureFlags.flagKey));
+}
+
+export async function getWorkspaceFeatureFlag(userId: number, flagKey: WorkspaceFeatureFlagKey) {
+  const flags = await listWorkspaceFeatureFlags(userId);
+  const match = flags.find((flag) => flag.flagKey === flagKey);
+
+  return {
+    key: flagKey,
+    label: getWorkspaceFeatureFlagDefinition(flagKey).label,
+    description: getWorkspaceFeatureFlagDefinition(flagKey).description,
+    enabled: match?.enabled ?? getWorkspaceFeatureFlagDefinition(flagKey).defaultEnabled,
+  };
+}
+
+export async function isCommonplaceWorkspaceEnabled(userId: number) {
+  const commonplaceFlag = await getWorkspaceFeatureFlag(userId, COMMONPLACE_WORKSPACE_FLAG);
+  return commonplaceFlag.enabled;
+}
+
+export async function updateWorkspaceFeatureFlag(userId: number, flagKey: WorkspaceFeatureFlagKey, enabled: boolean) {
+  if (!isKnownWorkspaceFeatureFlag(flagKey)) {
+    throw new Error(`Unknown workspace feature flag: ${flagKey}`);
+  }
+
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await seedWorkspaceFeatureFlags(userId);
+
+  const existing = await db
+    .select()
+    .from(workspaceFeatureFlags)
+    .where(and(eq(workspaceFeatureFlags.userId, userId), eq(workspaceFeatureFlags.flagKey, flagKey)))
+    .limit(1);
+
+  if (existing[0]) {
+    await db
+      .update(workspaceFeatureFlags)
+      .set({
+        enabled,
+        description: getWorkspaceFeatureFlagDefinition(flagKey).description,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(workspaceFeatureFlags.userId, userId), eq(workspaceFeatureFlags.flagKey, flagKey)));
+  } else {
+    await db.insert(workspaceFeatureFlags).values({
+      userId,
+      flagKey,
+      description: getWorkspaceFeatureFlagDefinition(flagKey).description,
+      enabled,
+    });
+  }
+
+  return getWorkspaceFeatureFlag(userId, flagKey);
 }

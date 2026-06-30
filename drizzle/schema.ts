@@ -423,6 +423,16 @@ export const commonplaceEntries = mysqlTable("commonplace_entries", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const workspaceFeatureFlags = mysqlTable("workspace_feature_flags", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  flagKey: varchar("flagKey", { length: 120 }).notNull(),
+  description: text("description"),
+  enabled: boolean("enabled").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export type CommonplaceBoard = typeof commonplaceBoards.$inferSelect;
 export type InsertCommonplaceBoard = typeof commonplaceBoards.$inferInsert;
 export type CommonplaceColumn = typeof commonplaceColumns.$inferSelect;
@@ -430,3 +440,5 @@ export type InsertCommonplaceColumn = typeof commonplaceColumns.$inferInsert;
 export type CommonplaceEntry = typeof commonplaceEntries.$inferSelect;
 export type InsertCommonplaceEntry = typeof commonplaceEntries.$inferInsert;
 export type CommonplaceEntryType = typeof commonplaceEntries.$inferSelect.entryType;
+export type WorkspaceFeatureFlag = typeof workspaceFeatureFlags.$inferSelect;
+export type InsertWorkspaceFeatureFlag = typeof workspaceFeatureFlags.$inferInsert;

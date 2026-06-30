@@ -36,6 +36,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import TaxonomySidebar from "./TaxonomySidebar";
+import { useCommonplaceFeatureFlag } from "@/lib/featureFlags";
 
 const menuItems = [
   { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
@@ -134,6 +135,7 @@ function DashboardLayoutContent({
   currentModule,
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
+  const { commonplaceEnabled } = useCommonplaceFeatureFlag();
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
   const [isResizing, setIsResizing] = useState(false);
@@ -152,7 +154,8 @@ function DashboardLayoutContent({
     "/ideas": "ideas",
   };
 
-  const activeMenuItem = menuItems.find((item) => item.path === location) ?? menuItems[0];
+  const visibleMenuItems = menuItems.filter((item) => (item.path === "/commonplace" ? commonplaceEnabled : true));
+  const activeMenuItem = visibleMenuItems.find((item) => item.path === location) ?? visibleMenuItems[0] ?? menuItems[0];
 
   useEffect(() => {
     if (isCollapsed) {
@@ -229,7 +232,7 @@ function DashboardLayoutContent({
             <div className="absolute inset-x-0 bottom-0 h-28 dev-sidebar-pattern" />
             <div className="relative z-10 flex h-full flex-col">
               <SidebarMenu className="px-3 py-3">
-                {menuItems.map((item) => {
+                {visibleMenuItems.map((item) => {
                   const isActive = currentModule
                     ? pathToModule[item.path] === currentModule || location === item.path
                     : location === item.path;
