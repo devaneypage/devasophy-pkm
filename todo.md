@@ -556,3 +556,9 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Gate Commonplace routes, sidebar links, and page fallbacks behind the new feature flag
 - [x] Add tests covering enabled and disabled Commonplace states
 - [x] Verify flagged behavior in project health checks and save a checkpoint
+
+## Deployment Healthcheck Failure Investigation
+- [x] Reproduce the healthcheck failure path locally and collect runtime evidence from server startup and the health endpoint
+- [x] Compare the failing healthcheck path against the working local/dev runtime configuration to isolate the root cause
+- [x] Implement the minimal fix for the deployment startup failure and verify the health endpoint responds successfully
+- [x] Refresh project health, save a checkpoint, and report deployment readiness
