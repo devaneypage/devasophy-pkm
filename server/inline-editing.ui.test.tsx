@@ -79,6 +79,103 @@ vi.mock("uuid", () => ({
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
+    useUtils: () => ({
+      commonplace: {
+        boards: { list: { invalidate: vi.fn() } },
+        bootstrap: { invalidate: vi.fn() },
+        entries: { list: { invalidate: vi.fn() } },
+      },
+    }),
+    commonplace: {
+      boards: {
+        list: {
+          useQuery: () => ({
+            data: [{ id: 10, title: "Commonplace", description: "Working board", isDefault: true }],
+            isLoading: false,
+          }),
+        },
+        saveSnapshot: {
+          useMutation: () => ({
+            mutate: vi.fn(),
+            isPending: false,
+          }),
+        },
+      },
+      bootstrap: {
+        useQuery: () => ({
+          data: {
+            board: { id: 10, title: "Commonplace", description: "Working board", isDefault: true },
+            columns: [
+              { id: 1, title: "Inbox", colorToken: "grey", position: 0 },
+              { id: 2, title: "Shaping", colorToken: "vermillion", position: 1 },
+            ],
+            entries: mockState.notebookEntries.map((entry) => ({
+              id: entry.id,
+              boardId: 10,
+              columnId: 1,
+              entryType: entry.sourceType === "General note" ? "research_note" : "quote",
+              title: entry.text,
+              summary: entry.note,
+              content: { markdown: entry.text },
+              metadata: {
+                author: entry.author,
+                work: entry.work,
+                sourceType: entry.sourceType,
+                location: entry.location,
+                note: entry.note,
+                collections: entry.collections,
+                categoryId: entry.categoryId,
+                uuid: entry.uuid,
+              },
+              tags: entry.tags,
+              position: 0,
+              isArchived: false,
+            })),
+          },
+          isLoading: false,
+        }),
+      },
+      columns: {
+        create: {
+          useMutation: () => ({
+            mutate: vi.fn(),
+            isPending: false,
+          }),
+        },
+      },
+      entries: {
+        create: {
+          useMutation: (options?: { onSuccess?: () => void }) => ({
+            mutate: (payload: unknown) => {
+              mockState.notebookCreateSpy(payload);
+              options?.onSuccess?.();
+            },
+            isPending: false,
+          }),
+        },
+        update: {
+          useMutation: (options?: { onSuccess?: () => void }) => ({
+            mutate: (payload: unknown) => {
+              mockState.notebookUpdateSpy(payload);
+              options?.onSuccess?.();
+            },
+            isPending: false,
+          }),
+        },
+        delete: {
+          useMutation: () => ({
+            mutate: vi.fn(),
+            isPending: false,
+          }),
+        },
+        move: {
+          useMutation: () => ({
+            mutate: vi.fn(),
+            isPending: false,
+          }),
+        },
+      },
+    },
     notebook: {
       list: {
         useQuery: () => ({
@@ -199,76 +296,116 @@ describe("PKM inline editing UI", () => {
     expect(onChange).toHaveBeenCalledWith(undefined);
   });
 
-  it("switches the notebook creator into general-note mode and submits note-oriented defaults", () => {
+  it("creates a research-note card from the notebook alias with the current commonplace editor", () => {
     render(<Notebook />);
 
-    fireEvent.click(screen.getByText("New entry"));
-    fireEvent.click(screen.getByText("General note"));
+    fireEvent.click(screen.getByRole("button", { name: /add a card to inbox/i }));
 
-    expect(screen.getByText("Create general note")).toBeTruthy();
-    expect(screen.getByText(/without forcing it into quotation-style metadata/i)).toBeTruthy();
-    expect(screen.getByText("General note *")).toBeTruthy();
-    expect(screen.getByDisplayValue("General note")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Create card" })).toBeTruthy();
+    expect(screen.getByText("Title")).toBeTruthy();
+    expect(screen.getByText("Markdown body")).toBeTruthy();
 
-    fireEvent.change(screen.getByPlaceholderText("Capture the original note, synthesis, observation, or research fragment you want to keep"), {
+    fireEvent.change(screen.getByPlaceholderText("Name the card with a phrase you will recognize later"), {
+      target: { value: "Working synthesis" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("What makes this fragment worth preserving?"), {
+      target: { value: "A summary worth preserving" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Draft in markdown, capture fragments, or shape the card into a polished record."), {
       target: { value: "Working synthesis about rhetoric and memory." },
     });
-    fireEvent.change(screen.getByPlaceholderText("Project, reading session, lecture, client matter"), {
+    fireEvent.change(screen.getByPlaceholderText("Add the source, context, or editorial frame"), {
       target: { value: "Rhetoric chapter notes" },
     });
-    fireEvent.click(screen.getByText("Create note"));
+    fireEvent.change(screen.getByPlaceholderText("Optional metadata to anchor recall"), {
+      target: { value: "folio 7" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create card" }));
 
-    // Verify the spy was called with the expected payload
-    const callArgs = mockState.notebookCreateSpy.mock.calls[0][0];
-    expect(callArgs.text).toBe("Working synthesis about rhetoric and memory.");
-    expect(callArgs.work).toBe("Rhetoric chapter notes");
-    expect(callArgs.sourceType).toBe("General note");
-    expect(callArgs.categoryId).toBe(102);
-    expect(callArgs.uuid).toBe("fixed-uuid");
-    // zettelkastenId is generated asynchronously and may not be set in test environment
-    // Just verify it exists if present
-    if (callArgs.zettelkastenId) {
-      expect(callArgs.zettelkastenId).toBe("41.01-20250424-001");
-    }
-    expect(mockState.notebookRefetchSpy).toHaveBeenCalled();
+    expect(mockState.notebookCreateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        boardId: 10,
+        columnId: 1,
+        entryType: "research_note",
+        title: "Working synthesis",
+        summary: "A summary worth preserving",
+        content: {
+          markdown: "Working synthesis about rhetoric and memory.",
+          context: "Rhetoric chapter notes",
+          reference: "folio 7",
+        },
+      }),
+    );
   });
 
-  it("returns the notebook creator to quote mode with quote-specific copy after toggling back", () => {
+  it("switches the notebook creator into quote mode with quote-specific labels and payload", () => {
     render(<Notebook />);
 
-    fireEvent.click(screen.getByText("New entry"));
-    fireEvent.click(screen.getByText("General note"));
-    fireEvent.click(screen.getByText("Quote"));
+    fireEvent.click(screen.getByRole("button", { name: /add a card to inbox/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Quotes" }));
 
-    expect(screen.getByText("Create quotation entry")).toBeTruthy();
-    expect(screen.getByText(/preserving a sourced passage/i)).toBeTruthy();
-    expect(screen.getByText("Quote or passage *")).toBeTruthy();
-    expect(screen.queryByDisplayValue("General note")).toBeNull();
+    expect(screen.getByText("Quote text")).toBeTruthy();
+    expect(screen.getByText("Source")).toBeTruthy();
+    expect(screen.getByText("Location")).toBeTruthy();
+
+    fireEvent.change(screen.getByPlaceholderText("Name the card with a phrase you will recognize later"), {
+      target: { value: "Ars memoria fragment" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Draft in markdown, capture fragments, or shape the card into a polished record."), {
+      target: { value: "Memory is the treasury and guardian of all things." },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Add the source, context, or editorial frame"), {
+      target: { value: "Cicero" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Optional metadata to anchor recall"), {
+      target: { value: "De Oratore II.86" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create card" }));
+
+    expect(mockState.notebookCreateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entryType: "quote",
+        title: "Ars memoria fragment",
+        content: {
+          text: "Memory is the treasury and guardian of all things.",
+          source: "Cicero",
+          location: "De Oratore II.86",
+        },
+      }),
+    );
   });
 
-  it("saves notebook inline edits with the selected Johnny Decimal category", () => {
+  it("opens the notebook alias card editor and saves updated commonplace content", () => {
     const { container } = render(<Notebook />);
 
-    const card = screen.getByText(/Original quote/).closest(".overflow-hidden") as HTMLElement;
-    const editButton = within(card).getAllByRole("button")[0];
-    fireEvent.click(editButton);
+    fireEvent.click(screen.getByRole("button", { name: /Original quote/i }));
 
-    fireEvent.change(screen.getByDisplayValue("Original quote"), {
+    const quoteFields = screen.getAllByDisplayValue("Original quote");
+    fireEvent.change(quoteFields[0], {
       target: { value: "Revised quote" },
     });
-    fireEvent.change(within(card).getByRole("combobox"), {
-      target: { value: "102" },
+    fireEvent.change(screen.getByDisplayValue("Original note"), {
+      target: { value: "Revised summary" },
+    });
+    fireEvent.change(quoteFields[1], {
+      target: { value: "Revised quote body" },
     });
     fireEvent.click(screen.getByText("Save changes"));
 
     expect(mockState.notebookUpdateSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 1,
-        text: "Revised quote",
-        categoryId: 102,
+        columnId: 1,
+        entryType: "quote",
+        title: "Revised quote",
+        summary: "Revised summary",
+        content: {
+          text: "Revised quote body",
+          source: "",
+          location: "",
+        },
       }),
     );
-    expect(mockState.notebookRefetchSpy).toHaveBeenCalled();
     expect(container.textContent).not.toContain("Save changes");
   });
 

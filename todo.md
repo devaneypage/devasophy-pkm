@@ -572,3 +572,4 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Define the cross-module duplicate rules, confidence thresholds, and suggested canonical-record logic
 - [x] Decide whether duplicate groups support review-only, merge, delete, or archive actions before implementation
 - [x] Restrict true merge actions to same-module duplicates and handle cross-module matches through canonical keep plus archive or delete review actions
+- [x] Reapply the lost inline-editing/Commonplace test-fix changes after the environment reset and save them properly on main
