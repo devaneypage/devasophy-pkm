@@ -19,6 +19,7 @@ import NotebookDetail from "./pages/NotebookDetail";
 import LexiconDetail from "./pages/LexiconDetail";
 import Export from "./pages/Export";
 import Glossary from "./pages/Glossary";
+import Deduplication from "./pages/Deduplication";
 
 function Router() {
   return (
@@ -124,6 +125,13 @@ function Router() {
         {() => (
           <DashboardLayout>
             <Export />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/deduplication"}>
+        {() => (
+          <DashboardLayout>
+            <Deduplication />
           </DashboardLayout>
         )}
       </Route>

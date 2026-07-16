@@ -49,6 +49,7 @@ const menuItems = [
   { icon: VocabularyIcon, label: "Lexicon", path: "/lexicon", accent: "#56c5ea" },
   { icon: Upload, label: "Import", path: "/bulk-import", accent: "#f03878" },
   { icon: Download, label: "Export", path: "/export", accent: "#56c5ea" },
+  { icon: Grid2x2, label: "Deduplication", path: "/deduplication", accent: "#bfd73d" },
 ];
 
 const utilityItems = [{ icon: Settings2, label: "Settings", path: "/export", accent: "#5c61ff" }];

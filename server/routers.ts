@@ -73,6 +73,8 @@ import {
   bulkImportLexiconFromText,
   bulkImportNotebookWithDuplicateDetection,
   bulkImportLexiconWithDuplicateDetection,
+  scanDeduplicationGroups,
+  applyDeduplicationAction,
 } from "./db";
 import {
   generateNotebookZettelkastenId,
@@ -555,6 +557,26 @@ Composition request: ${input.prompt}`,
       )
       .query(async ({ ctx, input }) => {
         return await searchAllModules(ctx.user.id, input.query, input);
+      }),
+  }),
+
+  // ============================================================================
+  // DEDUPLICATION WORKSPACE
+  // ============================================================================
+  deduplication: router({
+    scan: protectedProcedure.query(async ({ ctx }) => {
+      return await scanDeduplicationGroups(ctx.user.id);
+    }),
+    resolve: protectedProcedure
+      .input(
+        z.object({
+          canonicalKey: z.string().min(1),
+          targetKeys: z.array(z.string().min(1)).min(1),
+          action: z.enum(["merge", "archive", "delete"]),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await applyDeduplicationAction(ctx.user.id, input);
       }),
   }),
 

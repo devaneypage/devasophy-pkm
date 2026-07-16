@@ -562,3 +562,13 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Compare the failing healthcheck path against the working local/dev runtime configuration to isolate the root cause
 - [x] Implement the minimal fix for the deployment startup failure and verify the health endpoint responds successfully
 - [x] Refresh project health, save a checkpoint, and report deployment readiness
+
+## Deduplication Tool
+- [x] Add a deduplication tool for duplicate knowledge records with configurable matching and review workflow
+- [x] Define the deduplication scope, duplicate criteria, and merge or delete behavior with the user before implementation
+- [x] Implement the deduplication backend and UI flow in the appropriate Devanomy workspace
+- [x] Add Vitest coverage for duplicate detection and resolution behavior
+- [x] Extend the deduplication tool to scan across Commonplace, Lexicon, Books, notes, projects, goals, tasks, and ideas together
+- [x] Define the cross-module duplicate rules, confidence thresholds, and suggested canonical-record logic
+- [x] Decide whether duplicate groups support review-only, merge, delete, or archive actions before implementation
+- [x] Restrict true merge actions to same-module duplicates and handle cross-module matches through canonical keep plus archive or delete review actions

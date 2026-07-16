@@ -18,6 +18,7 @@ import {
   projects,
   tasks,
   ideas,
+  books,
   commonplaceBoards,
   commonplaceColumns,
   commonplaceEntries,
@@ -37,6 +38,20 @@ import {
   workspaceFeatureFlagDefinitions,
   type WorkspaceFeatureFlagKey,
 } from "../shared/featureFlags";
+import {
+  groupDedupComparableRecords,
+  mergeLexiconEntries,
+  mergeNotebookEntries,
+  normalizeText,
+  normalizeBookRecord,
+  normalizeCommonplaceRecord,
+  normalizeDocumentRecord,
+  normalizeIdeaRecord,
+  normalizeLexiconRecord,
+  type DedupComparableRecord,
+  type DedupGroup,
+  type DedupModule,
+} from "./duplicateDetection";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -2368,4 +2383,286 @@ export async function updateWorkspaceFeatureFlag(userId: number, flagKey: Worksp
   }
 
   return getWorkspaceFeatureFlag(userId, flagKey);
+}
+
+export type DeduplicationAction = "merge" | "archive" | "delete";
+
+export type DeduplicationApplyInput = {
+  canonicalKey: string;
+  targetKeys: string[];
+  action: DeduplicationAction;
+};
+
+function uniqueCsv(values: Array<string | null | undefined>) {
+  return Array.from(
+    new Set(
+      values
+        .flatMap((value) => (value ?? "").split(","))
+        .map((value) => value.trim())
+        .filter(Boolean)
+    )
+  ).join(",");
+}
+
+function parseMaybeJsonArray(value: unknown) {
+  if (!value) return [] as string[];
+  if (Array.isArray(value)) return value.map((item) => String(item));
+  if (typeof value !== "string") return [String(value)];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map((item) => JSON.stringify(item)) : [value];
+  } catch {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+}
+
+function mergeStringArrays(left: unknown, right: unknown) {
+  return JSON.stringify(Array.from(new Set([...parseMaybeJsonArray(left), ...parseMaybeJsonArray(right)])));
+}
+
+function appendDistinctText(primary?: string | null, secondary?: string | null) {
+  const left = primary?.trim();
+  const right = secondary?.trim();
+  if (!left) return right ?? undefined;
+  if (!right || normalizeText(left) === normalizeText(right)) return left;
+  return `${left}\n\n---\n\n${right}`;
+}
+
+function parseDedupKey(key: string): { module: DedupModule; id: number } {
+  const [module, rawId] = key.split(":");
+  const id = Number(rawId);
+  if (!module || Number.isNaN(id)) {
+    throw new Error(`Invalid deduplication key: ${key}`);
+  }
+  return { module: module as DedupModule, id };
+}
+
+function mergeCommonplaceEntriesForDedup(existing: Record<string, any>, incoming: Record<string, any>) {
+  const existingMetadata = existing.metadata && typeof existing.metadata === "object" ? existing.metadata : {};
+  const incomingMetadata = incoming.metadata && typeof incoming.metadata === "object" ? incoming.metadata : {};
+
+  return {
+    title: existing.title,
+    summary: appendDistinctText(existing.summary, incoming.summary),
+    content: existing.content ?? incoming.content ?? null,
+    metadata: { ...incomingMetadata, ...existingMetadata },
+    tags: uniqueCsv([existing.tags, incoming.tags]),
+    isArchived: false,
+  };
+}
+
+function mergeBookEntriesForDedup(existing: Record<string, any>, incoming: Record<string, any>) {
+  const statusRank: Record<string, number> = {
+    want_to_read: 0,
+    reading: 1,
+    completed: 2,
+  };
+
+  const bestStatus = (statusRank[incoming.status] ?? -1) > (statusRank[existing.status] ?? -1)
+    ? incoming.status
+    : existing.status;
+
+  return {
+    title: existing.title,
+    author: existing.author ?? incoming.author ?? null,
+    notes: appendDistinctText(existing.notes, incoming.notes),
+    tags: uniqueCsv([existing.tags, incoming.tags]),
+    rating: existing.rating ?? incoming.rating ?? null,
+    readingProgress: Math.max(Number(existing.readingProgress ?? 0), Number(incoming.readingProgress ?? 0)),
+    status: bestStatus,
+  };
+}
+
+function mergeDocumentEntriesForDedup(existing: Record<string, any>, incoming: Record<string, any>) {
+  return {
+    title: existing.title,
+    content: appendDistinctText(existing.content, incoming.content),
+    project: existing.project ?? incoming.project ?? null,
+    folder: existing.folder ?? incoming.folder ?? null,
+    status: existing.status === "archived" && incoming.status !== "archived" ? incoming.status : existing.status,
+  };
+}
+
+function mergeIdeaEntriesForDedup(existing: Record<string, any>, incoming: Record<string, any>) {
+  return {
+    title: existing.title,
+    summary: appendDistinctText(existing.summary, incoming.summary),
+    tags: uniqueCsv([existing.tags, incoming.tags]),
+    linkedEntries: mergeStringArrays(existing.linkedEntries, incoming.linkedEntries),
+    linkedGoalId: existing.linkedGoalId ?? incoming.linkedGoalId ?? null,
+    sourceModule: existing.sourceModule ?? incoming.sourceModule,
+    status: existing.status === "archived" && incoming.status !== "archived" ? incoming.status : existing.status,
+  };
+}
+
+export async function listDedupComparableRecords(userId: number): Promise<DedupComparableRecord[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [commonplaceRows, lexiconRows, bookRows, documentRows, ideaRows] = await Promise.all([
+    db.select().from(commonplaceEntries).where(eq(commonplaceEntries.userId, userId)),
+    db.select().from(lexiconEntries).where(eq(lexiconEntries.userId, userId)),
+    db.select().from(books).where(eq(books.userId, userId)),
+    db.select().from(documents).where(eq(documents.userId, userId)),
+    db.select().from(ideas).where(eq(ideas.userId, userId)),
+  ]);
+
+  return [
+    ...commonplaceRows.map((row) => normalizeCommonplaceRecord(row)),
+    ...lexiconRows.map((row) => normalizeLexiconRecord(row)),
+    ...bookRows.map((row) => normalizeBookRecord(row)),
+    ...documentRows.map((row) => normalizeDocumentRecord(row)),
+    ...ideaRows.map((row) => normalizeIdeaRecord(row)),
+  ];
+}
+
+export async function scanDeduplicationGroups(userId: number): Promise<DedupGroup[]> {
+  const records = await listDedupComparableRecords(userId);
+  return groupDedupComparableRecords(records);
+}
+
+async function deleteDedupRecord(userId: number, record: DedupComparableRecord) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  switch (record.module) {
+    case "commonplace":
+      return deleteCommonplaceEntry(userId, record.id);
+    case "lexicon":
+      return deleteLexiconEntry(userId, record.id);
+    case "book":
+      return db.delete(books).where(and(eq(books.userId, userId), eq(books.id, record.id)));
+    case "document":
+      return deleteDocument(userId, record.id);
+    case "idea":
+      return deleteIdea(userId, record.id);
+    default:
+      throw new Error(`Unsupported deduplication module: ${record.module satisfies never}`);
+  }
+}
+
+async function archiveDedupRecord(userId: number, record: DedupComparableRecord) {
+  switch (record.module) {
+    case "commonplace":
+      return updateCommonplaceEntry(userId, record.id, { isArchived: true });
+    case "document":
+      return updateDocument(userId, record.id, { status: "archived" });
+    case "idea":
+      return updateIdea(userId, record.id, { status: "archived" });
+    default:
+      throw new Error(`Archive is not supported for ${record.module} records`);
+  }
+}
+
+async function mergeIntoCanonicalRecord(userId: number, canonical: DedupComparableRecord, duplicate: DedupComparableRecord) {
+  if (canonical.module !== duplicate.module) {
+    throw new Error("Merge is only supported within the same module");
+  }
+
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  switch (canonical.module) {
+    case "commonplace": {
+      const merged = mergeCommonplaceEntriesForDedup(canonical.raw, duplicate.raw);
+      await updateCommonplaceEntry(userId, canonical.id, merged);
+      await deleteCommonplaceEntry(userId, duplicate.id);
+      return;
+    }
+    case "lexicon": {
+      const merged = mergeLexiconEntries(canonical.raw, duplicate.raw, "merge_fields");
+      await updateLexiconEntry(userId, canonical.id, merged.mergedEntry);
+      await deleteLexiconEntry(userId, duplicate.id);
+      return;
+    }
+    case "book": {
+      const merged = mergeBookEntriesForDedup(canonical.raw, duplicate.raw);
+      await db
+        .update(books)
+        .set({ ...merged, updatedAt: new Date() })
+        .where(and(eq(books.userId, userId), eq(books.id, canonical.id)));
+      await db.delete(books).where(and(eq(books.userId, userId), eq(books.id, duplicate.id)));
+      return;
+    }
+    case "document": {
+      const merged = mergeDocumentEntriesForDedup(canonical.raw, duplicate.raw);
+      await updateDocument(userId, canonical.id, merged);
+      await deleteDocument(userId, duplicate.id);
+      return;
+    }
+    case "idea": {
+      const merged = mergeIdeaEntriesForDedup(canonical.raw, duplicate.raw);
+      await updateIdea(userId, canonical.id, merged);
+      await deleteIdea(userId, duplicate.id);
+      return;
+    }
+    default:
+      throw new Error(`Unsupported merge module: ${canonical.module satisfies never}`);
+  }
+}
+
+export async function applyDeduplicationAction(userId: number, input: DeduplicationApplyInput) {
+  const records = await listDedupComparableRecords(userId);
+  const recordMap = new Map(records.map((record) => [record.dedupKey, record]));
+
+  const canonical = recordMap.get(input.canonicalKey);
+  if (!canonical) {
+    throw new Error("Canonical record not found");
+  }
+
+  const targets = input.targetKeys.map((key) => {
+    const record = recordMap.get(key);
+    if (!record) {
+      throw new Error(`Target record not found: ${key}`);
+    }
+    return record;
+  });
+
+  if (targets.length === 0) {
+    throw new Error("At least one target record is required");
+  }
+
+  const allRecords = [canonical, ...targets];
+  const sameModule = new Set(allRecords.map((record) => record.module)).size === 1;
+
+  if (input.action === "merge" && !sameModule) {
+    throw new Error("Merge actions are only allowed when all selected records belong to the same module");
+  }
+
+  let updatedCount = 0;
+  let archivedCount = 0;
+  let deletedCount = 0;
+
+  if (input.action === "merge") {
+    for (const target of targets) {
+      await mergeIntoCanonicalRecord(userId, canonical, target);
+      updatedCount += 1;
+      deletedCount += 1;
+    }
+  }
+
+  if (input.action === "archive") {
+    for (const target of targets) {
+      await archiveDedupRecord(userId, target);
+      archivedCount += 1;
+    }
+  }
+
+  if (input.action === "delete") {
+    for (const target of targets) {
+      await deleteDedupRecord(userId, target);
+      deletedCount += 1;
+    }
+  }
+
+  return {
+    success: true as const,
+    action: input.action,
+    canonicalKey: input.canonicalKey,
+    targetKeys: input.targetKeys,
+    sameModule,
+    updatedCount,
+    archivedCount,
+    deletedCount,
+  };
 }

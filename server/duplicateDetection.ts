@@ -432,3 +432,400 @@ export function batchDetectLexiconDuplicates(
 
   return results;
 }
+
+export type DedupModule = "commonplace" | "lexicon" | "book" | "document" | "idea";
+
+export type DedupMatchBasis = "zettelkasten_id" | "uuid" | "title_author" | "title_body";
+
+export interface DedupComparableRecord {
+  dedupKey: string;
+  module: DedupModule;
+  id: number;
+  label: string;
+  title: string;
+  body?: string;
+  author?: string;
+  uuid?: string;
+  zettelkastenId?: string;
+  entryType?: string;
+  archivable: boolean;
+  raw: Record<string, any>;
+}
+
+export interface DedupCandidatePair {
+  leftKey: string;
+  rightKey: string;
+  similarity: number;
+  basis: DedupMatchBasis;
+  sameModule: boolean;
+  allowedActions: Array<"merge" | "archive" | "delete">;
+}
+
+export interface DedupGroup {
+  id: string;
+  records: DedupComparableRecord[];
+  candidatePairs: DedupCandidatePair[];
+  sameModule: boolean;
+  allowedActions: Array<"merge" | "archive" | "delete">;
+  suggestedCanonicalKey: string;
+  confidence: number;
+  bases: DedupMatchBasis[];
+}
+
+function normalizeOptionalValue(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+export function extractComparableText(value: unknown): string {
+  if (value == null) return "";
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => extractComparableText(item))
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const orderedKeys = [
+      "markdown",
+      "text",
+      "definition",
+      "abstract",
+      "notes",
+      "note",
+      "summary",
+      "url",
+      "label",
+      "source",
+      "publication",
+      "context",
+      "status",
+      "aliases",
+      "reference",
+      "author",
+      "location",
+      "etymology",
+      "items",
+    ];
+
+    const preferred = orderedKeys
+      .flatMap((key) => (key in record ? [record[key]] : []))
+      .map((item) => extractComparableText(item))
+      .filter(Boolean);
+
+    if (preferred.length > 0) {
+      return preferred.join(" ").trim();
+    }
+
+    return Object.values(record)
+      .map((item) => extractComparableText(item))
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
+
+  return String(value).trim();
+}
+
+function stringifyRecordRecord(record: DedupComparableRecord): string {
+  return [record.title, record.body ?? "", record.author ?? "", record.zettelkastenId ?? "", record.uuid ?? ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function deriveCanonicalKey(records: DedupComparableRecord[]): string {
+  const scored = [...records].sort((left, right) => {
+    const leftScore = stringifyRecordRecord(left).length;
+    const rightScore = stringifyRecordRecord(right).length;
+    return rightScore - leftScore;
+  });
+
+  return scored[0]?.dedupKey ?? "";
+}
+
+function deriveAllowedActions(records: DedupComparableRecord[]): Array<"merge" | "archive" | "delete"> {
+  const sameModule = new Set(records.map((record) => record.module)).size === 1;
+  if (sameModule) {
+    return ["merge", "archive", "delete"];
+  }
+  return ["archive", "delete"];
+}
+
+function compareTitleAndAuthor(left: DedupComparableRecord, right: DedupComparableRecord) {
+  const leftTitle = normalizeOptionalValue(left.title);
+  const rightTitle = normalizeOptionalValue(right.title);
+  const leftAuthor = normalizeOptionalValue(left.author);
+  const rightAuthor = normalizeOptionalValue(right.author);
+
+  if (!leftTitle || !rightTitle || !leftAuthor || !rightAuthor) {
+    return null;
+  }
+
+  const titleSimilarity = calculateCombinedSimilarity(leftTitle, rightTitle, {
+    levenshtein: 0.55,
+    wordOverlap: 0.45,
+  });
+  const authorSimilarity = calculateSimilarity(leftAuthor, rightAuthor);
+
+  if (titleSimilarity >= 0.92 && authorSimilarity >= 0.88) {
+    return {
+      basis: "title_author" as const,
+      similarity: (titleSimilarity * 0.6) + (authorSimilarity * 0.4),
+    };
+  }
+
+  return null;
+}
+
+function compareTitleAndBody(left: DedupComparableRecord, right: DedupComparableRecord) {
+  const leftTitle = normalizeOptionalValue(left.title);
+  const rightTitle = normalizeOptionalValue(right.title);
+  const leftBody = normalizeOptionalValue(left.body);
+  const rightBody = normalizeOptionalValue(right.body);
+
+  if (!leftTitle || !rightTitle || !leftBody || !rightBody) {
+    return null;
+  }
+
+  const titleSimilarity = calculateCombinedSimilarity(leftTitle, rightTitle, {
+    levenshtein: 0.65,
+    wordOverlap: 0.35,
+  });
+  const bodySimilarity = calculateCombinedSimilarity(leftBody, rightBody, {
+    levenshtein: 0.35,
+    wordOverlap: 0.65,
+  });
+
+  if (titleSimilarity >= 0.88 && bodySimilarity >= 0.72) {
+    return {
+      basis: "title_body" as const,
+      similarity: (titleSimilarity * 0.45) + (bodySimilarity * 0.55),
+    };
+  }
+
+  return null;
+}
+
+export function compareDedupRecords(left: DedupComparableRecord, right: DedupComparableRecord): DedupCandidatePair | null {
+  if (left.dedupKey === right.dedupKey) {
+    return null;
+  }
+
+  const sameModule = left.module === right.module;
+  const allowedActions = sameModule ? ["merge", "archive", "delete"] as Array<"merge" | "archive" | "delete"> : ["archive", "delete"] as Array<"merge" | "archive" | "delete">;
+
+  if (left.zettelkastenId && right.zettelkastenId && normalizeText(left.zettelkastenId) === normalizeText(right.zettelkastenId)) {
+    return {
+      leftKey: left.dedupKey,
+      rightKey: right.dedupKey,
+      similarity: 1,
+      basis: "zettelkasten_id",
+      sameModule,
+      allowedActions,
+    };
+  }
+
+  if (left.uuid && right.uuid && sameModule && normalizeText(left.uuid) === normalizeText(right.uuid)) {
+    return {
+      leftKey: left.dedupKey,
+      rightKey: right.dedupKey,
+      similarity: 1,
+      basis: "uuid",
+      sameModule,
+      allowedActions,
+    };
+  }
+
+  const authorMatch = compareTitleAndAuthor(left, right);
+  if (authorMatch) {
+    return {
+      leftKey: left.dedupKey,
+      rightKey: right.dedupKey,
+      similarity: authorMatch.similarity,
+      basis: authorMatch.basis,
+      sameModule,
+      allowedActions,
+    };
+  }
+
+  const bodyMatch = compareTitleAndBody(left, right);
+  if (bodyMatch) {
+    return {
+      leftKey: left.dedupKey,
+      rightKey: right.dedupKey,
+      similarity: bodyMatch.similarity,
+      basis: bodyMatch.basis,
+      sameModule,
+      allowedActions,
+    };
+  }
+
+  return null;
+}
+
+function buildComponents(records: DedupComparableRecord[], pairs: DedupCandidatePair[]) {
+  const adjacency = new Map<string, Set<string>>();
+
+  records.forEach((record) => {
+    adjacency.set(record.dedupKey, new Set());
+  });
+
+  pairs.forEach((pair) => {
+    adjacency.get(pair.leftKey)?.add(pair.rightKey);
+    adjacency.get(pair.rightKey)?.add(pair.leftKey);
+  });
+
+  const visited = new Set<string>();
+  const groups: string[][] = [];
+
+  for (const record of records) {
+    if (visited.has(record.dedupKey)) continue;
+    const neighbors = adjacency.get(record.dedupKey);
+    if (!neighbors || neighbors.size === 0) continue;
+
+    const stack = [record.dedupKey];
+    const component: string[] = [];
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current || visited.has(current)) continue;
+      visited.add(current);
+      component.push(current);
+
+      adjacency.get(current)?.forEach((neighbor) => {
+        if (!visited.has(neighbor)) {
+          stack.push(neighbor);
+        }
+      });
+    }
+
+    if (component.length > 1) {
+      groups.push(component);
+    }
+  }
+
+  return groups;
+}
+
+export function groupDedupComparableRecords(records: DedupComparableRecord[]): DedupGroup[] {
+  const pairs: DedupCandidatePair[] = [];
+
+  for (let leftIndex = 0; leftIndex < records.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < records.length; rightIndex += 1) {
+      const match = compareDedupRecords(records[leftIndex], records[rightIndex]);
+      if (match) {
+        pairs.push(match);
+      }
+    }
+  }
+
+  const recordsByKey = new Map(records.map((record) => [record.dedupKey, record]));
+
+  return buildComponents(records, pairs).map((keys, index) => {
+    const groupRecords = keys
+      .map((key) => recordsByKey.get(key))
+      .filter((record): record is DedupComparableRecord => Boolean(record));
+    const groupPairs = pairs.filter((pair) => keys.includes(pair.leftKey) && keys.includes(pair.rightKey));
+    const confidence = groupPairs.length > 0
+      ? groupPairs.reduce((sum, pair) => sum + pair.similarity, 0) / groupPairs.length
+      : 0;
+    const bases = Array.from(new Set(groupPairs.map((pair) => pair.basis)));
+
+    return {
+      id: `dedup-group-${index + 1}`,
+      records: groupRecords,
+      candidatePairs: groupPairs,
+      sameModule: new Set(groupRecords.map((record) => record.module)).size === 1,
+      allowedActions: deriveAllowedActions(groupRecords),
+      suggestedCanonicalKey: deriveCanonicalKey(groupRecords),
+      confidence,
+      bases,
+    };
+  }).sort((left, right) => right.confidence - left.confidence);
+}
+
+export function normalizeCommonplaceRecord(entry: Record<string, any>): DedupComparableRecord {
+  const metadata = entry.metadata && typeof entry.metadata === "object" ? entry.metadata as Record<string, unknown> : {};
+  const zettelkastenId = normalizeOptionalValue(metadata.zettelkastenId ?? metadata.zettelId ?? metadata.zettelkasten_id);
+  const author = normalizeOptionalValue(metadata.author);
+
+  return {
+    dedupKey: `commonplace:${entry.id}`,
+    module: "commonplace",
+    id: entry.id,
+    label: entry.title,
+    title: entry.title,
+    body: extractComparableText(entry.content ?? entry.summary ?? metadata),
+    author,
+    zettelkastenId,
+    entryType: typeof entry.entryType === "string" ? entry.entryType : undefined,
+    archivable: true,
+    raw: entry,
+  };
+}
+
+export function normalizeLexiconRecord(entry: Record<string, any>): DedupComparableRecord {
+  return {
+    dedupKey: `lexicon:${entry.id}`,
+    module: "lexicon",
+    id: entry.id,
+    label: entry.term,
+    title: entry.term,
+    body: extractComparableText(entry.definition),
+    zettelkastenId: normalizeOptionalValue(entry.zettelkastenId),
+    archivable: false,
+    raw: entry,
+  };
+}
+
+export function normalizeBookRecord(entry: Record<string, any>): DedupComparableRecord {
+  return {
+    dedupKey: `book:${entry.id}`,
+    module: "book",
+    id: entry.id,
+    label: entry.title,
+    title: entry.title,
+    author: normalizeOptionalValue(entry.author),
+    body: extractComparableText(entry.notes),
+    archivable: true,
+    raw: entry,
+  };
+}
+
+export function normalizeDocumentRecord(entry: Record<string, any>): DedupComparableRecord {
+  return {
+    dedupKey: `document:${entry.id}`,
+    module: "document",
+    id: entry.id,
+    label: entry.title,
+    title: entry.title,
+    body: extractComparableText(entry.content),
+    uuid: normalizeOptionalValue(entry.uuid),
+    archivable: true,
+    raw: entry,
+  };
+}
+
+export function normalizeIdeaRecord(entry: Record<string, any>): DedupComparableRecord {
+  return {
+    dedupKey: `idea:${entry.id}`,
+    module: "idea",
+    id: entry.id,
+    label: entry.title,
+    title: entry.title,
+    body: extractComparableText(entry.summary),
+    uuid: normalizeOptionalValue(entry.uuid),
+    zettelkastenId: normalizeOptionalValue(entry.zettelkastenId),
+    archivable: true,
+    raw: entry,
+  };
+}
