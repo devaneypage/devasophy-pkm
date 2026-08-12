@@ -9,4 +9,4 @@
 - [x] Run TypeScript validation, all 288 Vitest tests, and the production build successfully
 - [x] Verify Commonplace flag disabled and enabled states with authenticated Playwright testing
 - [x] Confirm disabled navigation hiding, one-click activation, restored route access, and zero browser errors
-- [ ] Save a checkpoint for the verified runtime recovery
+- [x] Save a checkpoint for the verified runtime recovery
