@@ -1,0 +1,15 @@
+{
+  "userId": 1,
+  "recordCounts": {
+    "commonplace_entries": 1,
+    "lexicon_entries": 6357,
+    "books": 0,
+    "documents": 3,
+    "ideas": 3
+  },
+  "totalRecords": 6364,
+  "previousAllPairsComparisonCount": 20247066,
+  "observedPreFixOutcome": "Client timed out after 120 seconds",
+  "postFixEndpointElapsedMs": 7725,
+  "postFixStatus": 200
+}

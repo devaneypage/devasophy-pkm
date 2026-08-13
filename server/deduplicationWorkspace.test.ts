@@ -96,4 +96,23 @@ describe("Deduplication workspace helpers", () => {
     expect(groups[0].allowedActions).toEqual(["archive", "delete"]);
     expect(groups[0].suggestedCanonicalKey).toBeTruthy();
   });
+
+  it("scans a live-scale lexicon dataset without quadratic pairwise work", () => {
+    const records = Array.from({ length: 6362 }, (_, index) =>
+      normalizeLexiconRecord({
+        id: index + 1,
+        term: `Distinct endpoint term ${String(index).padStart(5, "0")}`,
+        definition: `Definition unique to record ${index}.`,
+      })
+    );
+
+    records.push(
+      normalizeLexiconRecord({ id: 7001, term: "Aletheia", definition: "Disclosure or unconcealment." }),
+      normalizeLexiconRecord({ id: 7002, term: "Aletheia", definition: "Disclosure or unconcealment." })
+    );
+
+    const groups = groupDedupComparableRecords(records);
+
+    expect(groups.some((group) => group.records.some((record) => record.id === 7001) && group.records.some((record) => record.id === 7002))).toBe(true);
+  }, 5_000);
 });

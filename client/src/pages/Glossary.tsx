@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -90,14 +90,26 @@ export default function Glossary() {
 
   // Fetch lexicon entries from database
   const { data: lexiconEntries = [] } = trpc.lexicon.list.useQuery({});
+  const composeWithScribe = trpc.glossary.composeWithScribe.useMutation();
 
   // Transform lexicon entries to glossary format with theme and DIKW assignments
   const glossaryEntries = useMemo(() => {
-    return lexiconEntries.map((entry: any) => ({
-      ...entry,
-      theme: assignTheme(entry.word, entry.definition),
-      dikw: assignDikw(entry.word, entry.definition),
-    }));
+    return lexiconEntries.map((entry: any) => {
+      const word = typeof entry.term === "string"
+        ? entry.term
+        : typeof entry.word === "string"
+          ? entry.word
+          : "";
+      const definition = typeof entry.definition === "string" ? entry.definition : "";
+
+      return {
+        ...entry,
+        word,
+        definition,
+        theme: assignTheme(word, definition),
+        dikw: assignDikw(word, definition),
+      };
+    });
   }, [lexiconEntries]);
 
   // Filter entries by search and theme
@@ -132,7 +144,7 @@ export default function Glossary() {
     if (!scribeInput.trim()) return;
     setScribeLoading(true);
     try {
-      const result = await trpc.glossary.composeWithScribe.useMutation().mutateAsync({
+      const result = await composeWithScribe.mutateAsync({
         prompt: scribeInput,
         glossaryContext: sortedEntries.slice(0, 50).map((e) => `${e.word}: ${e.definition}`).join("; "),
       });

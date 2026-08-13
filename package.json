@@ -10,6 +10,7 @@
     "check": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:webapp": "bash scripts/run-webapp-test-suite.sh",
     "db:push": "drizzle-kit generate && drizzle-kit migrate"
   },
   "dependencies": {

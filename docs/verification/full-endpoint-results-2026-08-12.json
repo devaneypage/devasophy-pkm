@@ -1,0 +1,933 @@
+{
+  "runId": "ee201bc145",
+  "baseUrl": "http://127.0.0.1:3100",
+  "procedureCount": 82,
+  "coveredProcedureCount": 82,
+  "httpChecks": 104,
+  "passedHttpChecks": 104,
+  "browserRoutes": [
+    {
+      "route": "/",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/commonplace",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/library",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/notebook",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/lexicon",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/documents",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/goals",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/ideas",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/bulk-import",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/search",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/notebook/0",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/lexicon/0",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/glossary",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/export",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/deduplication",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/404",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "route": "/endpoint-smoke-not-found",
+      "status": 200,
+      "passed": true
+    }
+  ],
+  "browserPageErrors": [],
+  "browserConsoleErrors": [],
+  "browserFailedRequests": [],
+  "screenshot": "./full-endpoint-browser-2026-08-12.png",
+  "results": [
+    {
+      "path": "system.health",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 33,
+      "passed": true
+    },
+    {
+      "path": "system.health",
+      "type": "query",
+      "status": 400,
+      "expectedStatus": 400,
+      "elapsedMs": 4,
+      "passed": true
+    },
+    {
+      "path": "auth.me",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 4,
+      "passed": true
+    },
+    {
+      "path": "featureFlags.list",
+      "type": "query",
+      "status": 401,
+      "expectedStatus": 401,
+      "elapsedMs": 3,
+      "passed": true
+    },
+    {
+      "path": "auth.me",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 346,
+      "passed": true
+    },
+    {
+      "path": "auth.logout",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 32,
+      "passed": true
+    },
+    {
+      "path": "featureFlags.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 900,
+      "passed": true
+    },
+    {
+      "path": "featureFlags.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 86,
+      "passed": true
+    },
+    {
+      "path": "notebook.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 4692,
+      "passed": true
+    },
+    {
+      "path": "notebook.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 33,
+      "passed": true
+    },
+    {
+      "path": "lexicon.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 376,
+      "passed": true
+    },
+    {
+      "path": "lexicon.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 26,
+      "passed": true
+    },
+    {
+      "path": "documents.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 40,
+      "passed": true
+    },
+    {
+      "path": "documents.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 28,
+      "passed": true
+    },
+    {
+      "path": "documents.linkedReferences",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 32,
+      "passed": true
+    },
+    {
+      "path": "goals.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 31,
+      "passed": true
+    },
+    {
+      "path": "goals.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 24,
+      "passed": true
+    },
+    {
+      "path": "projects.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 39,
+      "passed": true
+    },
+    {
+      "path": "projects.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 24,
+      "passed": true
+    },
+    {
+      "path": "tasks.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 25,
+      "passed": true
+    },
+    {
+      "path": "tasks.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 27,
+      "passed": true
+    },
+    {
+      "path": "ideas.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 25,
+      "passed": true
+    },
+    {
+      "path": "ideas.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 22,
+      "passed": true
+    },
+    {
+      "path": "links.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 23,
+      "passed": true
+    },
+    {
+      "path": "search.unified",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 192,
+      "passed": true
+    },
+    {
+      "path": "deduplication.scan",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 7725,
+      "passed": true
+    },
+    {
+      "path": "taxonomy.getAreas",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 63,
+      "passed": true
+    },
+    {
+      "path": "taxonomy.getTree",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 323,
+      "passed": true
+    },
+    {
+      "path": "taxonomy.getCategories",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 66,
+      "passed": true
+    },
+    {
+      "path": "taxonomy.seed",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 46,
+      "passed": true
+    },
+    {
+      "path": "zettelkasten.generateNotebookId",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 36,
+      "passed": true
+    },
+    {
+      "path": "zettelkasten.generateLexiconId",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 47,
+      "passed": true
+    },
+    {
+      "path": "notebook.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 52,
+      "passed": true
+    },
+    {
+      "path": "notebook.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 132,
+      "passed": true
+    },
+    {
+      "path": "notebook.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 33,
+      "passed": true
+    },
+    {
+      "path": "notebook.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 43,
+      "passed": true
+    },
+    {
+      "path": "lexicon.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 52,
+      "passed": true
+    },
+    {
+      "path": "lexicon.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 37,
+      "passed": true
+    },
+    {
+      "path": "lexicon.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 27,
+      "passed": true
+    },
+    {
+      "path": "lexicon.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 38,
+      "passed": true
+    },
+    {
+      "path": "lexicon.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 32,
+      "passed": true
+    },
+    {
+      "path": "lexicon.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 35,
+      "passed": true
+    },
+    {
+      "path": "deduplication.resolve",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 136,
+      "passed": true
+    },
+    {
+      "path": "documents.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 44,
+      "passed": true
+    },
+    {
+      "path": "documents.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 24,
+      "passed": true
+    },
+    {
+      "path": "documents.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 19,
+      "passed": true
+    },
+    {
+      "path": "documents.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 30,
+      "passed": true
+    },
+    {
+      "path": "links.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 42,
+      "passed": true
+    },
+    {
+      "path": "links.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 31,
+      "passed": true
+    },
+    {
+      "path": "links.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 32,
+      "passed": true
+    },
+    {
+      "path": "documents.linkedReferences",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 23,
+      "passed": true
+    },
+    {
+      "path": "documents.researchAssist",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 570,
+      "passed": true
+    },
+    {
+      "path": "goals.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 78,
+      "passed": true
+    },
+    {
+      "path": "goals.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 27,
+      "passed": true
+    },
+    {
+      "path": "goals.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 22,
+      "passed": true
+    },
+    {
+      "path": "goals.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 32,
+      "passed": true
+    },
+    {
+      "path": "projects.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 41,
+      "passed": true
+    },
+    {
+      "path": "projects.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 30,
+      "passed": true
+    },
+    {
+      "path": "projects.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 21,
+      "passed": true
+    },
+    {
+      "path": "projects.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 29,
+      "passed": true
+    },
+    {
+      "path": "tasks.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 76,
+      "passed": true
+    },
+    {
+      "path": "tasks.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 32,
+      "passed": true
+    },
+    {
+      "path": "tasks.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 21,
+      "passed": true
+    },
+    {
+      "path": "tasks.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 26,
+      "passed": true
+    },
+    {
+      "path": "ideas.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 32,
+      "passed": true
+    },
+    {
+      "path": "ideas.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 34,
+      "passed": true
+    },
+    {
+      "path": "ideas.get",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 23,
+      "passed": true
+    },
+    {
+      "path": "ideas.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 33,
+      "passed": true
+    },
+    {
+      "path": "commonplace.bootstrap",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 53,
+      "passed": true
+    },
+    {
+      "path": "commonplace.boards.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 65,
+      "passed": true
+    },
+    {
+      "path": "commonplace.boards.saveSnapshot",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 250,
+      "passed": true
+    },
+    {
+      "path": "commonplace.boards.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 47,
+      "passed": true
+    },
+    {
+      "path": "commonplace.columns.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 64,
+      "passed": true
+    },
+    {
+      "path": "commonplace.columns.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 34,
+      "passed": true
+    },
+    {
+      "path": "commonplace.columns.reorder",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 49,
+      "passed": true
+    },
+    {
+      "path": "commonplace.entries.create",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 62,
+      "passed": true
+    },
+    {
+      "path": "commonplace.entries.list",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 34,
+      "passed": true
+    },
+    {
+      "path": "commonplace.entries.update",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 32,
+      "passed": true
+    },
+    {
+      "path": "commonplace.entries.move",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 31,
+      "passed": true
+    },
+    {
+      "path": "commonplace.entries.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 37,
+      "passed": true
+    },
+    {
+      "path": "commonplace.columns.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 61,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.notebookJSON",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 28,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.lexiconJSON",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 19,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.notebookCSV",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 24,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.lexiconCSV",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 23,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.notebookText",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 18,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.lexiconText",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 23,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.notebookWithDuplicateDetection",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 214,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.lexiconWithDuplicateDetection",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 97,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.detectNotebookDuplicates",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 1276,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.detectLexiconDuplicates",
+      "type": "query",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 115,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.detectNotebookDuplicateBatch",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 198,
+      "passed": true
+    },
+    {
+      "path": "bulkImport.detectLexiconDuplicateBatch",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 58,
+      "passed": true
+    },
+    {
+      "path": "autofill.loadUploadedFile",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 30,
+      "passed": true
+    },
+    {
+      "path": "autofill.loadUploadedFile",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 19,
+      "passed": true
+    },
+    {
+      "path": "glossary.composeWithScribe",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 767,
+      "passed": true
+    },
+    {
+      "path": "system.notifyOwner",
+      "type": "mutation",
+      "status": 400,
+      "expectedStatus": 400,
+      "elapsedMs": 30,
+      "passed": true
+    },
+    {
+      "path": "ideas.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 34,
+      "passed": true
+    },
+    {
+      "path": "tasks.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 32,
+      "passed": true
+    },
+    {
+      "path": "goals.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 34,
+      "passed": true
+    },
+    {
+      "path": "projects.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 34,
+      "passed": true
+    },
+    {
+      "path": "documents.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 31,
+      "passed": true
+    },
+    {
+      "path": "lexicon.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 34,
+      "passed": true
+    },
+    {
+      "path": "notebook.delete",
+      "type": "mutation",
+      "status": 200,
+      "expectedStatus": 200,
+      "elapsedMs": 44,
+      "passed": true
+    }
+  ]
+}

@@ -716,15 +716,88 @@ function buildComponents(records: DedupComparableRecord[], pairs: DedupCandidate
   return groups;
 }
 
+const DEDUP_SORTED_NEIGHBORHOOD_WINDOW = 24;
+
+function addExactBucketPairs(
+  records: DedupComparableRecord[],
+  candidatePairKeys: Set<string>,
+  getValue: (record: DedupComparableRecord) => string | undefined
+) {
+  const buckets = new Map<string, number[]>();
+
+  records.forEach((record, index) => {
+    const value = getValue(record);
+    if (!value) return;
+    const normalized = normalizeText(value);
+    if (!normalized) return;
+    const bucket = buckets.get(normalized) ?? [];
+    bucket.push(index);
+    buckets.set(normalized, bucket);
+  });
+
+  buckets.forEach((indices) => {
+    for (let left = 0; left < indices.length; left += 1) {
+      for (let right = left + 1; right < indices.length; right += 1) {
+        candidatePairKeys.add(`${indices[left]}:${indices[right]}`);
+      }
+    }
+  });
+}
+
+function addSortedNeighborhoodPairs(
+  records: DedupComparableRecord[],
+  candidatePairKeys: Set<string>,
+  getSortValue: (record: DedupComparableRecord) => string
+) {
+  const orderedIndices = records
+    .map((record, index) => ({ index, value: getSortValue(record) }))
+    .filter((item) => item.value.length > 0)
+    .sort((left, right) => left.value.localeCompare(right.value))
+    .map((item) => item.index);
+
+  for (let position = 0; position < orderedIndices.length; position += 1) {
+    const boundary = Math.min(
+      orderedIndices.length,
+      position + DEDUP_SORTED_NEIGHBORHOOD_WINDOW + 1
+    );
+
+    for (let neighbor = position + 1; neighbor < boundary; neighbor += 1) {
+      const leftIndex = Math.min(orderedIndices[position], orderedIndices[neighbor]);
+      const rightIndex = Math.max(orderedIndices[position], orderedIndices[neighbor]);
+      candidatePairKeys.add(`${leftIndex}:${rightIndex}`);
+    }
+  }
+}
+
+function buildDedupCandidatePairKeys(records: DedupComparableRecord[]) {
+  const candidatePairKeys = new Set<string>();
+
+  // Exact durable identifiers must always be compared, regardless of title proximity.
+  addExactBucketPairs(records, candidatePairKeys, (record) => record.zettelkastenId);
+  addExactBucketPairs(
+    records,
+    candidatePairKeys,
+    (record) => (record.uuid ? `${record.module}:${record.uuid}` : undefined)
+  );
+
+  // High-threshold fuzzy title matches are lexically close. Two complementary
+  // sort keys retain reordered-word matches without evaluating every possible pair.
+  addSortedNeighborhoodPairs(records, candidatePairKeys, (record) => normalizeText(record.title));
+  addSortedNeighborhoodPairs(records, candidatePairKeys, (record) =>
+    normalizeText(record.title).split(" ").filter(Boolean).sort().join(" ")
+  );
+
+  return candidatePairKeys;
+}
+
 export function groupDedupComparableRecords(records: DedupComparableRecord[]): DedupGroup[] {
   const pairs: DedupCandidatePair[] = [];
 
-  for (let leftIndex = 0; leftIndex < records.length; leftIndex += 1) {
-    for (let rightIndex = leftIndex + 1; rightIndex < records.length; rightIndex += 1) {
-      const match = compareDedupRecords(records[leftIndex], records[rightIndex]);
-      if (match) {
-        pairs.push(match);
-      }
+  for (const candidatePairKey of Array.from(buildDedupCandidatePairKeys(records))) {
+    const [leftIndex, rightIndex] = candidatePairKey.split(":").map(Number);
+    const match = compareDedupRecords(records[leftIndex], records[rightIndex]);
+    if (match) {
+      pairs.push(match);
     }
   }
 

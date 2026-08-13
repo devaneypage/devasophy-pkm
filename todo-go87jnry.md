@@ -10,3 +10,14 @@
 - [x] Verify Commonplace flag disabled and enabled states with authenticated Playwright testing
 - [x] Confirm disabled navigation hiding, one-click activation, restored route access, and zero browser errors
 - [x] Save a checkpoint for the verified runtime recovery
+
+## Full Web-App Endpoint Verification — 2026-08-12
+
+- [x] Run TypeScript validation, the complete Vitest suite, and production build
+- [x] Inventory all tRPC procedures and classify safe smoke-test coverage
+- [x] Exercise public and authenticated API endpoints over HTTP
+- [x] Run authenticated Playwright smoke tests across application routes
+- [x] Review browser console, page errors, failed requests, and server logs
+- [x] Correct confirmed defects and rerun affected checks
+- [x] Write the durable verification report
+- [ ] Save the verified endpoint-test state as a WebDev checkpoint
