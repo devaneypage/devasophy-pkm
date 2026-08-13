@@ -20,4 +20,4 @@
 - [x] Review browser console, page errors, failed requests, and server logs
 - [x] Correct confirmed defects and rerun affected checks
 - [x] Write the durable verification report
-- [ ] Save the verified endpoint-test state as a WebDev checkpoint
+- [x] Save the verified endpoint-test state as a WebDev checkpoint
