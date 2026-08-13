@@ -84,10 +84,13 @@ export default function Documents() {
     { id: selectedDocId! },
     { enabled: selectedDocId !== null }
   );
-  const { data: notebookEntries } = trpc.notebook.list.useQuery({
+  const { data: notebookPage } = trpc.notebook.list.useQuery({
     search: referenceSearch || undefined,
     sortBy: "recent",
+    page: 1,
+    pageSize: 25,
   });
+  const notebookEntries = notebookPage?.items ?? [];
   const { data: lexiconEntries } = trpc.lexicon.list.useQuery({
     search: referenceSearch || undefined,
   });

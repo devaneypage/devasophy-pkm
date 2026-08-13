@@ -26,7 +26,8 @@ export default function Synthesis() {
   const [selectedNode, setSelectedNode] = useState<ConnectionNode | null>(null);
   const [filterByDikw, setFilterByDikw] = useState<string | null>(null);
 
-  const { data: notebookEntries } = trpc.notebook.list.useQuery({});
+  const { data: notebookPage } = trpc.notebook.list.useQuery({ page: 1, pageSize: 100, sortBy: "recent" });
+  const notebookEntries = notebookPage?.items ?? [];
   const { data: lexiconEntries } = trpc.lexicon.list.useQuery({});
   const glossaryEntries: any[] = [];
 

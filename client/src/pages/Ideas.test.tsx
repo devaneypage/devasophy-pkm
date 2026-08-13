@@ -96,7 +96,7 @@ vi.mock("@/lib/trpc", () => ({
     },
     notebook: {
       list: {
-        useQuery: () => ({ data: mockNotebookEntries, isLoading: false }),
+        useQuery: () => ({ data: { items: mockNotebookEntries, pageInfo: { total: mockNotebookEntries.length } }, isLoading: false }),
       },
     },
     lexicon: {

@@ -17,7 +17,8 @@ export default function ThemeExplorer() {
   const [viewMode, setViewMode] = useState<"grid" | "hierarchy">("grid");
 
   const { data: lexiconEntries } = trpc.lexicon.list.useQuery({});
-  const { data: notebookEntries } = trpc.notebook.list.useQuery({});
+  const { data: notebookPage } = trpc.notebook.list.useQuery({ page: 1, pageSize: 100, sortBy: "recent" });
+  const notebookEntries = notebookPage?.items ?? [];
   const glossaryEntries: any[] = [];
 
   // Build DIKW hierarchy

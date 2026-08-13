@@ -29,7 +29,8 @@ export default function ProjectDetail() {
     { id: projectId! },
     { enabled: !!projectId }
   );
-  const { data: notebookEntries } = trpc.notebook.list.useQuery({});
+  const { data: notebookPage } = trpc.notebook.list.useQuery({ page: 1, pageSize: 100, sortBy: "recent" });
+  const notebookEntries = notebookPage?.items ?? [];
 
   const updateMutation = trpc.projects.update.useMutation();
   const deleteMutation = trpc.projects.delete.useMutation();

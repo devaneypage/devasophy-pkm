@@ -127,7 +127,7 @@ export default function Home() {
     },
   });
 
-  const notebookQuery = trpc.notebook.list.useQuery({});
+  const notebookQuery = trpc.notebook.list.useQuery({ page: 1, pageSize: 1 });
   const lexiconQuery = trpc.lexicon.list.useQuery({});
   const documentsQuery = trpc.documents.list.useQuery({});
   const goalsQuery = trpc.goals.list.useQuery({});
@@ -138,7 +138,7 @@ export default function Home() {
   const stats = [
     {
       label: "Commonplace Cards",
-      value: formatStatValue(notebookQuery.data?.length, notebookQuery.isLoading),
+      value: formatStatValue(notebookQuery.data?.pageInfo.total, notebookQuery.isLoading),
       tone: "#efb93a",
       pattern: "dev-pattern-waves",
     },

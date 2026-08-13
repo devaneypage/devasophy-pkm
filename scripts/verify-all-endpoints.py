@@ -153,7 +153,12 @@ try:
     )
 
     # Read-only list/get/search/taxonomy endpoints.
-    trpc("notebook.list", "query", {})
+    notebook_page, _ = trpc("notebook.list", "query", {"page": 1, "pageSize": 25, "sortBy": "recent"})
+    assert len(notebook_page["items"]) <= 25
+    assert notebook_page["pageInfo"]["page"] == 1
+    assert notebook_page["pageInfo"]["pageSize"] == 25
+    trpc("notebook.list", "query", {"page": 1, "pageSize": 101}, expected_status=400)
+    trpc("notebook.exportAll", "query", None)
     trpc("notebook.get", "query", {"id": 0})
     trpc("lexicon.list", "query", {})
     trpc("lexicon.get", "query", {"id": 0})
@@ -181,8 +186,8 @@ try:
     # Reversible Notebook CRUD.
     notebook_uuid = str(uuid.uuid4())
     trpc("notebook.create", "mutation", {"text": marker, "author": "Manus endpoint suite", "uuid": notebook_uuid})
-    notebook_items, _ = trpc("notebook.list", "query", {"search": marker})
-    created["notebook"] = find_id(notebook_items, "text", marker)
+    notebook_result, _ = trpc("notebook.list", "query", {"search": marker, "page": 1, "pageSize": 10})
+    created["notebook"] = find_id(notebook_result["items"], "text", marker)
     trpc("notebook.get", "query", {"id": created["notebook"]})
     trpc("notebook.update", "mutation", {"id": created["notebook"], "note": "updated by endpoint suite"})
 
@@ -382,6 +387,7 @@ try:
     browser_page_errors = []
     browser_console_errors = []
     browser_failed_requests = []
+    browser_http_errors = []
     routes = [
         "/",
         "/commonplace",
@@ -420,6 +426,14 @@ try:
                 {"url": request.url, "failure": request.failure}
             ),
         )
+        page.on(
+            "response",
+            lambda response: browser_http_errors.append(
+                {"url": response.url, "status": response.status}
+            )
+            if response.status >= 400
+            else None,
+        )
         for route in routes:
             response = page.goto(f"{BASE_URL}{route}", wait_until="networkidle", timeout=60000)
             status = response.status if response else None
@@ -432,7 +446,7 @@ try:
         page.screenshot(path="/tmp/devasophy-all-endpoints.png", full_page=True)
         browser.close()
 
-    if browser_page_errors or browser_console_errors or browser_failed_requests:
+    if browser_page_errors or browser_console_errors or browser_failed_requests or browser_http_errors:
         raise AssertionError(
             "Browser diagnostics were not clean: "
             + json.dumps(
@@ -440,6 +454,7 @@ try:
                     "pageErrors": browser_page_errors,
                     "consoleErrors": browser_console_errors,
                     "failedRequests": browser_failed_requests,
+                    "httpErrors": browser_http_errors,
                 }
             )
         )
@@ -463,6 +478,7 @@ try:
         "browserPageErrors": browser_page_errors,
         "browserConsoleErrors": browser_console_errors,
         "browserFailedRequests": browser_failed_requests,
+        "browserHttpErrors": browser_http_errors,
         "screenshot": "/tmp/devasophy-all-endpoints.png",
         "results": results,
     }

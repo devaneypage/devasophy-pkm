@@ -1,0 +1,10 @@
+{
+  "lazyRouteDeclarations": 15,
+  "dynamicRouteImports": 15,
+  "emittedDynamicChunks": 14,
+  "initialEntryFile": "assets/index-Cwoygks_.js",
+  "initialEntryBytes": 777898,
+  "previousInitialEntryBytes": 2037171,
+  "reductionBytes": 1259273,
+  "reductionPercent": 61.8
+}

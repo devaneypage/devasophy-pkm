@@ -8,6 +8,7 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import {
   createNotebookEntry,
   getNotebookEntries,
+  getNotebookEntriesForExport,
   getNotebookEntry,
   updateNotebookEntry,
   deleteNotebookEntry,
@@ -159,11 +160,17 @@ export const appRouter = router({
           categoryId: z.number().optional(),
           search: z.string().optional(),
           sortBy: z.enum(["recent", "oldest"]).optional(),
+          page: z.number().int().min(1).default(1),
+          pageSize: z.number().int().min(1).max(100).default(25),
         })
       )
       .query(async ({ ctx, input }) => {
         return await getNotebookEntries(ctx.user.id, input);
       }),
+
+    exportAll: protectedProcedure.query(async ({ ctx }) => {
+      return await getNotebookEntriesForExport(ctx.user.id);
+    }),
 
     get: protectedProcedure
       .input(z.object({ id: z.number() }))

@@ -198,10 +198,13 @@ function IdeaEditor({
   const [pickerMode, setPickerMode] = useState<LinkedEntryType>("notebook");
   const [pickerSearch, setPickerSearch] = useState("");
 
-  const { data: notebookEntries = [] } = trpc.notebook.list.useQuery({
+  const { data: notebookPage } = trpc.notebook.list.useQuery({
     search: pickerMode === "notebook" ? pickerSearch || undefined : undefined,
     sortBy: "recent",
+    page: 1,
+    pageSize: 25,
   });
+  const notebookEntries = notebookPage?.items ?? [];
   const { data: lexiconEntries = [] } = trpc.lexicon.list.useQuery({
     search: pickerMode === "lexicon" ? pickerSearch || undefined : undefined,
   });

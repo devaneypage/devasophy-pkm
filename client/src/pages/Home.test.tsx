@@ -58,7 +58,14 @@ vi.mock("@/lib/trpc", () => ({
         }),
       },
     },
-    notebook: { list: { useQuery: () => ({ data: new Array(12).fill({}), isLoading: false }) } },
+    notebook: {
+      list: {
+        useQuery: () => ({
+          data: { items: [{}], pageInfo: { total: 12 } },
+          isLoading: false,
+        }),
+      },
+    },
     lexicon: { list: { useQuery: () => ({ data: new Array(7).fill({}), isLoading: false }) } },
     documents: { list: { useQuery: () => ({ data: [{ id: 1 }], isLoading: false }) } },
     goals: { list: { useQuery: () => ({ data: [{ id: 1, title: "Launch Devanomy" }], isLoading: false }) } },

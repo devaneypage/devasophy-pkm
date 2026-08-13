@@ -1,4 +1,4 @@
-import { eq, and, like, desc, asc, between, inArray } from "drizzle-orm";
+import { eq, and, like, desc, asc, between, count, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
@@ -38,6 +38,7 @@ import {
   workspaceFeatureFlagDefinitions,
   type WorkspaceFeatureFlagKey,
 } from "../shared/featureFlags";
+import { buildPageInfo } from "../shared/pagination";
 import {
   groupDedupComparableRecords,
   mergeLexiconEntries,
@@ -153,29 +154,68 @@ export async function createNotebookEntry(userId: number, entry: any) {
   return result;
 }
 
-export async function getNotebookEntries(userId: number, filters?: any) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
+export type NotebookListFilters = {
+  categoryId?: number;
+  search?: string;
+  sortBy?: "recent" | "oldest";
+  page?: number;
+  pageSize?: number;
+};
+
+function buildNotebookConditions(userId: number, filters?: Omit<NotebookListFilters, "page" | "pageSize">) {
   const conditions = [eq(notebookEntries.userId, userId)];
-  
+
   if (filters?.categoryId) {
     conditions.push(eq(notebookEntries.categoryId, filters.categoryId));
   }
-  
+
   if (filters?.search) {
     conditions.push(like(notebookEntries.text, `%${filters.search}%`));
   }
-  
+
+  return conditions;
+}
+
+export async function getNotebookEntries(userId: number, filters?: NotebookListFilters) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const page = filters?.page ?? 1;
+  const pageSize = filters?.pageSize ?? 25;
+  const conditions = buildNotebookConditions(userId, filters);
   const orderBy = filters?.sortBy === "recent" 
     ? desc(notebookEntries.createdAt)
     : asc(notebookEntries.createdAt);
-  
-  return await db
+
+  const [totalRow] = await db
+    .select({ total: count() })
+    .from(notebookEntries)
+    .where(and(...conditions));
+  const total = totalRow?.total ?? 0;
+
+  const items = await db
     .select()
     .from(notebookEntries)
     .where(and(...conditions))
-    .orderBy(orderBy);
+    .orderBy(orderBy)
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  return {
+    items,
+    pageInfo: buildPageInfo(total, page, pageSize),
+  };
+}
+
+export async function getNotebookEntriesForExport(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .select()
+    .from(notebookEntries)
+    .where(eq(notebookEntries.userId, userId))
+    .orderBy(asc(notebookEntries.createdAt));
 }
 
 export async function getNotebookEntry(userId: number, entryId: number) {

@@ -1,25 +1,32 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import CommonplaceWorkspaceGate from "./components/CommonplaceWorkspaceGate";
-import Home from "./pages/Home";
-import Notebook from "./pages/Notebook";
-import Commonplace from "./pages/Commonplace";
-import Lexicon from "./pages/Lexicon";
-import Documents from "./pages/Documents";
-import Goals from "./pages/Goals";
-import Ideas from "./pages/Ideas";
-import BulkImport from "./pages/BulkImport";
-import Search from "./pages/Search";
-import NotebookDetail from "./pages/NotebookDetail";
-import LexiconDetail from "./pages/LexiconDetail";
-import Export from "./pages/Export";
-import Glossary from "./pages/Glossary";
-import Deduplication from "./pages/Deduplication";
+import RouteLoading from "./components/RouteLoading";
+
+const Home = lazy(() => import("./pages/Home"));
+const Notebook = lazy(() => import("./pages/Notebook"));
+const Commonplace = lazy(() => import("./pages/Commonplace"));
+const Lexicon = lazy(() => import("./pages/Lexicon"));
+const Documents = lazy(() => import("./pages/Documents"));
+const Goals = lazy(() => import("./pages/Goals"));
+const Ideas = lazy(() => import("./pages/Ideas"));
+const BulkImport = lazy(() => import("./pages/BulkImport"));
+const Search = lazy(() => import("./pages/Search"));
+const NotebookDetail = lazy(() => import("./pages/NotebookDetail"));
+const LexiconDetail = lazy(() => import("./pages/LexiconDetail"));
+const Export = lazy(() => import("./pages/Export"));
+const Glossary = lazy(() => import("./pages/Glossary"));
+const Deduplication = lazy(() => import("./pages/Deduplication"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+function LazyRoute({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
+}
 
 function Router() {
   return (
@@ -27,7 +34,7 @@ function Router() {
       <Route path={"/"}>
         {() => (
           <DashboardLayout currentModule="home">
-            <Home />
+            <LazyRoute><Home /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
@@ -35,7 +42,7 @@ function Router() {
         {() => (
           <DashboardLayout currentModule="notebook">
             <CommonplaceWorkspaceGate>
-              <Commonplace />
+              <LazyRoute><Commonplace /></LazyRoute>
             </CommonplaceWorkspaceGate>
           </DashboardLayout>
         )}
@@ -44,7 +51,7 @@ function Router() {
         {() => (
           <DashboardLayout currentModule="notebook">
             <CommonplaceWorkspaceGate>
-              <Commonplace />
+              <LazyRoute><Commonplace /></LazyRoute>
             </CommonplaceWorkspaceGate>
           </DashboardLayout>
         )}
@@ -53,7 +60,7 @@ function Router() {
         {() => (
           <DashboardLayout currentModule="notebook">
             <CommonplaceWorkspaceGate>
-              <Notebook />
+              <LazyRoute><Notebook /></LazyRoute>
             </CommonplaceWorkspaceGate>
           </DashboardLayout>
         )}
@@ -61,99 +68,94 @@ function Router() {
       <Route path={"/lexicon"}>
         {() => (
           <DashboardLayout currentModule="lexicon">
-            <Lexicon />
+            <LazyRoute><Lexicon /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/documents"}>
         {() => (
           <DashboardLayout currentModule="documents">
-            <Documents />
+            <LazyRoute><Documents /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/goals"}>
         {() => (
           <DashboardLayout currentModule="goals">
-            <Goals />
+            <LazyRoute><Goals /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/ideas"}>
         {() => (
           <DashboardLayout currentModule="ideas">
-            <Ideas />
+            <LazyRoute><Ideas /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/bulk-import"}>
         {() => (
           <DashboardLayout>
-            <BulkImport />
+            <LazyRoute><BulkImport /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/search"}>
         {() => (
           <DashboardLayout>
-            <Search />
+            <LazyRoute><Search /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/notebook/:id"}>
         {() => (
           <DashboardLayout currentModule="notebook">
-            <NotebookDetail />
+            <LazyRoute><NotebookDetail /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/lexicon/:id"}>
         {() => (
           <DashboardLayout currentModule="lexicon">
-            <LexiconDetail />
+            <LazyRoute><LexiconDetail /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/glossary"}>
         {() => (
           <DashboardLayout currentModule="glossary">
-            <Glossary />
+            <LazyRoute><Glossary /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/export"}>
         {() => (
           <DashboardLayout>
-            <Export />
+            <LazyRoute><Export /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
       <Route path={"/deduplication"}>
         {() => (
           <DashboardLayout>
-            <Deduplication />
+            <LazyRoute><Deduplication /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
+      <Route path={"/404"}>
+        {() => <LazyRoute><NotFound /></LazyRoute>}
+      </Route>
+      <Route>
+        {() => <LazyRoute><NotFound /></LazyRoute>}
+      </Route>
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="dark"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
           <Router />

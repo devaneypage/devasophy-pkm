@@ -21,3 +21,14 @@
 - [x] Correct confirmed defects and rerun affected checks
 - [x] Write the durable verification report
 - [x] Save the verified endpoint-test state as a WebDev checkpoint
+
+## Performance and Pre-release Hardening — 2026-08-12
+
+- [x] Document architecture alternatives and the selected implementation
+- [x] Add a bounded Notebook pagination contract and explicit deferred full export
+- [x] Migrate Notebook consumers to page envelopes or full export as appropriate
+- [x] Convert registered pages to verified route-level dynamic chunks
+- [x] Replace the obsolete Webpack workflow with the complete scheduled pre-release gate
+- [x] Run the complete unit, build, endpoint, browser, and bundle verification suite
+- [ ] Verify the canonical GitHub Actions quality-gate run
+- [ ] Save the verified WebDev checkpoint

@@ -57,7 +57,7 @@ export default function Export() {
   const [format, setFormat] = useState<"json" | "markdown" | "text">("json");
   const [isExporting, setIsExporting] = useState(false);
 
-  const { data: notebookEntries, isLoading: notebookLoading, error: notebookError } = trpc.notebook.list.useQuery({});
+  const notebookExportQuery = trpc.notebook.exportAll.useQuery(undefined, { enabled: false });
   const { data: lexiconTerms, isLoading: lexiconLoading, error: lexiconError } = trpc.lexicon.list.useQuery({});
   const { data: documents, isLoading: docsLoading, error: docsError } = trpc.documents.list.useQuery({});
 
@@ -77,12 +77,15 @@ export default function Export() {
     setIsExporting(true);
 
     try {
+      const notebookEntries = exportType === "notebook"
+        ? (await notebookExportQuery.refetch()).data ?? []
+        : [];
       let content = "";
       let filename = "";
       let mimeType = "text/plain";
       const dateStamp = new Date().toISOString().split("T")[0];
 
-      if (exportType === "notebook" && notebookEntries) {
+      if (exportType === "notebook") {
         if (format === "json") {
           content = JSON.stringify(notebookEntries, null, 2);
           filename = `notebook-export-${dateStamp}.json`;
@@ -153,9 +156,9 @@ export default function Export() {
   const selectedExportMeta = exportTypes[exportType];
   const selectedFormatMeta = formatMeta[format];
   
-  const isLoading = notebookLoading || lexiconLoading || docsLoading;
-  const hasError = !!notebookError || !!lexiconError || !!docsError;
-  const errorMessage = notebookError?.message || lexiconError?.message || docsError?.message;
+  const isLoading = lexiconLoading || docsLoading;
+  const hasError = !!notebookExportQuery.error || !!lexiconError || !!docsError;
+  const errorMessage = notebookExportQuery.error?.message || lexiconError?.message || docsError?.message;
 
   return (
     <div className="space-y-6">
