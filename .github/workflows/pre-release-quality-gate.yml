@@ -38,6 +38,11 @@ jobs:
       DATABASE_URL: mysql://root:test-password@127.0.0.1:3306/devasophy_test
       JWT_SECRET: ci-quality-gate-secret-at-least-32-characters
       VITE_APP_ID: ci-devasophy-pkm
+      VITE_OAUTH_PORTAL_URL: http://127.0.0.1:3999
+      VITE_ANALYTICS_ENDPOINT: http://127.0.0.1:3120
+      VITE_ANALYTICS_WEBSITE_ID: ci-quality-gate
+      VITE_FRONTEND_FORGE_API_URL: http://127.0.0.1:3120
+      VITE_FRONTEND_FORGE_API_KEY: ci-mock-key
       OWNER_OPEN_ID: ci-owner
       OWNER_NAME: Devaney
       OAUTH_SERVER_URL: http://127.0.0.1:3999
