@@ -30,5 +30,5 @@
 - [x] Convert registered pages to verified route-level dynamic chunks
 - [x] Replace the obsolete Webpack workflow with the complete scheduled pre-release gate
 - [x] Run the complete unit, build, endpoint, browser, and bundle verification suite
-- [ ] Verify the canonical GitHub Actions quality-gate run
-- [ ] Save the verified WebDev checkpoint
+- [x] Verify the canonical GitHub Actions quality-gate run
+- [x] Save the verified WebDev checkpoint

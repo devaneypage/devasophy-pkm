@@ -2,7 +2,8 @@
 
 **Author:** Manus AI  
 **Date:** 2026-08-12  
-**Status:** Local quality gate passed; canonical GitHub Actions run pending checkpoint synchronization
+**Canonical verification:** 2026-08-19  
+**Status:** Local and canonical GitHub Actions quality gates passed
 
 ## Executive Summary
 
@@ -38,6 +39,7 @@ The successful local quality gate ran against the existing application database 
 | HTTP checks | 106 of 106 passed |
 | Authenticated browser routes | 17 of 17 passed |
 | Browser diagnostics | 0 errors |
+| Canonical GitHub Actions run | Passed in 2m31s |
 
 ## Measured Performance
 
@@ -56,6 +58,8 @@ The new **Pre-release Quality Gate** uses a disposable MySQL 8.4 service and app
 
 The workflow runs in three circumstances: on pull requests targeting `main`, on explicit manual dispatch, and every Sunday at 06:00 UTC. Concurrency cancellation prevents superseded runs on the same ref from wasting runner time. No production credentials or user data are required.
 
+The canonical manual run, **32282088959**, completed successfully in 2 minutes 31 seconds. It passed dependency installation, pinned Python Playwright and Chromium installation, disposable database schema application, the complete application quality gate, and verification-evidence upload.[4]
+
 ## Evidence
 
 ![Authenticated browser verification](./performance-release-hardening-browser-2026-08-12.png)
@@ -65,3 +69,4 @@ The workflow runs in three circumstances: on pull requests targeting `main`, on 
 [1]: ./performance-release-hardening-results-2026-08-12.json "Complete endpoint and browser verification results"
 [2]: ./performance-release-hardening-bundle-2026-08-12.json "Route splitting and initial bundle measurements"
 [3]: ../../.github/workflows/pre-release-quality-gate.yml "Pre-release Quality Gate workflow"
+[4]: https://github.com/devaneypage/devasophy-pkm/actions/runs/32282088959 "Successful canonical Pre-release Quality Gate run"
