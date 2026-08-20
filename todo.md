@@ -573,3 +573,9 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Decide whether duplicate groups support review-only, merge, delete, or archive actions before implementation
 - [x] Restrict true merge actions to same-module duplicates and handle cross-module matches through canonical keep plus archive or delete review actions
 - [x] Reapply the lost inline-editing/Commonplace test-fix changes after the environment reset and save them properly on main
+
+## Desktop UI/UX Reorganization & 6-Category Commonplace Setup
+- [x] Update default Commonplace columns to the 6 canonical categories in server/db.ts
+- [x] Update DashboardLayout.tsx sidebar navigation to include Atlas and align core modules
+- [x] Update Home.tsx dashboard cards and sections to mirror the desktop structure
+- [x] Verify build, TypeScript compilation, and save checkpoint

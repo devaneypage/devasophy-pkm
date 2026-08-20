@@ -1890,10 +1890,12 @@ export async function bulkImportLexiconWithDuplicateDetection(
 // ============================================================================
 
 const DEFAULT_COMMONPLACE_COLUMNS = [
-  { title: "Inbox", colorToken: "grey", position: 0 },
-  { title: "In Motion", colorToken: "bright_blue", position: 1 },
-  { title: "Shaping", colorToken: "vermillion", position: 2 },
-  { title: "Archive", colorToken: "green", position: 3 },
+  { title: "01 - Foundations", colorToken: "vermillion", position: 0 },
+  { title: "02 - Atelier", colorToken: "bright_blue", position: 1 },
+  { title: "03 - Archives", colorToken: "green", position: 2 },
+  { title: "04 - Network", colorToken: "pink", position: 3 },
+  { title: "05 - Drafts", colorToken: "orange", position: 4 },
+  { title: "06 - Sources", colorToken: "violet", position: 5 },
 ] as const;
 
 export type CommonplaceBoardSnapshot = {
