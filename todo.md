@@ -579,3 +579,4 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Update DashboardLayout.tsx sidebar navigation to include Atlas and align core modules
 - [x] Update Home.tsx dashboard cards and sections to mirror the desktop structure
 - [x] Verify build, TypeScript compilation, and save checkpoint
+- [x] Resolve React duplicate key warning in sidebar navigation (Atlas and Knowledge Base sharing `/search`)
