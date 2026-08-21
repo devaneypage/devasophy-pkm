@@ -240,7 +240,7 @@ function DashboardLayoutContent({
                     : location === item.path;
 
                   return (
-                    <SidebarMenuItem key={item.path}>
+                    <SidebarMenuItem key={item.label}>
                       <SidebarMenuButton
                         isActive={isActive}
                         onClick={() => setLocation(item.path)}
