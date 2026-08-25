@@ -573,3 +573,16 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Decide whether duplicate groups support review-only, merge, delete, or archive actions before implementation
 - [x] Restrict true merge actions to same-module duplicates and handle cross-module matches through canonical keep plus archive or delete review actions
 - [x] Reapply the lost inline-editing/Commonplace test-fix changes after the environment reset and save them properly on main
+
+## AI Document Insights and Interface Motion
+- [ ] Inspect the latest document model, Writing Studio surfaces, existing AI utilities, and current motion tokens
+- [x] Approve and document the on-demand, non-persistent Insight Panel architecture and interaction model
+- [ ] Add a server-side AI workflow that extracts structured key insights from Devanomy documents
+- [ ] Display document insights with clear loading, empty, success, refresh, and error states
+- [ ] Expand the shared insight engine to analyze Research documents, Commonplace notes, quotations, and ideas
+- [ ] Preserve module-specific semantics while returning one consistent structured insight schema
+- [ ] Integrate insight displays into all four eligible content workspaces
+- [ ] Add smooth transitions and restrained hover effects to the updated document-insight surfaces
+- [ ] Respect reduced-motion preferences and preserve keyboard and focus accessibility
+- [ ] Add Vitest coverage for AI insight validation, protected access, and the updated document interface
+- [ ] Verify the feature, refresh project health, and save a checkpoint
