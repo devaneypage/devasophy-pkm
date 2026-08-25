@@ -40,6 +40,7 @@ import { useCommonplaceFeatureFlag } from "@/lib/featureFlags";
 
 const menuItems = [
   { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
+  { icon: ResearchIcon, label: "Atlas", path: "/search", accent: "#56c5ea" },
   { icon: EssaysIcon, label: "Writing Studio", path: "/documents", accent: "#e25b33" },
   { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#f03878" },
   { icon: ResearchIcon, label: "Ideas", path: "/ideas", accent: "#5c61ff" },
@@ -239,7 +240,7 @@ function DashboardLayoutContent({
                     : location === item.path;
 
                   return (
-                    <SidebarMenuItem key={item.path}>
+                    <SidebarMenuItem key={item.label}>
                       <SidebarMenuButton
                         isActive={isActive}
                         onClick={() => setLocation(item.path)}

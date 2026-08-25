@@ -16,6 +16,16 @@ import { useCommonplaceFeatureFlag } from "@/lib/featureFlags";
 
 const modules = [
   {
+    id: "atlas",
+    title: "Atlas & Knowledge Base",
+    description: "Navigate your Johnny Decimal taxonomy, topographical indexes, and interconnected knowledge nodes across all areas.",
+    icon: ResearchIcon,
+    route: "/search",
+    accent: "#56c5ea",
+    pattern: "dev-pattern-dots",
+    chips: ["Atlas", "Taxonomy", "Johnny Decimal"],
+  },
+  {
     id: "notebook",
     title: "Commonplace Workspace",
     description: "Shape research notes, quotes, books, lists, bookmarks, and glossary fragments on a card-based drafting wall.",

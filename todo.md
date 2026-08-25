@@ -586,3 +586,10 @@ Identify which request or route returns the unexpected HTML payload
 - [ ] Respect reduced-motion preferences and preserve keyboard and focus accessibility
 - [ ] Add Vitest coverage for AI insight validation, protected access, and the updated document interface
 - [ ] Verify the feature, refresh project health, and save a checkpoint
+
+## Desktop UI/UX Reorganization & 6-Category Commonplace Setup
+- [x] Update default Commonplace columns to the 6 canonical categories in server/db.ts
+- [x] Update DashboardLayout.tsx sidebar navigation to include Atlas and align core modules
+- [x] Update Home.tsx dashboard cards and sections to mirror the desktop structure
+- [x] Verify build, TypeScript compilation, and save checkpoint
+- [x] Resolve React duplicate key warning in sidebar navigation (Atlas and Knowledge Base sharing `/search`)

@@ -2,6 +2,12 @@ import http from "node:http";
 
 const port = Number(process.env.MOCK_FORGE_PORT ?? 3120);
 const server = http.createServer((request, response) => {
+  if (request.method === "GET" && request.url === "/umami") {
+    response.writeHead(200, { "content-type": "application/javascript", "cache-control": "no-store" });
+    response.end("void 0;");
+    return;
+  }
+
   if (request.method === "GET" && request.url?.startsWith("/v1/storage/presign/get")) {
     response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify({ url: `http://127.0.0.1:${port}/mock-storage/asset.svg` }));
