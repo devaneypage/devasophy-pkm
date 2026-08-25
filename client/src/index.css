@@ -488,6 +488,65 @@
     box-shadow: inset 0 0 0 1px rgba(19, 36, 63, 0.08);
   }
 
+  .insight-panel {
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  }
+
+  .insight-panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(19, 36, 63, 0.09);
+  }
+
+  .insight-action,
+  .insight-result-card,
+  .insight-icon {
+    transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+  }
+
+  .insight-action:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .insight-result-card:hover {
+    transform: translateY(-1px);
+    border-color: rgba(19, 36, 63, 0.28);
+  }
+
+  .insight-panel:hover .insight-icon {
+    transform: rotate(-3deg) scale(1.04);
+  }
+
+  .insight-reveal,
+  .insight-results,
+  .insight-state {
+    animation: insight-enter 220ms ease-out both;
+  }
+
+  @keyframes insight-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .insight-panel,
+    .insight-action,
+    .insight-result-card,
+    .insight-icon,
+    .insight-reveal,
+    .insight-results,
+    .insight-state {
+      animation: none !important;
+      transition-duration: 0.01ms !important;
+      transform: none !important;
+    }
+  }
+
   @media (min-width: 640px) {
     .container {
       padding-left: 1.5rem;

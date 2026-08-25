@@ -62,6 +62,7 @@ import {
   reorderCommonplaceColumns,
   listCommonplaceEntries,
   createCommonplaceEntry,
+  getCommonplaceEntry,
   updateCommonplaceEntry,
   deleteCommonplaceEntry,
   moveCommonplaceEntry,
@@ -78,6 +79,7 @@ import {
   scanDeduplicationGroups,
   applyDeduplicationAction,
 } from "./db";
+import { extractKeyInsights, extractTextFromStructuredContent, type InsightSource } from "./insights";
 import {
   generateNotebookZettelkastenId,
   generateLexiconZettelkastenId,
@@ -125,6 +127,79 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         return await updateWorkspaceFeatureFlag(ctx.user.id, input.flagKey, input.enabled);
+      }),
+  }),
+
+  insights: router({
+    extract: protectedProcedure
+      .input(
+        z.object({
+          module: z.enum(["document", "commonplace", "idea"]),
+          recordId: z.number().int().positive(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        let source: InsightSource;
+
+        if (input.module === "document") {
+          const document = await getDocument(ctx.user.id, input.recordId);
+          if (!document) throw new Error("Document not found");
+
+          const linkedReferences = await getEnrichedDocumentLinks(ctx.user.id, input.recordId);
+          source = {
+            module: "document",
+            recordId: document.id,
+            title: document.title,
+            body: document.content || "",
+            metadata: {
+              project: document.project,
+              folder: document.folder,
+              status: document.status,
+              dikwTier: document.dikwTier,
+            },
+            relatedContext: linkedReferences
+              .slice(0, 8)
+              .map((reference, index) => `${index + 1}. [${reference.targetType}] ${reference.targetTitle}\nRelationship: ${reference.linkType || "related"}\nExcerpt: ${reference.targetExcerpt || reference.targetPreview}`)
+              .join("\n\n"),
+          };
+        } else if (input.module === "commonplace") {
+          const entry = await getCommonplaceEntry(ctx.user.id, input.recordId);
+          if (!entry) throw new Error("Commonplace entry not found");
+
+          source = {
+            module: "commonplace",
+            recordId: entry.id,
+            title: entry.title,
+            body: [entry.summary, extractTextFromStructuredContent(entry.content)].filter(Boolean).join("\n\n"),
+            metadata: {
+              entryType: entry.entryType,
+              tags: entry.tags,
+              metadata: entry.metadata,
+              isArchived: entry.isArchived,
+            },
+          };
+        } else {
+          const idea = await getIdea(ctx.user.id, input.recordId);
+          if (!idea) throw new Error("Idea not found");
+
+          source = {
+            module: "idea",
+            recordId: idea.id,
+            title: idea.title,
+            body: idea.summary || "",
+            metadata: {
+              status: idea.status,
+              dikwTier: idea.dikwTier,
+              sparkType: idea.sparkType,
+              sourceModule: idea.sourceModule,
+              insightStage: idea.insightStage,
+              tags: idea.tags,
+              linkedEntries: idea.linkedEntries,
+            },
+          };
+        }
+
+        return extractKeyInsights(source);
       }),
   }),
 

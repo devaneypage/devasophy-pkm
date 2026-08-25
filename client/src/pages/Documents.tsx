@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { v4 as uuidv4 } from "uuid";
 import { trpc } from "@/lib/trpc";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
+import InsightPanel from "@/components/InsightPanel";
 import CategorySelect from "@/components/CategorySelect";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -632,6 +633,11 @@ export default function Documents() {
               </aside>
 
               <aside className="space-y-6 xl:col-span-1 2xl:col-span-1">
+                <InsightPanel
+                  module="document"
+                  recordId={selectedDocId}
+                  sourceTitle={selectedDoc.title}
+                />
                 <Card className="dev-card rounded-[1.6rem] p-5 shadow-none">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#bfd73d]">

@@ -87,6 +87,12 @@ vi.mock("@/components/CategorySelect", () => ({
   default: () => <div data-testid="category-select" />,
 }));
 
+vi.mock("@/components/InsightPanel", () => ({
+  default: ({ module, recordId, sourceTitle }: { module: string; recordId: number; sourceTitle: string }) => (
+    <div data-testid="insight-panel">{module}:{recordId}:{sourceTitle}</div>
+  ),
+}));
+
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     taxonomy: {
@@ -191,6 +197,19 @@ describe("Ideas page", () => {
       expect(screen.getByText("Map the hidden curriculum of LSAT tutoring")).toBeTruthy();
       expect(screen.queryByText("Question whether speed is a proxy for understanding")).toBeNull();
     });
+  });
+
+  it("reveals the shared insight panel for the selected idea", () => {
+    render(<Ideas />);
+
+    const firstIdeaCard = screen
+      .getByText("Map the hidden curriculum of LSAT tutoring")
+      .closest(".dev-card") as HTMLElement;
+    fireEvent.click(within(firstIdeaCard).getByRole("button", { name: "Analyze idea" }));
+
+    expect(within(firstIdeaCard).getByTestId("insight-panel").textContent).toBe(
+      "idea:1:Map the hidden curriculum of LSAT tutoring"
+    );
   });
 
   it("submits a new idea with guided linked-record selection", async () => {

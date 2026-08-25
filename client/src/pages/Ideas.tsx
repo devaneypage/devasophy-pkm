@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import CategorySelect from "@/components/CategorySelect";
+import InsightPanel from "@/components/InsightPanel";
 import {
   ArrowRight,
   BookOpen,
@@ -624,6 +625,7 @@ export default function Ideas() {
   const { data: ideas = [], isLoading, refetch } = trpc.ideas.list.useQuery({});
   const [showForm, setShowForm] = useState(false);
   const [editingIdeaId, setEditingIdeaId] = useState<number | null>(null);
+  const [insightIdeaId, setInsightIdeaId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<IdeaStatus | "all">("all");
   const [sparkFilter, setSparkFilter] = useState<SparkType | "all">("all");
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -973,6 +975,16 @@ export default function Ideas() {
                         <Button
                           type="button"
                           variant="outline"
+                          onClick={() => setInsightIdeaId((current) => (current === idea.id ? null : idea.id))}
+                          aria-expanded={insightIdeaId === idea.id}
+                          className="insight-action rounded-full border-2 border-black bg-[#f4e7ff] text-[#6c26b0] shadow-none hover:bg-[#ead8f8]"
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          {insightIdeaId === idea.id ? "Hide insights" : "Analyze idea"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
                           onClick={() => beginEditing(idea)}
                           className="rounded-full border-2 border-black bg-white text-black shadow-none hover:bg-[#f6f3ec]"
                         >
@@ -991,6 +1003,16 @@ export default function Ideas() {
                         </Button>
                       </div>
                     </div>
+
+                    {insightIdeaId === idea.id ? (
+                      <InsightPanel
+                        module="idea"
+                        recordId={idea.id}
+                        sourceTitle={idea.title}
+                        compact
+                        className="insight-reveal"
+                      />
+                    ) : null}
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-[1.2rem] border border-black/10 bg-[#f7f3fb] px-4 py-3">

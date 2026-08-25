@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import InsightPanel from "@/components/InsightPanel";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -785,6 +786,15 @@ export default function Commonplace() {
                 ) : null}
               </div>
             )}
+
+            {editor.id ? (
+              <InsightPanel
+                module="commonplace"
+                recordId={editor.id}
+                sourceTitle={editor.title || "Untitled commonplace card"}
+                compact
+              />
+            ) : null}
           </div>
 
           <DialogFooter className="mt-6 flex-col-reverse gap-2 sm:flex-row sm:justify-between">

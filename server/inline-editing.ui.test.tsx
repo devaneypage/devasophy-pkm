@@ -77,6 +77,10 @@ vi.mock("uuid", () => ({
   v4: () => "fixed-uuid",
 }));
 
+vi.mock("@/components/InsightPanel", () => ({
+  default: ({ sourceTitle }: { sourceTitle: string }) => <div data-testid="insight-panel">Insights for {sourceTitle}</div>,
+}));
+
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({

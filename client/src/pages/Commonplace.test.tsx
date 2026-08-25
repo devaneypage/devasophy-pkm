@@ -43,6 +43,12 @@ vi.mock("@/components/ui/scroll-area", () => ({
   ScrollArea: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
+vi.mock("@/components/InsightPanel", () => ({
+  default: ({ module, recordId, sourceTitle }: { module: string; recordId: number; sourceTitle: string }) => (
+    <div data-testid="insight-panel">{module}:{recordId}:{sourceTitle}</div>
+  ),
+}));
+
 vi.mock("lucide-react", () => {
   const Icon = ({ className }: { className?: string }) => <span className={className}>icon</span>;
   return {
@@ -105,6 +111,19 @@ vi.mock("@/lib/trpc", () => ({
                 metadata: null,
                 tags: "architecture,notes",
                 position: 0,
+                isArchived: false,
+              },
+              {
+                id: 102,
+                boardId: 10,
+                columnId: 1,
+                entryType: "quote",
+                title: "Attention is devotion",
+                summary: "A quotation about disciplined attention.",
+                content: { markdown: "Attention is the beginning of devotion." },
+                metadata: { source: "Mary Oliver" },
+                tags: "attention,practice",
+                position: 1,
                 isArchived: false,
               },
             ],
@@ -182,6 +201,14 @@ describe("Commonplace workspace", () => {
         title: "New commonplace card",
       })
     );
+  });
+
+  it("shows the shared insight panel when an existing quotation card is opened", () => {
+    render(<Commonplace />);
+
+    fireEvent.click(screen.getByRole("button", { name: /attention is devotion/i }));
+
+    expect(screen.getByTestId("insight-panel").textContent).toBe("commonplace:102:Attention is devotion");
   });
 
   it("triggers save board snapshot from the drafting workspace", () => {

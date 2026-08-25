@@ -2189,6 +2189,19 @@ export async function updateCommonplaceEntry(
     .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.id, entryId)));
 }
 
+export async function getCommonplaceEntry(userId: number, entryId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const rows = await db
+    .select()
+    .from(commonplaceEntries)
+    .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.id, entryId)))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
 export async function deleteCommonplaceEntry(userId: number, entryId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
