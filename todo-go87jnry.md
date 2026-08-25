@@ -32,3 +32,11 @@
 - [x] Run the complete unit, build, endpoint, browser, and bundle verification suite
 - [x] Verify the canonical GitHub Actions quality-gate run
 - [x] Save the verified WebDev checkpoint
+
+## Scheduled Quality Gate Remediation — 2026-08-25
+
+- [x] Diagnose the first weekly scheduled-run failure
+- [x] Replace the stale persistent-data assertion with deterministic canonical seed coverage
+- [x] Run the targeted regression, TypeScript validation, and all 295 Vitest tests
+- [ ] Run the repaired canonical GitHub Actions quality gate successfully
+- [ ] Save the final verified WebDev checkpoint

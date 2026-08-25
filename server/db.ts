@@ -1889,7 +1889,7 @@ export async function bulkImportLexiconWithDuplicateDetection(
 // COMMONPLACE BOARD SYSTEM
 // ============================================================================
 
-const DEFAULT_COMMONPLACE_COLUMNS = [
+export const DEFAULT_COMMONPLACE_COLUMNS = [
   { title: "01 - Foundations", colorToken: "vermillion", position: 0 },
   { title: "02 - Atelier", colorToken: "bright_blue", position: 1 },
   { title: "03 - Archives", colorToken: "green", position: 2 },

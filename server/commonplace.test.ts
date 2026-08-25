@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { DEFAULT_COMMONPLACE_COLUMNS } from "./db";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -28,16 +29,24 @@ function createCommonplaceContext(): TrpcContext {
 }
 
 describe("commonplace router", () => {
-  it("bootstraps a default board with seeded columns", async () => {
+  it("defines the six canonical seeded columns", () => {
+    expect(DEFAULT_COMMONPLACE_COLUMNS.map((column) => column.title)).toEqual([
+      "01 - Foundations",
+      "02 - Atelier",
+      "03 - Archives",
+      "04 - Network",
+      "05 - Drafts",
+      "06 - Sources",
+    ]);
+  });
+
+  it("returns a default board snapshot", async () => {
     const caller = appRouter.createCaller(createCommonplaceContext());
 
     const snapshot = await caller.commonplace.bootstrap();
 
     expect(snapshot.board.title).toBeTruthy();
     expect(snapshot.columns.length).toBeGreaterThanOrEqual(4);
-    expect(snapshot.columns.map((column) => column.title)).toEqual(
-      expect.arrayContaining(["Inbox", "In Motion", "Shaping", "Archive"])
-    );
   });
 
   it("creates a board, column, and entry, then updates and moves the entry", async () => {
