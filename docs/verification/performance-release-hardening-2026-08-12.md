@@ -2,7 +2,7 @@
 
 **Author:** Manus AI  
 **Date:** 2026-08-12  
-**Canonical verification:** 2026-08-19  
+**Canonical verification:** 2026-08-25  
 **Status:** Local and canonical GitHub Actions quality gates passed
 
 ## Executive Summary
@@ -31,7 +31,7 @@ The successful local quality gate ran against the existing application database 
 |---|---:|
 | TypeScript check | Passed |
 | Vitest files | 30 passed |
-| Vitest tests | 294 passed |
+| Vitest tests | 295 passed |
 | Production build | Passed |
 | Lazy route declarations | 15 verified |
 | Emitted dynamic route chunks | 14 verified |
@@ -58,7 +58,7 @@ The new **Pre-release Quality Gate** uses a disposable MySQL 8.4 service and app
 
 The workflow runs in three circumstances: on pull requests targeting `main`, on explicit manual dispatch, and every Sunday at 06:00 UTC. Concurrency cancellation prevents superseded runs on the same ref from wasting runner time. No production credentials or user data are required.
 
-The canonical manual run, **32282088959**, completed successfully in 2 minutes 31 seconds. It passed dependency installation, pinned Python Playwright and Chromium installation, disposable database schema application, the complete application quality gate, and verification-evidence upload.[4]
+The first weekly scheduled run correctly detected a stale Commonplace regression that still expected the former `Inbox` / `In Motion` / `Shaping` / `Archive` seed labels after the product adopted six numbered canonical columns. The test was made deterministic by validating the exported canonical seed definition separately from the persistent-data router snapshot. The repaired canonical manual run, **32817398969**, then completed successfully in 2 minutes 41 seconds. It passed dependency installation, pinned Python Playwright and Chromium installation, disposable database schema application, all 295 tests, the complete application quality gate, and verification-evidence upload.[4]
 
 ## Evidence
 
@@ -69,4 +69,4 @@ The canonical manual run, **32282088959**, completed successfully in 2 minutes 3
 [1]: ./performance-release-hardening-results-2026-08-12.json "Complete endpoint and browser verification results"
 [2]: ./performance-release-hardening-bundle-2026-08-12.json "Route splitting and initial bundle measurements"
 [3]: ../../.github/workflows/pre-release-quality-gate.yml "Pre-release Quality Gate workflow"
-[4]: https://github.com/devaneypage/devasophy-pkm/actions/runs/32282088959 "Successful canonical Pre-release Quality Gate run"
+[4]: https://github.com/devaneypage/devasophy-pkm/actions/runs/32817398969 "Successful repaired canonical Pre-release Quality Gate run"
