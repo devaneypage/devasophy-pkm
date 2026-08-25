@@ -593,3 +593,13 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Update Home.tsx dashboard cards and sections to mirror the desktop structure
 - [x] Verify build, TypeScript compilation, and save checkpoint
 - [x] Resolve React duplicate key warning in sidebar navigation (Atlas and Knowledge Base sharing `/search`)
+
+## Multi-Record AI Synthesis
+- [x] Define selection limits, eligible modules, synthesis outputs, and source-provenance behavior
+- [x] Add a protected server workflow that validates ownership and synthesizes multiple selected records
+- [x] Preserve per-source citations and distinguish shared themes, tensions, contradictions, and connection opportunities
+- [x] Build a reusable multi-record selection tray across Research, Commonplace/quotations, and Ideas
+- [x] Add a synthesis review panel with loading, empty, limit, error, refresh, and selection-change states
+- [x] Preserve keyboard accessibility, reduced-motion behavior, and clear selection feedback
+- [x] Add Vitest coverage for authorization, selection limits, context assembly, provenance, and interface behavior
+- [x] Verify TypeScript, the full test suite, production build, project health, and save a checkpoint

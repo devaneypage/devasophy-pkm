@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import CategorySelect from "@/components/CategorySelect";
 import InsightPanel from "@/components/InsightPanel";
+import SynthesisAction from "@/components/SynthesisAction";
 import {
   ArrowRight,
   BookOpen,
@@ -982,6 +983,7 @@ export default function Ideas() {
                           <Sparkles className="mr-2 h-4 w-4" />
                           {insightIdeaId === idea.id ? "Hide insights" : "Analyze idea"}
                         </Button>
+                        <SynthesisAction module="idea" recordId={idea.id} sourceTitle={idea.title} />
                         <Button
                           type="button"
                           variant="outline"

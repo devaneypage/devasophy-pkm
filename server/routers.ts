@@ -79,7 +79,13 @@ import {
   scanDeduplicationGroups,
   applyDeduplicationAction,
 } from "./db";
-import { extractKeyInsights, extractTextFromStructuredContent, type InsightSource } from "./insights";
+import {
+  extractKeyInsights,
+  extractTextFromStructuredContent,
+  synthesizeRecords,
+  validateSynthesisReferences,
+  type InsightSource,
+} from "./insights";
 import {
   generateNotebookZettelkastenId,
   generateLexiconZettelkastenId,
@@ -205,8 +211,82 @@ export const appRouter = router({
 
   // ============================================================================
   // NOTEBOOK MODULE
-  // ============================================================================
-  notebook: router({
+ // ============================================================================
+  synthesis: router({
+    analyze: protectedProcedure
+      .input(
+        z.object({
+          sources: z
+            .array(
+              z.object({
+                module: z.enum(["document", "commonplace", "idea"]),
+                recordId: z.number().int().positive(),
+              })
+            )
+            .min(2)
+            .max(8),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        validateSynthesisReferences(input.sources);
+        const sources = await Promise.all(
+          input.sources.map(async (reference) => {
+            let source: InsightSource;
+
+            if (reference.module === "document") {
+              const document = await getDocument(ctx.user.id, reference.recordId);
+              if (!document) throw new Error("Document not found");
+              const linkedReferences = await getEnrichedDocumentLinks(ctx.user.id, reference.recordId);
+              source = {
+                module: "document",
+                recordId: document.id,
+                title: document.title,
+                body: document.content || "",
+                metadata: { project: document.project, folder: document.folder, status: document.status, dikwTier: document.dikwTier },
+                relatedContext: linkedReferences
+                  .slice(0, 5)
+                  .map((item, index) => `${index + 1}. [${item.targetType}] ${item.targetTitle}\nRelationship: ${item.linkType || "related"}\nExcerpt: ${item.targetExcerpt || item.targetPreview}`)
+                  .join("\n\n"),
+              };
+            } else if (reference.module === "commonplace") {
+              const entry = await getCommonplaceEntry(ctx.user.id, reference.recordId);
+              if (!entry) throw new Error("Commonplace entry not found");
+              source = {
+                module: "commonplace",
+                recordId: entry.id,
+                title: entry.title,
+                body: [entry.summary, extractTextFromStructuredContent(entry.content)].filter(Boolean).join("\n\n"),
+                metadata: { entryType: entry.entryType, tags: entry.tags, metadata: entry.metadata, isArchived: entry.isArchived },
+              };
+            } else {
+              const idea = await getIdea(ctx.user.id, reference.recordId);
+              if (!idea) throw new Error("Idea not found");
+              source = {
+                module: "idea",
+                recordId: idea.id,
+                title: idea.title,
+                body: idea.summary || "",
+                metadata: {
+                  status: idea.status,
+                  dikwTier: idea.dikwTier,
+                  sparkType: idea.sparkType,
+                  sourceModule: idea.sourceModule,
+                  insightStage: idea.insightStage,
+                  tags: idea.tags,
+                  linkedEntries: idea.linkedEntries,
+                },
+              };
+            }
+
+            return source;
+          })
+        );
+
+        return synthesizeRecords(sources);
+      }),
+  }),
+
+ notebook: router({
     create: protectedProcedure
       .input(
         z.object({

@@ -4,9 +4,11 @@ import { lazy, Suspense, type ReactNode } from "react";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { SynthesisProvider } from "./contexts/SynthesisContext";
 import DashboardLayout from "./components/DashboardLayout";
 import CommonplaceWorkspaceGate from "./components/CommonplaceWorkspaceGate";
 import RouteLoading from "./components/RouteLoading";
+import SynthesisTray from "./components/SynthesisTray";
 
 const Home = lazy(() => import("./pages/Home"));
 const Notebook = lazy(() => import("./pages/Notebook"));
@@ -157,8 +159,11 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <SynthesisProvider>
+            <Toaster />
+            <Router />
+            <SynthesisTray />
+          </SynthesisProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

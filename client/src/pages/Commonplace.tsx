@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import InsightPanel from "@/components/InsightPanel";
+import SynthesisAction from "@/components/SynthesisAction";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -788,12 +789,20 @@ export default function Commonplace() {
             )}
 
             {editor.id ? (
+              <>
               <InsightPanel
                 module="commonplace"
                 recordId={editor.id}
                 sourceTitle={editor.title || "Untitled commonplace card"}
                 compact
               />
+              <SynthesisAction
+                module="commonplace"
+                recordId={editor.id}
+                sourceTitle={editor.title || "Untitled commonplace card"}
+                className="mt-3"
+              />
+              </>
             ) : null}
           </div>
 

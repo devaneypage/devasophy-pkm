@@ -516,9 +516,33 @@
     transform: rotate(-3deg) scale(1.04);
   }
 
+  .synthesis-panel,
+  .synthesis-action,
+  .synthesis-finding,
+  .synthesis-icon {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+  }
+
+  .synthesis-panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 48px rgba(19, 36, 63, 0.22);
+  }
+
+  .synthesis-action:hover:not(:disabled),
+  .synthesis-finding:hover {
+    transform: translateY(-1px);
+  }
+
+  .synthesis-panel:hover .synthesis-icon {
+    transform: rotate(3deg) scale(1.04);
+  }
+
   .insight-reveal,
   .insight-results,
-  .insight-state {
+  .insight-state,
+  .synthesis-reveal,
+  .synthesis-results,
+  .synthesis-state {
     animation: insight-enter 220ms ease-out both;
   }
 
@@ -540,7 +564,14 @@
     .insight-icon,
     .insight-reveal,
     .insight-results,
-    .insight-state {
+    .insight-state,
+    .synthesis-panel,
+    .synthesis-action,
+    .synthesis-finding,
+    .synthesis-icon,
+    .synthesis-reveal,
+    .synthesis-results,
+    .synthesis-state {
       animation: none !important;
       transition-duration: 0.01ms !important;
       transform: none !important;

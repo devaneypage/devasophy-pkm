@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { trpc } from "@/lib/trpc";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
 import InsightPanel from "@/components/InsightPanel";
+import SynthesisAction from "@/components/SynthesisAction";
 import CategorySelect from "@/components/CategorySelect";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -638,6 +639,7 @@ export default function Documents() {
                   recordId={selectedDocId}
                   sourceTitle={selectedDoc.title}
                 />
+                <SynthesisAction module="document" recordId={selectedDocId} sourceTitle={selectedDoc.title} className="w-full" />
                 <Card className="dev-card rounded-[1.6rem] p-5 shadow-none">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-[#bfd73d]">
