@@ -49,4 +49,4 @@
 - [x] Apply responsive editorial catalogue, query, taxonomy, reader-margin, and motion treatments
 - [x] Add focused Library unit coverage for search, facets, stars, selection, and drafting navigation
 - [x] Run production build, bundle enforcement, complete regression suite, and browser verification
-- [ ] Save the verified Library overhaul as a WebDev checkpoint
+- [x] Save the verified Library overhaul as a WebDev checkpoint
