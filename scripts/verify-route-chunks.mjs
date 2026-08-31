@@ -7,8 +7,8 @@ const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 const appSource = await readFile(path.join(projectRoot, "client/src/App.tsx"), "utf8");
 
 const lazyRouteDeclarations = [...appSource.matchAll(/lazy\(\(\) => import\("\.\/pages\//g)].length;
-if (lazyRouteDeclarations !== 15) {
-  throw new Error(`Expected 15 lazy page declarations in App.tsx; found ${lazyRouteDeclarations}`);
+if (lazyRouteDeclarations !== 16) {
+  throw new Error(`Expected 16 lazy page declarations in App.tsx; found ${lazyRouteDeclarations}`);
 }
 
 const entry = Object.values(manifest).find((record) => record.isEntry);

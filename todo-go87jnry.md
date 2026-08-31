@@ -40,3 +40,13 @@
 - [x] Run the targeted regression, TypeScript validation, and all 295 Vitest tests
 - [x] Run the repaired canonical GitHub Actions quality gate successfully
 - [x] Save the final verified WebDev checkpoint
+
+## Library Reading Room UX Overhaul — 2026-08-30
+
+- [x] Audit the deployed Artifact Index and identify the `/library` route alias mismatch
+- [x] Document the Reading Room Index architecture, interaction model, and verification plan
+- [x] Create a dedicated Library route and retain Commonplace as the independent drafting workspace
+- [x] Apply responsive editorial catalogue, query, taxonomy, reader-margin, and motion treatments
+- [x] Add focused Library unit coverage for search, facets, stars, selection, and drafting navigation
+- [x] Run production build, bundle enforcement, complete regression suite, and browser verification
+- [ ] Save the verified Library overhaul as a WebDev checkpoint

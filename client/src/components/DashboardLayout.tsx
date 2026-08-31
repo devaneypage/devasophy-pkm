@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Download, FolderOpen, Grid2x2, LogOut, PanelLeft, Search, Settings2, Upload } from "lucide-react";
+import { Download, FolderOpen, Grid2x2, LibraryBig, LogOut, PanelLeft, Search, Settings2, Upload } from "lucide-react";
 import {
   CategoriesIcon,
   EssaysIcon,
@@ -40,6 +40,7 @@ import { useCommonplaceFeatureFlag } from "@/lib/featureFlags";
 
 const menuItems = [
   { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
+  { icon: LibraryBig, label: "Library", path: "/library", accent: "#e7bc28" },
   { icon: ResearchIcon, label: "Atlas", path: "/search", accent: "#56c5ea" },
   { icon: EssaysIcon, label: "Writing Studio", path: "/documents", accent: "#e25b33" },
   { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#f03878" },
@@ -60,7 +61,7 @@ const DEFAULT_WIDTH = 292;
 const MIN_WIDTH = 240;
 const MAX_WIDTH = 420;
 
-type ModuleKey = "home" | "notebook" | "lexicon" | "documents" | "goals" | "ideas" | "glossary";
+type ModuleKey = "home" | "library" | "notebook" | "lexicon" | "documents" | "goals" | "ideas" | "glossary";
 
 export default function DashboardLayout({
   children,
@@ -147,8 +148,8 @@ function DashboardLayoutContent({
 
   const pathToModule: Record<string, ModuleKey> = {
     "/": "home",
+    "/library": "library",
     "/commonplace": "notebook",
-    "/library": "notebook",
     "/notebook": "notebook",
     "/lexicon": "lexicon",
     "/documents": "documents",

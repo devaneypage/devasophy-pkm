@@ -13,6 +13,7 @@ import SynthesisTray from "./components/SynthesisTray";
 const Home = lazy(() => import("./pages/Home"));
 const Notebook = lazy(() => import("./pages/Notebook"));
 const Commonplace = lazy(() => import("./pages/Commonplace"));
+const Library = lazy(() => import("./pages/Library"));
 const Lexicon = lazy(() => import("./pages/Lexicon"));
 const Documents = lazy(() => import("./pages/Documents"));
 const Goals = lazy(() => import("./pages/Goals"));
@@ -51,10 +52,8 @@ function Router() {
       </Route>
       <Route path={"/library"}>
         {() => (
-          <DashboardLayout currentModule="notebook">
-            <CommonplaceWorkspaceGate>
-              <LazyRoute><Commonplace /></LazyRoute>
-            </CommonplaceWorkspaceGate>
+          <DashboardLayout currentModule="library">
+            <LazyRoute><Library /></LazyRoute>
           </DashboardLayout>
         )}
       </Route>
