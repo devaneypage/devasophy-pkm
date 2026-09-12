@@ -50,3 +50,11 @@
 - [x] Add focused Library unit coverage for search, facets, stars, selection, and drafting navigation
 - [x] Run production build, bundle enforcement, complete regression suite, and browser verification
 - [x] Save the verified Library overhaul as a WebDev checkpoint
+
+## Library Search and Filter Enhancement — 2026-09-12
+
+- [x] Document the client-side retrieval-control design and verification approach
+- [x] Add composable metadata filters, date range, sorting, and active-filter feedback
+- [x] Add regression coverage for combined search, filters, and reset behavior
+- [x] Run full validation and authenticated browser verification
+- [ ] Save the verified enhancement as a WebDev checkpoint

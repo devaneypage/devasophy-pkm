@@ -78,6 +78,30 @@ def main():
         page.get_by_role("button", name="Clear search").click()
         expect(page.get_by_text("Catalogue view")).to_be_visible()
 
+        region_filter = page.get_by_role("combobox", name="Filter by working region")
+        source_filter = page.get_by_role("combobox", name="Filter by source")
+        date_filter = page.get_by_role("combobox", name="Filter by filed date")
+        sort_filter = page.get_by_role("combobox", name="Sort library artifacts")
+        expect(region_filter).to_be_visible()
+        expect(source_filter).to_be_visible()
+        expect(date_filter).to_be_visible()
+        expect(sort_filter).to_be_visible()
+        if region_filter.locator("option").count() > 1:
+            region_filter.select_option(index=1)
+            expect(page.get_by_label("Active library filters")).to_be_visible()
+        if source_filter.locator("option").count() > 1:
+            source_filter.select_option(index=1)
+            expect(page.get_by_label("Active library filters")).to_be_visible()
+        date_filter.select_option("last_90_days")
+        expect(page.get_by_role("button", name=re.compile(r"^Remove Date: Past 90 days"))).to_be_visible()
+        sort_filter.select_option("title_asc")
+        expect(sort_filter).to_have_value("title_asc")
+        page.get_by_role("button", name="Reset view").click()
+        expect(region_filter).to_have_value("all")
+        expect(source_filter).to_have_value("all")
+        expect(date_filter).to_have_value("all")
+        expect(sort_filter).to_have_value("recent")
+
         quote_facet = page.get_by_role("button", name=re.compile(r"^Quotes"))
         expect(quote_facet).to_be_visible()
         quote_facet.click()
@@ -130,7 +154,7 @@ def main():
         json.dumps(
             {
                 "page": "/library",
-                "checks": ["hierarchy", "search-empty-state", "clear-search", "facet", "star", "commonplace-route", "mobile-catalogue"],
+                "checks": ["hierarchy", "search-empty-state", "clear-search", "metadata-filters", "date-filter", "sort", "reset-view", "facet", "star", "commonplace-route", "mobile-catalogue"],
                 "screenshot": str(SCREENSHOT_PATH),
                 "pageErrors": page_errors,
                 "consoleErrors": console_errors,

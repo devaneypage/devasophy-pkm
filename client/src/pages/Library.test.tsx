@@ -115,6 +115,56 @@ describe("Library Reading Room", () => {
     expect(screen.getByText((_, node) => node?.tagName === "P" && node.textContent?.includes("3 of 3 artifacts"))).toBeTruthy();
   });
 
+  it("combines region, source, date, and sort controls with removable filter feedback", () => {
+    render(<Library />);
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter by working region" }), {
+      target: { value: "11" },
+    });
+    expect(screen.getByRole("button", { name: /remove region: 02 - atelier filter/i })).toBeTruthy();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && node.textContent?.includes("1 of 3 artifacts"))).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /remove region: 02 - atelier filter/i }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter by source" }), {
+      target: { value: "Sönke Ahrens" },
+    });
+    expect(screen.getByRole("button", { name: /remove source: sönke ahrens filter/i })).toBeTruthy();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter by filed date" }), {
+      target: { value: "earlier" },
+    });
+    expect(screen.getByText("The shelf is clear from this angle.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /remove date: earlier years filter/i }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Sort library artifacts" }), {
+      target: { value: "title_desc" },
+    });
+    expect(screen.getAllByRole("button", { name: /^Read .* in the reader margin$/ })[0]?.getAttribute("aria-label"))
+      .toBe("Read How to Take Smart Notes in the reader margin");
+  });
+
+  it("resets all structured retrieval controls and restores the complete catalogue", () => {
+    render(<Library />);
+
+    const region = screen.getByRole("combobox", { name: "Filter by working region" }) as HTMLSelectElement;
+    const source = screen.getByRole("combobox", { name: "Filter by source" }) as HTMLSelectElement;
+    const date = screen.getByRole("combobox", { name: "Filter by filed date" }) as HTMLSelectElement;
+    const sort = screen.getByRole("combobox", { name: "Sort library artifacts" }) as HTMLSelectElement;
+
+    fireEvent.change(region, { target: { value: "11" } });
+    fireEvent.change(source, { target: { value: "Sönke Ahrens" } });
+    fireEvent.change(date, { target: { value: "last_90_days" } });
+    fireEvent.change(sort, { target: { value: "title_desc" } });
+    expect(screen.getByRole("button", { name: /reset view/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /reset view/i }));
+    expect(region.value).toBe("all");
+    expect(source.value).toBe("all");
+    expect(date.value).toBe("all");
+    expect(sort.value).toBe("recent");
+    expect(screen.getByText((_, node) => node?.tagName === "P" && node.textContent?.includes("3 of 3 artifacts"))).toBeTruthy();
+  });
+
   it("supports starring, artifact selection, and the drafting escape route", () => {
     render(<Library />);
 

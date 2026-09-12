@@ -745,6 +745,67 @@
 
   .library-clear-filter:hover { color: #13243f; }
 
+  .library-refinement-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .library-select-field {
+    display: grid;
+    gap: 0.34rem;
+    min-width: 0;
+    color: #59657a;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .library-select-field select {
+    min-width: 0;
+    height: 2.65rem;
+    border: 1px solid rgba(19,36,63,0.16);
+    border-radius: 0.78rem;
+    background: rgba(255,255,255,0.74);
+    color: #13243f;
+    padding: 0 2.1rem 0 0.75rem;
+    font-family: var(--devanomy-sans);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    outline: none;
+    transition: border-color 160ms var(--ease-out, ease-out), box-shadow 160ms var(--ease-out, ease-out), background-color 160ms var(--ease-out, ease-out);
+  }
+
+  .library-select-field select:hover { background: rgba(255,255,255,0.94); }
+
+  .library-select-field select:focus {
+    border-color: #5c61ff;
+    box-shadow: 0 0 0 3px rgba(92, 97, 255, 0.12);
+  }
+
+  .library-active-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    border: 1px solid rgba(92,97,255,0.28);
+    border-radius: 9999px;
+    background: rgba(92,97,255,0.08);
+    color: #3742a9;
+    padding: 0.3rem 0.56rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    transition: transform 160ms var(--ease-out, ease-out), background-color 160ms var(--ease-out, ease-out), border-color 160ms var(--ease-out, ease-out);
+  }
+
+  .library-active-filter:hover {
+    border-color: rgba(92,97,255,0.52);
+    background: rgba(92,97,255,0.14);
+    transform: translateY(-1px);
+  }
+
   .library-catalogue,
   .library-reader-margin,
   .library-empty,
@@ -1228,6 +1289,7 @@
     .atelier-geometry { min-height: 13rem; border-left: 0; border-top: 1px solid rgba(19,36,63,0.18); }
     .atelier-chart { height: 12rem; gap: 0.3rem; }
     .atelier-chart-label { font-size: 0.58rem; }
+    .library-refinement-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
   @keyframes library-loading {

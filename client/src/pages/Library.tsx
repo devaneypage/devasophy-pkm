@@ -48,6 +48,9 @@ type ArtifactRecord = {
 
 type ArtifactIcon = React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
 
+type DateRange = "all" | "last_30_days" | "last_90_days" | "this_year" | "earlier";
+type SortOrder = "recent" | "oldest" | "title_asc" | "title_desc" | "type";
+
 const artifactIcons: Record<CommonplaceTypeValue, ArtifactIcon> = {
   research_note: FileText,
   bookmark: Bookmark,
@@ -87,11 +90,53 @@ function formatArtifactDate(value: Date | string | undefined) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
+function artifactTimestamp(entry: ArtifactRecord) {
+  const value = entry.updatedAt ?? entry.createdAt;
+  const timestamp = value ? new Date(value).getTime() : 0;
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function entryMatchesDateRange(entry: ArtifactRecord, range: DateRange, referenceDate: Date) {
+  if (range === "all") return true;
+
+  const timestamp = artifactTimestamp(entry);
+  if (!timestamp) return range === "earlier";
+
+  const entryDate = new Date(timestamp);
+  const currentYear = referenceDate.getFullYear();
+  const daysSinceUpdate = (referenceDate.getTime() - timestamp) / 86_400_000;
+
+  if (range === "last_30_days") return daysSinceUpdate >= 0 && daysSinceUpdate <= 30;
+  if (range === "last_90_days") return daysSinceUpdate >= 0 && daysSinceUpdate <= 90;
+  if (range === "this_year") return entryDate.getFullYear() === currentYear;
+  return entryDate.getFullYear() < currentYear;
+}
+
+const dateRangeLabels: Record<DateRange, string> = {
+  all: "Any time",
+  last_30_days: "Past 30 days",
+  last_90_days: "Past 90 days",
+  this_year: "This year",
+  earlier: "Earlier years",
+};
+
+const sortLabels: Record<SortOrder, string> = {
+  recent: "Recently updated",
+  oldest: "Oldest first",
+  title_asc: "Title A–Z",
+  title_desc: "Title Z–A",
+  type: "Artifact type",
+};
+
 export default function Library() {
   const [, setLocation] = useLocation();
   const snapshotQuery = trpc.commonplace.bootstrap.useQuery();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeType, setActiveType] = useState<CommonplaceTypeValue | "all">("all");
+  const [activeRegion, setActiveRegion] = useState("all");
+  const [activeSource, setActiveSource] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange>("all");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("recent");
   const [starredIds, setStarredIds] = useState<Set<number>>(() => new Set());
   const [starredOnly, setStarredOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -113,12 +158,28 @@ export default function Library() {
     }, {});
   }, [entries]);
 
+  const regionOptions = useMemo(() => {
+    const presentRegions = new Set(entries.map((entry) => entry.columnId));
+    return columns
+      .filter((column) => presentRegions.has(column.id))
+      .map((column) => ({ value: String(column.id), label: column.title }))
+      .sort((left, right) => left.label.localeCompare(right.label));
+  }, [columns, entries]);
+
+  const sourceOptions = useMemo(() => {
+    return Array.from(new Set(entries.map(artifactSource))).sort((left, right) => left.localeCompare(right));
+  }, [entries]);
+
   const matchingEntries = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
+    const referenceDate = new Date();
 
     return entries
       .filter((entry) => {
         if (activeType !== "all" && entry.entryType !== activeType) return false;
+        if (activeRegion !== "all" && String(entry.columnId) !== activeRegion) return false;
+        if (activeSource !== "all" && artifactSource(entry) !== activeSource) return false;
+        if (!entryMatchesDateRange(entry, dateRange, referenceDate)) return false;
         if (starredOnly && !starredIds.has(entry.id)) return false;
         if (!query) return true;
 
@@ -136,18 +197,41 @@ export default function Library() {
         return searchable.includes(query);
       })
       .sort((left, right) => {
+        if (sortOrder === "title_asc") return left.title.localeCompare(right.title);
+        if (sortOrder === "title_desc") return right.title.localeCompare(left.title);
+        if (sortOrder === "type") {
+          return getCommonplaceTypeConfig(left.entryType).label.localeCompare(getCommonplaceTypeConfig(right.entryType).label)
+            || left.title.localeCompare(right.title);
+        }
         const rightTime = right.updatedAt ? new Date(right.updatedAt).getTime() : 0;
         const leftTime = left.updatedAt ? new Date(left.updatedAt).getTime() : 0;
-        return rightTime - leftTime || left.title.localeCompare(right.title);
+        return sortOrder === "oldest"
+          ? leftTime - rightTime || left.title.localeCompare(right.title)
+          : rightTime - leftTime || left.title.localeCompare(right.title);
       });
-  }, [activeType, columnLabels, entries, searchTerm, starredIds, starredOnly]);
+  }, [activeRegion, activeSource, activeType, columnLabels, dateRange, entries, searchTerm, sortOrder, starredIds, starredOnly]);
 
   const selectedArtifact = matchingEntries.find((entry) => entry.id === selectedId) ?? matchingEntries[0];
-  const hasFilters = Boolean(searchTerm.trim()) || activeType !== "all" || starredOnly;
+  const activeFilterLabels = useMemo(() => {
+    const labels: Array<{ id: string; label: string; clear: () => void }> = [];
+    if (searchTerm.trim()) labels.push({ id: "query", label: `Search: “${searchTerm.trim()}”`, clear: () => setSearchTerm("") });
+    if (activeType !== "all") labels.push({ id: "type", label: `Type: ${getCommonplaceTypeConfig(activeType).label}`, clear: () => setActiveType("all") });
+    if (activeRegion !== "all") labels.push({ id: "region", label: `Region: ${columnLabels.get(Number(activeRegion)) ?? "Unfiled"}`, clear: () => setActiveRegion("all") });
+    if (activeSource !== "all") labels.push({ id: "source", label: `Source: ${activeSource}`, clear: () => setActiveSource("all") });
+    if (dateRange !== "all") labels.push({ id: "date", label: `Date: ${dateRangeLabels[dateRange]}`, clear: () => setDateRange("all") });
+    if (starredOnly) labels.push({ id: "starred", label: "Starred", clear: () => setStarredOnly(false) });
+    return labels;
+  }, [activeRegion, activeSource, activeType, columnLabels, dateRange, searchTerm, starredOnly]);
+
+  const hasFilters = activeFilterLabels.length > 0;
 
   const clearFilters = () => {
     setSearchTerm("");
     setActiveType("all");
+    setActiveRegion("all");
+    setActiveSource("all");
+    setDateRange("all");
+    setSortOrder("recent");
     setStarredOnly(false);
   };
 
@@ -256,6 +340,46 @@ export default function Library() {
             </div>
           </div>
 
+          <div className="library-refinement-grid border-t border-[#13243f]/10 pt-4" aria-label="Refine the catalogue">
+            <label className="library-select-field">
+              <span>Working region</span>
+              <select value={activeRegion} onChange={(event) => setActiveRegion(event.target.value)} aria-label="Filter by working region">
+                <option value="all">All regions</option>
+                {regionOptions.map((region) => <option key={region.value} value={region.value}>{region.label}</option>)}
+              </select>
+            </label>
+            <label className="library-select-field">
+              <span>Source</span>
+              <select value={activeSource} onChange={(event) => setActiveSource(event.target.value)} aria-label="Filter by source">
+                <option value="all">All sources</option>
+                {sourceOptions.map((source) => <option key={source} value={source}>{source}</option>)}
+              </select>
+            </label>
+            <label className="library-select-field">
+              <span>Filed</span>
+              <select value={dateRange} onChange={(event) => setDateRange(event.target.value as DateRange)} aria-label="Filter by filed date">
+                {(Object.entries(dateRangeLabels) as Array<[DateRange, string]>).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className="library-select-field">
+              <span>Arrange by</span>
+              <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value as SortOrder)} aria-label="Sort library artifacts">
+                {(Object.entries(sortLabels) as Array<[SortOrder, string]>).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+          </div>
+
+          {hasFilters ? (
+            <div className="flex flex-wrap items-center gap-2" aria-label="Active library filters">
+              <span className="mr-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#59657a]">Active</span>
+              {activeFilterLabels.map((filter) => (
+                <button key={filter.id} type="button" onClick={filter.clear} className="library-active-filter" aria-label={`Remove ${filter.label} filter`}>
+                  {filter.label} <X className="h-3.5 w-3.5" />
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap items-baseline justify-between gap-3 text-sm text-[#59657a]">
             <p>
               <span className="font-semibold text-[#13243f]">{matchingEntries.length}</span> of {entries.length} artifacts
@@ -298,7 +422,7 @@ export default function Library() {
                 <p className="mt-1 text-sm text-[#59657a]">Comparative index with source context and regional placement.</p>
               </div>
               <span className="hidden rounded-full border border-[#13243f]/12 bg-white/65 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#48546a] sm:block">
-                Recent first
+                {sortLabels[sortOrder]}
               </span>
             </div>
 
