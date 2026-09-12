@@ -603,3 +603,15 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Preserve keyboard accessibility, reduced-motion behavior, and clear selection feedback
 - [x] Add Vitest coverage for authorization, selection limits, context assembly, provenance, and interface behavior
 - [x] Verify TypeScript, the full test suite, production build, project health, and save a checkpoint
+
+## Devasophy PKM Hub Integration
+- [x] Audit the current Devanomy dashboard, navigation, design tokens, and reusable layout components against the Devasophy PKM Hub reference
+- [x] Define an approved integration system for the atelier dashboard, knowledge-region architecture, classification key, accumulation signals, and relational atlas
+- [x] Apply the approved visual and navigation refinements without regressing existing Devanomy PKM workflows
+- [x] Add or update regression coverage and verify the integrated experience across desktop, mobile, and accessibility states
+- [x] Refresh project health and save a checkpoint for the Devasophy PKM Hub integration
+- [x] Recompose the global shell and dashboard around the atelier-style hierarchy while preserving all current routes and authenticated workflows
+- [x] Map Devanomy modules into six intelligible knowledge regions: Foundations, Practice, Memory, Relations, Flux, and Sources
+- [x] Add a live classification key that preserves the established content-type color taxonomy
+- [x] Add live accumulation, recent-work, relational-atlas, quick-synthesis, and export-hub surfaces backed by existing application data
+- [x] Verify that the coordinated overhaul remains usable and visually coherent at desktop and mobile breakpoints

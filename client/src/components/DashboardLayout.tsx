@@ -38,21 +38,37 @@ import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import TaxonomySidebar from "./TaxonomySidebar";
 import { useCommonplaceFeatureFlag } from "@/lib/featureFlags";
 
-const menuItems = [
-  { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
-  { icon: LibraryBig, label: "Library", path: "/library", accent: "#e7bc28" },
-  { icon: ResearchIcon, label: "Atlas", path: "/search", accent: "#56c5ea" },
-  { icon: EssaysIcon, label: "Writing Studio", path: "/documents", accent: "#e25b33" },
-  { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#f03878" },
-  { icon: ResearchIcon, label: "Ideas", path: "/ideas", accent: "#5c61ff" },
-  { icon: NotesIcon, label: "Knowledge Base", path: "/search", accent: "#56c5ea" },
-  { icon: NotesIcon, label: "Commonplace", path: "/commonplace", accent: "#e04f2f" },
-  { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#5c61ff" },
-  { icon: VocabularyIcon, label: "Lexicon", path: "/lexicon", accent: "#56c5ea" },
-  { icon: Upload, label: "Import", path: "/bulk-import", accent: "#f03878" },
-  { icon: Download, label: "Export", path: "/export", accent: "#56c5ea" },
-  { icon: Grid2x2, label: "Deduplication", path: "/deduplication", accent: "#bfd73d" },
+const menuGroups = [
+  {
+    label: "Atelier",
+    items: [
+      { icon: CategoriesIcon, label: "Dashboard", path: "/", accent: "#efb93a" },
+      { icon: ResearchIcon, label: "Atlas", path: "/search", accent: "#56c5ea" },
+      { icon: EssaysIcon, label: "Writing Studio", path: "/documents", accent: "#e25b33" },
+      { icon: ResearchIcon, label: "Ideas", path: "/ideas", accent: "#5c61ff" },
+    ],
+  },
+  {
+    label: "Collections",
+    items: [
+      { icon: LibraryBig, label: "Library", path: "/library", accent: "#e7bc28" },
+      { icon: NotesIcon, label: "Commonplace", path: "/commonplace", accent: "#e04f2f" },
+      { icon: VocabularyIcon, label: "Clavis Aurea", path: "/glossary", accent: "#5c61ff" },
+      { icon: VocabularyIcon, label: "Lexicon", path: "/lexicon", accent: "#56c5ea" },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { icon: FolderOpen, label: "Goals", path: "/goals", accent: "#f03878" },
+      { icon: Upload, label: "Import", path: "/bulk-import", accent: "#f03878" },
+      { icon: Download, label: "Export", path: "/export", accent: "#56c5ea" },
+      { icon: Grid2x2, label: "Deduplication", path: "/deduplication", accent: "#bfd73d" },
+    ],
+  },
 ];
+
+const menuItems = menuGroups.flatMap((group) => group.items);
 
 const utilityItems = [{ icon: Settings2, label: "Settings", path: "/export", accent: "#5c61ff" }];
 
@@ -234,33 +250,43 @@ function DashboardLayoutContent({
           <SidebarContent className="dev-sidebar-panel relative gap-0 overflow-hidden">
             <div className="absolute inset-x-0 bottom-0 h-28 dev-sidebar-pattern" />
             <div className="relative z-10 flex h-full flex-col">
-              <SidebarMenu className="px-3 py-3">
-                {visibleMenuItems.map((item) => {
-                  const isActive = currentModule
-                    ? pathToModule[item.path] === currentModule || location === item.path
-                    : location === item.path;
-
+              <div className="space-y-2 px-3 py-3">
+                {menuGroups.map((group) => {
+                  const groupItems = group.items.filter((item) => (item.path === "/commonplace" ? commonplaceEnabled : true));
                   return (
-                    <SidebarMenuItem key={item.label}>
-                      <SidebarMenuButton
-                        isActive={isActive}
-                        onClick={() => setLocation(item.path)}
-                        tooltip={item.label}
-                        className="h-13 rounded-[1.15rem] border border-transparent px-3 text-sidebar-foreground transition-all hover:bg-white/9 data-[active=true]:border-white/10 data-[active=true]:bg-white/8 data-[active=true]:shadow-none"
-                      >
-                        <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-transparent transition data-[active=true]:bg-white/80" />
-                        <span
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 text-black shadow-sm"
-                          style={{ backgroundColor: isActive ? item.accent : "rgba(255,255,255,0.08)", color: isActive ? "#13243f" : "rgba(255,255,255,0.92)" }}
-                        >
-                          <item.icon className="h-5 w-5" />
-                        </span>
-                        <span className="font-medium tracking-[0.01em]">{item.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <div key={group.label} className="atelier-nav-group">
+                      {!isCollapsed && <p className="atelier-nav-label">{group.label}</p>}
+                      <SidebarMenu>
+                        {groupItems.map((item) => {
+                          const isActive = currentModule
+                            ? pathToModule[item.path] === currentModule || location === item.path
+                            : location === item.path;
+
+                          return (
+                            <SidebarMenuItem key={item.label}>
+                              <SidebarMenuButton
+                                isActive={isActive}
+                                onClick={() => setLocation(item.path)}
+                                tooltip={item.label}
+                                className="h-11 rounded-[1rem] border border-transparent px-3 text-sidebar-foreground transition-all hover:bg-white/9 data-[active=true]:border-white/10 data-[active=true]:bg-white/8 data-[active=true]:shadow-none"
+                              >
+                                <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-transparent transition data-[active=true]:bg-white/80" />
+                                <span
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 text-black shadow-sm"
+                                  style={{ backgroundColor: isActive ? item.accent : "rgba(255,255,255,0.08)", color: isActive ? "#13243f" : "rgba(255,255,255,0.92)" }}
+                                >
+                                  <item.icon className="h-4 w-4" />
+                                </span>
+                                <span className="font-medium tracking-[0.01em]">{item.label}</span>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          );
+                        })}
+                      </SidebarMenu>
+                    </div>
                   );
                 })}
-              </SidebarMenu>
+              </div>
 
               {!isCollapsed && (
                 <div className="mx-3 mt-2 rounded-[1.35rem] border border-white/12 bg-white/8 backdrop-blur-sm">
@@ -330,13 +356,23 @@ function DashboardLayoutContent({
 
       <SidebarInset className="bg-transparent">
         <div className="dev-topbar sticky top-0 z-40">
-          <div className="flex h-20 items-center gap-3 px-4 sm:px-6">
+          <div className="flex min-h-20 items-center gap-3 px-4 py-3 sm:px-6">
             {isMobile && <SidebarTrigger className="h-10 w-10 rounded-2xl border border-black bg-white" />}
-            <div className="relative max-w-2xl flex-1">
+            <div className="hidden min-w-[11rem] lg:block">
+              <p className="text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[#e85b3e]">Status operational</p>
+              <p className="mt-1 font-serif text-xl font-bold text-[#13243f]">{activeMenuItem?.label}</p>
+            </div>
+            <div className="relative ml-auto max-w-2xl flex-1">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6b7487]" />
               <Input
                 readOnly
                 value={activeMenuItem?.label === "Dashboard" ? "Search your notes, terms, and projects" : `Browse ${activeMenuItem?.label.toLowerCase()}`}
+                onClick={() => setLocation("/search")}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") setLocation("/search");
+                }}
+                role="button"
+                tabIndex={0}
                 className="dev-search h-14 pl-12 text-base text-foreground shadow-none placeholder:text-muted-foreground"
               />
             </div>

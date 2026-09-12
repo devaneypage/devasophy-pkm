@@ -2721,3 +2721,212 @@ export async function applyDeduplicationAction(userId: number, input: Deduplicat
     deletedCount,
   };
 }
+
+type AtelierActivityRecord = {
+  createdAt: Date;
+};
+
+type AtelierRecentRecord = {
+  id: number;
+  module: "commonplace" | "lexicon" | "document" | "idea" | "book";
+  title: string;
+  detail: string;
+  route: string;
+  updatedAt: Date;
+};
+
+export function buildSevenMonthActivity(records: AtelierActivityRecord[], now = new Date()) {
+  const months = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (6 - index), 1);
+    return {
+      key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
+      label: date.toLocaleDateString("en-US", { month: "short" }),
+      total: 0,
+    };
+  });
+  const monthMap = new Map(months.map((month) => [month.key, month]));
+
+  for (const record of records) {
+    const date = new Date(record.createdAt);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const month = monthMap.get(key);
+    if (month) month.total += 1;
+  }
+
+  return months;
+}
+
+export async function getAtelierDashboardOverview(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [
+    commonplaceCountRows,
+    lexiconCountRows,
+    documentCountRows,
+    ideaCountRows,
+    activeIdeaCountRows,
+    bookCountRows,
+    goalCountRows,
+    taskCountRows,
+    linkCountRows,
+    commonplaceTypeRows,
+    commonplaceRecentRows,
+    lexiconRecentRows,
+    documentRecentRows,
+    ideaRecentRows,
+    bookRecentRows,
+    commonplaceActivityRows,
+    lexiconActivityRows,
+    documentActivityRows,
+    ideaActivityRows,
+    bookActivityRows,
+    relationshipRows,
+  ] = await Promise.all([
+    db.select({ value: count() }).from(commonplaceEntries).where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.isArchived, false))),
+    db.select({ value: count() }).from(lexiconEntries).where(eq(lexiconEntries.userId, userId)),
+    db.select({ value: count() }).from(documents).where(eq(documents.userId, userId)),
+    db.select({ value: count() }).from(ideas).where(eq(ideas.userId, userId)),
+    db.select({ value: count() }).from(ideas).where(and(eq(ideas.userId, userId), inArray(ideas.status, ["seed", "germinating", "incubating", "developed"]))),
+    db.select({ value: count() }).from(books).where(eq(books.userId, userId)),
+    db.select({ value: count() }).from(goals).where(eq(goals.userId, userId)),
+    db.select({ value: count() }).from(tasks).where(eq(tasks.userId, userId)),
+    db.select({ value: count() }).from(semanticLinks).where(eq(semanticLinks.userId, userId)),
+    db
+      .select({ entryType: commonplaceEntries.entryType, value: count() })
+      .from(commonplaceEntries)
+      .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.isArchived, false)))
+      .groupBy(commonplaceEntries.entryType),
+    db
+      .select({ id: commonplaceEntries.id, title: commonplaceEntries.title, entryType: commonplaceEntries.entryType, updatedAt: commonplaceEntries.updatedAt })
+      .from(commonplaceEntries)
+      .where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.isArchived, false)))
+      .orderBy(desc(commonplaceEntries.updatedAt))
+      .limit(8),
+    db
+      .select({ id: lexiconEntries.id, title: lexiconEntries.term, updatedAt: lexiconEntries.updatedAt })
+      .from(lexiconEntries)
+      .where(eq(lexiconEntries.userId, userId))
+      .orderBy(desc(lexiconEntries.updatedAt))
+      .limit(6),
+    db
+      .select({ id: documents.id, title: documents.title, status: documents.status, updatedAt: documents.updatedAt })
+      .from(documents)
+      .where(eq(documents.userId, userId))
+      .orderBy(desc(documents.updatedAt))
+      .limit(6),
+    db
+      .select({ id: ideas.id, title: ideas.title, status: ideas.status, updatedAt: ideas.updatedAt })
+      .from(ideas)
+      .where(eq(ideas.userId, userId))
+      .orderBy(desc(ideas.updatedAt))
+      .limit(6),
+    db
+      .select({ id: books.id, title: books.title, author: books.author, updatedAt: books.updatedAt })
+      .from(books)
+      .where(eq(books.userId, userId))
+      .orderBy(desc(books.updatedAt))
+      .limit(6),
+    db.select({ createdAt: commonplaceEntries.createdAt }).from(commonplaceEntries).where(and(eq(commonplaceEntries.userId, userId), eq(commonplaceEntries.isArchived, false))),
+    db.select({ createdAt: lexiconEntries.createdAt }).from(lexiconEntries).where(eq(lexiconEntries.userId, userId)),
+    db.select({ createdAt: documents.createdAt }).from(documents).where(eq(documents.userId, userId)),
+    db.select({ createdAt: ideas.createdAt }).from(ideas).where(eq(ideas.userId, userId)),
+    db.select({ createdAt: books.createdAt }).from(books).where(eq(books.userId, userId)),
+    db
+      .select({ sourceType: semanticLinks.sourceType, targetType: semanticLinks.targetType, linkType: semanticLinks.linkType })
+      .from(semanticLinks)
+      .where(eq(semanticLinks.userId, userId)),
+  ]);
+
+  const recentWork: AtelierRecentRecord[] = [
+    ...commonplaceRecentRows.map((row) => ({
+      id: row.id,
+      module: "commonplace" as const,
+      title: row.title,
+      detail: row.entryType.replaceAll("_", " "),
+      route: "/commonplace",
+      updatedAt: row.updatedAt,
+    })),
+    ...lexiconRecentRows.map((row) => ({
+      id: row.id,
+      module: "lexicon" as const,
+      title: row.title,
+      detail: "lexicon term",
+      route: "/lexicon",
+      updatedAt: row.updatedAt,
+    })),
+    ...documentRecentRows.map((row) => ({
+      id: row.id,
+      module: "document" as const,
+      title: row.title,
+      detail: row.status ?? "draft",
+      route: "/documents",
+      updatedAt: row.updatedAt,
+    })),
+    ...ideaRecentRows.map((row) => ({
+      id: row.id,
+      module: "idea" as const,
+      title: row.title,
+      detail: row.status ?? "seed",
+      route: "/ideas",
+      updatedAt: row.updatedAt,
+    })),
+    ...bookRecentRows.map((row) => ({
+      id: row.id,
+      module: "book" as const,
+      title: row.title,
+      detail: row.author ?? "book",
+      route: "/library",
+      updatedAt: row.updatedAt,
+    })),
+  ]
+    .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
+    .slice(0, 6);
+
+  const contentTypeCounts = Object.fromEntries(
+    commonplaceTypeRows.map((row) => [row.entryType, Number(row.value)])
+  ) as Partial<Record<CommonplaceEntryType, number>>;
+
+  const edgeMap = new Map<string, { source: string; target: string; count: number }>();
+  const linkTypeMap = new Map<string, number>();
+  for (const relationship of relationshipRows) {
+    const key = `${relationship.sourceType}:${relationship.targetType}`;
+    const edge = edgeMap.get(key) ?? { source: relationship.sourceType, target: relationship.targetType, count: 0 };
+    edge.count += 1;
+    edgeMap.set(key, edge);
+
+    const linkType = relationship.linkType?.trim() || "related";
+    linkTypeMap.set(linkType, (linkTypeMap.get(linkType) ?? 0) + 1);
+  }
+
+  const monthlyActivity = buildSevenMonthActivity([
+    ...commonplaceActivityRows,
+    ...lexiconActivityRows,
+    ...documentActivityRows,
+    ...ideaActivityRows,
+    ...bookActivityRows,
+  ]);
+
+  return {
+    generatedAt: new Date(),
+    counts: {
+      commonplace: Number(commonplaceCountRows[0]?.value ?? 0),
+      lexicon: Number(lexiconCountRows[0]?.value ?? 0),
+      documents: Number(documentCountRows[0]?.value ?? 0),
+      ideas: Number(ideaCountRows[0]?.value ?? 0),
+      activeIdeas: Number(activeIdeaCountRows[0]?.value ?? 0),
+      books: Number(bookCountRows[0]?.value ?? 0),
+      goals: Number(goalCountRows[0]?.value ?? 0),
+      tasks: Number(taskCountRows[0]?.value ?? 0),
+      links: Number(linkCountRows[0]?.value ?? 0),
+    },
+    contentTypeCounts,
+    monthlyActivity,
+    recentWork,
+    relationships: {
+      total: Number(linkCountRows[0]?.value ?? 0),
+      edges: Array.from(edgeMap.values()).sort((left, right) => right.count - left.count),
+      linkTypes: Array.from(linkTypeMap, ([type, value]) => ({ type, value })).sort((left, right) => right.value - left.value),
+    },
+  };
+}

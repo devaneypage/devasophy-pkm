@@ -78,6 +78,7 @@ import {
   bulkImportLexiconWithDuplicateDetection,
   scanDeduplicationGroups,
   applyDeduplicationAction,
+  getAtelierDashboardOverview,
 } from "./db";
 import {
   extractKeyInsights,
@@ -108,6 +109,10 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+  }),
+
+  dashboard: router({
+    overview: protectedProcedure.query(async ({ ctx }) => getAtelierDashboardOverview(ctx.user.id)),
   }),
 
   featureFlags: router({

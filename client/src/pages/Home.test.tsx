@@ -23,14 +23,6 @@ vi.mock("@/components/ui/card", () => ({
   Card: ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={className}>{children}</div>,
 }));
 
-vi.mock("@/components/DevanomyIcons", () => ({
-  EssaysIcon: () => <span>EssaysIcon</span>,
-  NotesIcon: () => <span>NotesIcon</span>,
-  QuotationsIcon: () => <span>QuotationsIcon</span>,
-  ResearchIcon: () => <span>ResearchIcon</span>,
-  VocabularyIcon: () => <span>VocabularyIcon</span>,
-}));
-
 vi.mock("@/_core/hooks/useAuth", () => ({
   useAuth: () => ({
     user: { name: "Devaney Page", email: "devaneypage@gmail.com" },
@@ -58,36 +50,66 @@ vi.mock("@/lib/trpc", () => ({
         }),
       },
     },
+    dashboard: {
+      overview: {
+        useQuery: () => ({
+          data: {
+            generatedAt: new Date("2026-09-12T12:00:00.000Z"),
+            counts: {
+              commonplace: 8,
+              lexicon: 7,
+              documents: 1,
+              ideas: 3,
+              activeIdeas: 2,
+              books: 4,
+              goals: 1,
+              tasks: 1,
+              links: 5,
+            },
+            contentTypeCounts: {
+              research_note: 2,
+              bookmark: 1,
+              idea: 1,
+              quote: 2,
+              book: 1,
+              article: 1,
+              glossary_term: 0,
+              list: 0,
+            },
+            monthlyActivity: [
+              { key: "2026-03", label: "Mar", total: 1 },
+              { key: "2026-04", label: "Apr", total: 3 },
+              { key: "2026-05", label: "May", total: 2 },
+              { key: "2026-06", label: "Jun", total: 4 },
+              { key: "2026-07", label: "Jul", total: 5 },
+              { key: "2026-08", label: "Aug", total: 2 },
+              { key: "2026-09", label: "Sep", total: 1 },
+            ],
+            recentWork: [
+              {
+                id: 1,
+                module: "document",
+                title: "Knowledge Architecture",
+                detail: "draft",
+                route: "/documents",
+                updatedAt: new Date("2026-09-12T10:00:00.000Z"),
+              },
+            ],
+            relationships: {
+              total: 5,
+              edges: [{ source: "notebook", target: "document", count: 5 }],
+              linkTypes: [{ type: "supports", value: 5 }],
+            },
+          },
+          isLoading: false,
+          isError: false,
+        }),
+      },
+    },
     notebook: {
       list: {
         useQuery: () => ({
           data: { items: [{}], pageInfo: { total: 12 } },
-          isLoading: false,
-        }),
-      },
-    },
-    lexicon: { list: { useQuery: () => ({ data: new Array(7).fill({}), isLoading: false }) } },
-    documents: { list: { useQuery: () => ({ data: [{ id: 1 }], isLoading: false }) } },
-    goals: { list: { useQuery: () => ({ data: [{ id: 1, title: "Launch Devanomy" }], isLoading: false }) } },
-    ideas: {
-      list: {
-        useQuery: () => ({
-          data: [
-            { id: 1, status: "seed" },
-            { id: 2, status: "developed" },
-            { id: 3, status: "archived" },
-          ],
-          isLoading: false,
-        }),
-      },
-    },
-    projects: { list: { useQuery: () => ({ data: [], isLoading: false }) } },
-    tasks: {
-      list: {
-        useQuery: () => ({
-          data: [
-            { id: 1, title: "Polish dashboard", dueDate: new Date("2026-05-30T00:00:00.000Z"), status: "todo", priority: "high" },
-          ],
           isLoading: false,
         }),
       },
@@ -97,7 +119,7 @@ vi.mock("@/lib/trpc", () => ({
 
 import Home from "./Home";
 
-describe("Home dashboard branding refresh", () => {
+describe("Home atelier dashboard", () => {
   beforeEach(() => {
     setLocation.mockClear();
     updateFeatureFlagMutate.mockClear();
@@ -105,21 +127,22 @@ describe("Home dashboard branding refresh", () => {
     commonplaceFlagState.commonplaceEnabled = true;
   });
 
-  it("renders the branded hero and Commonplace entry points when the workspace flag is enabled", () => {
+  it("renders the live atelier hierarchy, six regions, and classification system", () => {
     render(<Home />);
 
-    expect(screen.getByAltText("Devanomy")).toBeTruthy();
-    expect(screen.getByText("Devanomy editorial workspace")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Quick capture/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Unified search/i })).toBeTruthy();
-    expect(screen.getByText("Ideas Lab")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /Welcome back to your knowledge territory/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Open the Commonplace/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Search the territory/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Six regions of the territory" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Content has a fixed signal" })).toBeTruthy();
+    expect(screen.getByText("Knowledge Architecture")).toBeTruthy();
   });
 
-  it("routes the primary hero actions to the expected destinations when Commonplace is enabled", () => {
+  it("routes the primary atelier actions to the expected destinations", () => {
     render(<Home />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Quick capture/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Unified search/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Open the Commonplace/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Search the territory/i }));
 
     expect(setLocation).toHaveBeenNthCalledWith(1, "/commonplace");
     expect(setLocation).toHaveBeenNthCalledWith(2, "/search");
@@ -129,7 +152,6 @@ describe("Home dashboard branding refresh", () => {
     commonplaceFlagState.commonplaceEnabled = false;
 
     render(<Home />);
-
     fireEvent.click(screen.getByRole("button", { name: /Enable Commonplace/i }));
 
     expect(updateFeatureFlagMutate).toHaveBeenCalledWith({
