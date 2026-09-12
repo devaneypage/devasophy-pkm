@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import { buildSevenMonthActivity } from "./db";
 import type { TrpcContext } from "./_core/context";
+import { DEFAULT_DASHBOARD_PANEL_ORDER } from "../shared/dashboardLayout";
 
 describe("atelier dashboard", () => {
   it("builds a chronological seven-month activity series", () => {
@@ -27,5 +28,17 @@ describe("atelier dashboard", () => {
     } as TrpcContext);
 
     await expect(caller.dashboard.overview()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("protects dashboard layout reads, writes, and resets", async () => {
+    const caller = appRouter.createCaller({
+      user: null,
+      req: { protocol: "https", headers: {} },
+      res: {},
+    } as TrpcContext);
+
+    await expect(caller.dashboard.layout()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(caller.dashboard.updateLayout({ panelOrder: DEFAULT_DASHBOARD_PANEL_ORDER })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(caller.dashboard.resetLayout()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });

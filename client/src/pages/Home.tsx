@@ -1,26 +1,40 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCommonplaceFeatureFlag } from "@/lib/featureFlags";
 import { trpc } from "@/lib/trpc";
 import {
+  DEFAULT_DASHBOARD_PANEL_ORDER,
+  dashboardPanelDefinitions,
+  moveDashboardPanel,
+  normalizeDashboardPanelOrder,
+  type DashboardPanelId,
+} from "@shared/dashboardLayout";
+import {
   Archive,
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   BookOpen,
+  Check,
   Clock3,
   Download,
   FileJson,
   FileText,
+  GripVertical,
   Layers3,
+  Loader2,
   Map as MapIcon,
   Network,
   PenLine,
   Plus,
+  RotateCcw,
   Search,
   Share2,
+  SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
+import React from "react";
 import { useLocation } from "wouter";
 
 const contentTaxonomy = [
@@ -51,6 +65,18 @@ const moduleTone: Record<string, string> = {
   document: "#5c61ff",
   idea: "#f03878",
   book: "#3f8b4d",
+};
+
+const panelSpanClass: Record<DashboardPanelId, string> = {
+  territory_metrics: "xl:col-span-12",
+  atelier: "xl:col-span-12",
+  recent_work: "xl:col-span-6",
+  node_atlas: "xl:col-span-6",
+  knowledge_regions: "xl:col-span-12",
+  accumulation_atlas: "xl:col-span-8",
+  classification_key: "xl:col-span-4",
+  quick_synthesis: "xl:col-span-8",
+  export_hub: "xl:col-span-4",
 };
 
 function formatCount(value: number | undefined, loading: boolean) {
@@ -108,13 +134,120 @@ function NodeAtlas({ relationships }: { relationships?: { total: number; edges: 
   );
 }
 
+type DashboardPanelFrameProps = {
+  panelId: DashboardPanelId;
+  index: number;
+  total: number;
+  isEditing: boolean;
+  isBusy: boolean;
+  isDragging: boolean;
+  children: React.ReactNode;
+  onMove: (panelId: DashboardPanelId, targetIndex: number) => void;
+  onDragStart: (event: React.DragEvent<HTMLButtonElement>, panelId: DashboardPanelId) => void;
+  onDragEnd: () => void;
+  onDrop: (panelId: DashboardPanelId) => void;
+};
+
+function DashboardPanelFrame({
+  panelId,
+  index,
+  total,
+  isEditing,
+  isBusy,
+  isDragging,
+  children,
+  onMove,
+  onDragStart,
+  onDragEnd,
+  onDrop,
+}: DashboardPanelFrameProps) {
+  const definition = dashboardPanelDefinitions.find((panel) => panel.id === panelId)!;
+
+  return (
+    <div
+      className={`atelier-panel-slot ${panelSpanClass[panelId]} ${isEditing ? "is-arranging" : ""} ${isDragging ? "is-dragging" : ""}`}
+      data-panel-id={panelId}
+      onDragOver={(event) => {
+        if (isEditing) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDrop(panelId);
+      }}
+    >
+      {isEditing && (
+        <div className="atelier-panel-toolbar">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              draggable={!isBusy}
+              disabled={isBusy}
+              onDragStart={(event) => onDragStart(event, panelId)}
+              onDragEnd={onDragEnd}
+              className="atelier-drag-handle"
+              aria-label={`Drag ${definition.title}`}
+              title={`Drag ${definition.title}`}
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+            <span className="atelier-panel-order">{String(index + 1).padStart(2, "0")}</span>
+            <span className="truncate text-sm font-bold text-[#13243f]">{definition.title}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              disabled={isBusy || index === 0}
+              onClick={() => onMove(panelId, index - 1)}
+              className="h-8 w-8 rounded-full"
+              aria-label={`Move ${definition.title} up`}
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              disabled={isBusy || index === total - 1}
+              onClick={() => onMove(panelId, index + 1)}
+              className="h-8 w-8 rounded-full"
+              aria-label={`Move ${definition.title} down`}
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
 export default function Home() {
   const utils = trpc.useUtils();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { commonplaceEnabled } = useCommonplaceFeatureFlag();
   const dashboardQuery = trpc.dashboard.overview.useQuery();
+  const layoutQuery = trpc.dashboard.layout.useQuery();
   const legacyNotesQuery = trpc.notebook.list.useQuery({ page: 1, pageSize: 1 });
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [panelOrder, setPanelOrder] = React.useState<DashboardPanelId[]>([...DEFAULT_DASHBOARD_PANEL_ORDER]);
+  const [draggedPanelId, setDraggedPanelId] = React.useState<DashboardPanelId | null>(null);
+  const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [announcement, setAnnouncement] = React.useState("");
+  const [confirmReset, setConfirmReset] = React.useState(false);
+
+  React.useEffect(() => {
+    if (layoutQuery.data?.panelOrder && !isEditing) {
+      setPanelOrder(normalizeDashboardPanelOrder(layoutQuery.data.panelOrder));
+    }
+  }, [isEditing, layoutQuery.data?.panelOrder]);
+
+  const updateLayoutMutation = trpc.dashboard.updateLayout.useMutation();
+  const resetLayoutMutation = trpc.dashboard.resetLayout.useMutation();
+  const isLayoutBusy = updateLayoutMutation.isPending || resetLayoutMutation.isPending;
 
   const enableCommonplaceMutation = trpc.featureFlags.update.useMutation({
     onSuccess: async () => {
@@ -135,76 +268,12 @@ export default function Home() {
     (counts?.books ?? 0);
 
   const knowledgeRegions = [
-    {
-      code: "01",
-      eyebrow: "Foundations",
-      title: "The Core",
-      description: "Definitions, principles, and conceptual roots that stabilize the archive.",
-      route: "/glossary",
-      accent: "#e85b3e",
-      pattern: "dev-pattern-waves",
-      count: counts?.lexicon ?? 0,
-      countLabel: "terms",
-    },
-    {
-      code: "02",
-      eyebrow: "Practice",
-      title: "Atelier",
-      description: "Active writing, deliberate projects, and work translated into form.",
-      route: "/documents",
-      accent: "#3fb8b0",
-      pattern: "dev-pattern-stripes",
-      count: (counts?.documents ?? 0) + (counts?.goals ?? 0),
-      countLabel: "active works",
-    },
-    {
-      code: "03",
-      eyebrow: "Memory",
-      title: "Archives",
-      description: "Durable notes, books, and processed records retained for return.",
-      route: "/library",
-      accent: "#5c61ff",
-      pattern: "dev-pattern-diamonds",
-      count: (legacyNotesQuery.data?.pageInfo.total ?? 0) + (counts?.commonplace ?? 0) + (counts?.books ?? 0),
-      countLabel: "records",
-    },
-    {
-      code: "04",
-      eyebrow: "Relations",
-      title: "Network",
-      description: "Taxonomic and semantic connections that reveal emerging structure.",
-      route: "/search",
-      accent: "#1d8fff",
-      pattern: "dev-pattern-dots",
-      count: counts?.links ?? 0,
-      countLabel: "links",
-    },
-    {
-      code: "05",
-      eyebrow: "Flux",
-      title: "Drafts",
-      description: "Ephemeral captures, questions, and ideas still changing shape.",
-      route: "/ideas",
-      accent: "#efb93a",
-      pattern: "dev-pattern-waves",
-      count: counts?.activeIdeas ?? 0,
-      countLabel: "ideas in play",
-    },
-    {
-      code: "06",
-      eyebrow: "Sources",
-      title: "Canon",
-      description: "Books, quotations, articles, and bookmarks that anchor inquiry.",
-      route: "/commonplace",
-      accent: "#3f8b4d",
-      pattern: "dev-pattern-stripes",
-      count:
-        (counts?.books ?? 0) +
-        (overview?.contentTypeCounts.quote ?? 0) +
-        (overview?.contentTypeCounts.article ?? 0) +
-        (overview?.contentTypeCounts.bookmark ?? 0),
-      countLabel: "sources",
-    },
+    { code: "01", eyebrow: "Foundations", title: "The Core", description: "Definitions, principles, and conceptual roots that stabilize the archive.", route: "/glossary", accent: "#e85b3e", pattern: "dev-pattern-waves", count: counts?.lexicon ?? 0, countLabel: "terms" },
+    { code: "02", eyebrow: "Practice", title: "Atelier", description: "Active writing, deliberate projects, and work translated into form.", route: "/documents", accent: "#3fb8b0", pattern: "dev-pattern-stripes", count: (counts?.documents ?? 0) + (counts?.goals ?? 0), countLabel: "active works" },
+    { code: "03", eyebrow: "Memory", title: "Archives", description: "Durable notes, books, and processed records retained for return.", route: "/library", accent: "#5c61ff", pattern: "dev-pattern-diamonds", count: (legacyNotesQuery.data?.pageInfo.total ?? 0) + (counts?.commonplace ?? 0) + (counts?.books ?? 0), countLabel: "records" },
+    { code: "04", eyebrow: "Relations", title: "Network", description: "Taxonomic and semantic connections that reveal emerging structure.", route: "/search", accent: "#1d8fff", pattern: "dev-pattern-dots", count: counts?.links ?? 0, countLabel: "links" },
+    { code: "05", eyebrow: "Flux", title: "Drafts", description: "Ephemeral captures, questions, and ideas still changing shape.", route: "/ideas", accent: "#efb93a", pattern: "dev-pattern-waves", count: counts?.activeIdeas ?? 0, countLabel: "ideas in play" },
+    { code: "06", eyebrow: "Sources", title: "Canon", description: "Books, quotations, articles, and bookmarks that anchor inquiry.", route: "/commonplace", accent: "#3f8b4d", pattern: "dev-pattern-stripes", count: (counts?.books ?? 0) + (overview?.contentTypeCounts.quote ?? 0) + (overview?.contentTypeCounts.article ?? 0) + (overview?.contentTypeCounts.bookmark ?? 0), countLabel: "sources" },
   ];
 
   const metrics = [
@@ -225,14 +294,58 @@ export default function Home() {
     enableCommonplaceMutation.mutate({ flagKey: "commonplace_workspace", enabled: true });
   };
 
-  return (
-    <div className="atelier-dashboard space-y-5">
-      {dashboardQuery.isError && (
-        <div className="atelier-notice" role="alert">
-          Live dashboard intelligence is temporarily unavailable. Core workspaces remain accessible from the navigation.
-        </div>
-      )}
+  const persistPanelOrder = async (nextOrder: DashboardPanelId[], previousOrder: DashboardPanelId[]) => {
+    if (nextOrder.join("|") === previousOrder.join("|")) return;
+    setPanelOrder(nextOrder);
+    setSaveStatus("saving");
+    try {
+      const saved = await updateLayoutMutation.mutateAsync({ panelOrder: nextOrder });
+      setPanelOrder(normalizeDashboardPanelOrder(saved.panelOrder));
+      setSaveStatus("saved");
+    } catch {
+      setPanelOrder(previousOrder);
+      setSaveStatus("error");
+    }
+  };
 
+  const movePanel = (panelId: DashboardPanelId, targetIndex: number) => {
+    if (isLayoutBusy) return;
+    const previousOrder = [...panelOrder];
+    const nextOrder = moveDashboardPanel(previousOrder, panelId, targetIndex);
+    const definition = dashboardPanelDefinitions.find((panel) => panel.id === panelId)!;
+    setAnnouncement(`${definition.title} moved to position ${nextOrder.indexOf(panelId) + 1} of ${nextOrder.length}.`);
+    void persistPanelOrder(nextOrder, previousOrder);
+  };
+
+  const handleDrop = (targetPanelId: DashboardPanelId) => {
+    if (!draggedPanelId || draggedPanelId === targetPanelId || isLayoutBusy) {
+      setDraggedPanelId(null);
+      return;
+    }
+    movePanel(draggedPanelId, panelOrder.indexOf(targetPanelId));
+    setDraggedPanelId(null);
+  };
+
+  const resetLayout = async () => {
+    const previousOrder = [...panelOrder];
+    setPanelOrder([...DEFAULT_DASHBOARD_PANEL_ORDER]);
+    setConfirmReset(false);
+    setSaveStatus("saving");
+    setAnnouncement("Restoring the default dashboard order.");
+    try {
+      const saved = await resetLayoutMutation.mutateAsync();
+      setPanelOrder(normalizeDashboardPanelOrder(saved.panelOrder));
+      setSaveStatus("saved");
+      setAnnouncement("The default dashboard order has been restored.");
+    } catch {
+      setPanelOrder(previousOrder);
+      setSaveStatus("error");
+      setAnnouncement("The dashboard order could not be reset.");
+    }
+  };
+
+  const panels: Record<DashboardPanelId, React.ReactNode> = {
+    territory_metrics: (
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Knowledge territory metrics">
         {metrics.map((metric) => (
           <button key={metric.label} type="button" onClick={() => setLocation(metric.route)} className="atelier-metric-card group">
@@ -245,199 +358,154 @@ export default function Home() {
           </button>
         ))}
       </section>
-
-      <section className="grid gap-5 2xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,.72fr)]">
-        <div className="atelier-hero overflow-hidden">
-          <div className="atelier-hero-copy">
-            <div className="flex items-center gap-3 text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#e85b3e]">
-              <span className="h-2 w-2 rounded-full bg-[#e85b3e]" />
-              The Atelier
-            </div>
-            <h1 className="mt-5 max-w-[11ch] text-[#13243f]">
-              Welcome back to your <span className="text-[#e85b3e]">knowledge territory.</span>
-            </h1>
-            <p className="mt-5 max-w-xl text-base leading-7 text-[#48546a]">
-              Your architecture is evolving. Today’s focus is structural integrity, aesthetic coherence, and the movement from captured material to durable understanding.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Button onClick={goToCommonplace} disabled={enableCommonplaceMutation.isPending} className="atelier-primary-action">
-                <Plus className="mr-2 h-4 w-4" />
-                {commonplaceEnabled ? "Open the Commonplace" : enableCommonplaceMutation.isPending ? "Enabling…" : "Enable Commonplace"}
-              </Button>
-              <Button variant="outline" onClick={() => setLocation("/search")} className="atelier-secondary-action">
-                <Search className="mr-2 h-4 w-4" /> Search the territory
-              </Button>
-            </div>
-            <div className="mt-8 grid gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#48546a] sm:grid-cols-3">
-              <span><strong className="text-[#e85b3e]">{formatCount(counts?.commonplace, isLoading)}</strong> working cards</span>
-              <span><strong className="text-[#3fb8b0]">{formatCount(counts?.links, isLoading)}</strong> semantic links</span>
-              <span><strong className="text-[#5c61ff]">06</strong> regions ready</span>
-            </div>
+    ),
+    atelier: (
+      <section className="atelier-hero overflow-hidden">
+        <div className="atelier-hero-copy">
+          <div className="flex items-center gap-3 text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#e85b3e]"><span className="h-2 w-2 rounded-full bg-[#e85b3e]" />The Atelier</div>
+          <h1 className="mt-5 max-w-[11ch] text-[#13243f]">Welcome back to your <span className="text-[#e85b3e]">knowledge territory.</span></h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-[#48546a]">Your architecture is evolving. Today’s focus is structural integrity, aesthetic coherence, and the movement from captured material to durable understanding.</p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Button onClick={goToCommonplace} disabled={enableCommonplaceMutation.isPending} className="atelier-primary-action"><Plus className="mr-2 h-4 w-4" />{commonplaceEnabled ? "Open the Commonplace" : enableCommonplaceMutation.isPending ? "Enabling…" : "Enable Commonplace"}</Button>
+            <Button variant="outline" onClick={() => setLocation("/search")} className="atelier-secondary-action"><Search className="mr-2 h-4 w-4" /> Search the territory</Button>
           </div>
-          <div className="atelier-geometry" aria-hidden="true">
-            <span className="atelier-geometry-line" />
-            <span className="atelier-geometry-circle atelier-geometry-circle-one" />
-            <span className="atelier-geometry-circle atelier-geometry-circle-two" />
-            <span className="atelier-geometry-dot" />
+          <div className="mt-8 grid gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#48546a] sm:grid-cols-3">
+            <span><strong className="text-[#e85b3e]">{formatCount(counts?.commonplace, isLoading)}</strong> working cards</span>
+            <span><strong className="text-[#3fb8b0]">{formatCount(counts?.links, isLoading)}</strong> semantic links</span>
+            <span><strong className="text-[#5c61ff]">06</strong> regions ready</span>
           </div>
         </div>
-
-        <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-1">
-          <Card className="atelier-side-card p-0 shadow-none">
-            <div className="atelier-card-heading">
-              <div>
-                <p className="atelier-kicker">Recent work</p>
-                <h2 className="text-2xl">Return to the thread</h2>
-              </div>
-              <Clock3 className="h-5 w-5 text-[#e85b3e]" />
-            </div>
-            <div className="divide-y divide-[#13243f]/10">
-              {overview?.recentWork.length ? (
-                overview.recentWork.slice(0, 4).map((item) => (
-                  <button key={`${item.module}-${item.id}`} type="button" onClick={() => setLocation(item.route)} className="atelier-recent-row group">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: moduleTone[item.module] ?? "#13243f" }} />
-                    <span className="min-w-0 flex-1 text-left">
-                      <span className="block truncate text-sm font-semibold text-[#13243f]">{item.title}</span>
-                      <span className="mt-1 block text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#6b7487]">{item.detail} · {relativeDate(item.updatedAt)}</span>
-                    </span>
-                    <ArrowRight className="h-4 w-4 text-[#13243f]/35 transition-transform group-hover:translate-x-1" />
-                  </button>
-                ))
-              ) : (
-                <div className="p-5 text-sm leading-6 text-[#6b7487]">Open a workspace to begin a recent-work trail.</div>
-              )}
-            </div>
-          </Card>
-
-          <Card className="atelier-side-card p-0 shadow-none">
-            <div className="atelier-card-heading">
-              <div>
-                <p className="atelier-kicker">Node Atlas</p>
-                <h2 className="text-2xl">{counts?.links ? `${counts.links} live relations` : "In formation"}</h2>
-              </div>
-              <Network className="h-5 w-5 text-[#1d8fff]" />
-            </div>
-            <div className="p-4">
-              <NodeAtlas relationships={overview?.relationships} />
-              <Button variant="outline" onClick={() => setLocation("/search")} className="atelier-secondary-action mt-4 w-full">
-                Explore relations <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </Card>
-        </div>
+        <div className="atelier-geometry" aria-hidden="true"><span className="atelier-geometry-line" /><span className="atelier-geometry-circle atelier-geometry-circle-one" /><span className="atelier-geometry-circle atelier-geometry-circle-two" /><span className="atelier-geometry-dot" /></div>
       </section>
-
-      <section aria-labelledby="knowledge-regions-heading">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="atelier-kicker">Knowledge architecture</p>
-            <h2 id="knowledge-regions-heading">Six regions of the territory</h2>
-          </div>
-          <p className="max-w-lg text-sm leading-6 text-[#6b7487]">A conceptual layer over the existing Johnny Decimal system—not a competing taxonomy.</p>
+    ),
+    recent_work: (
+      <Card className="atelier-side-card h-full p-0 shadow-none">
+        <div className="atelier-card-heading"><div><p className="atelier-kicker">Recent work</p><h2 className="text-2xl">Return to the thread</h2></div><Clock3 className="h-5 w-5 text-[#e85b3e]" /></div>
+        <div className="divide-y divide-[#13243f]/10">
+          {overview?.recentWork.length ? overview.recentWork.slice(0, 4).map((item) => (
+            <button key={`${item.module}-${item.id}`} type="button" onClick={() => setLocation(item.route)} className="atelier-recent-row group">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: moduleTone[item.module] ?? "#13243f" }} />
+              <span className="min-w-0 flex-1 text-left"><span className="block truncate text-sm font-semibold text-[#13243f]">{item.title}</span><span className="mt-1 block text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#6b7487]">{item.detail} · {relativeDate(item.updatedAt)}</span></span>
+              <ArrowRight className="h-4 w-4 text-[#13243f]/35 transition-transform group-hover:translate-x-1" />
+            </button>
+          )) : <div className="p-5 text-sm leading-6 text-[#6b7487]">Open a workspace to begin a recent-work trail.</div>}
         </div>
+      </Card>
+    ),
+    node_atlas: (
+      <Card className="atelier-side-card h-full p-0 shadow-none">
+        <div className="atelier-card-heading"><div><p className="atelier-kicker">Node Atlas</p><h2 className="text-2xl">{counts?.links ? `${counts.links} live relations` : "In formation"}</h2></div><Network className="h-5 w-5 text-[#1d8fff]" /></div>
+        <div className="p-4"><NodeAtlas relationships={overview?.relationships} /><Button variant="outline" onClick={() => setLocation("/search")} className="atelier-secondary-action mt-4 w-full">Explore relations <ArrowRight className="ml-2 h-4 w-4" /></Button></div>
+      </Card>
+    ),
+    knowledge_regions: (
+      <section aria-labelledby="knowledge-regions-heading">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="atelier-kicker">Knowledge architecture</p><h2 id="knowledge-regions-heading">Six regions of the territory</h2></div><p className="max-w-lg text-sm leading-6 text-[#6b7487]">A conceptual layer over the existing Johnny Decimal system—not a competing taxonomy.</p></div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {knowledgeRegions.map((region) => (
             <button key={region.code} type="button" onClick={() => setLocation(region.route)} className="atelier-region-card group text-left">
               <div className={`${region.pattern} atelier-region-band`} style={{ backgroundColor: region.accent }} />
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <span className="atelier-region-code">{region.code}</span>
-                  <span className="atelier-region-count">{formatCount(region.count, isLoading)} {region.countLabel}</span>
-                </div>
-                <p className="mt-5 text-[0.66rem] font-bold uppercase tracking-[0.22em]" style={{ color: region.accent }}>{region.eyebrow}</p>
-                <h3 className="mt-1 text-[1.85rem] leading-none">{region.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-[#6b7487]">{region.description}</p>
-                <span className="mt-5 inline-flex items-center text-xs font-bold uppercase tracking-[0.16em] text-[#13243f]">
-                  Browse <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </span>
-              </div>
+              <div className="p-5"><div className="flex items-start justify-between gap-4"><span className="atelier-region-code">{region.code}</span><span className="atelier-region-count">{formatCount(region.count, isLoading)} {region.countLabel}</span></div><p className="mt-5 text-[0.66rem] font-bold uppercase tracking-[0.22em]" style={{ color: region.accent }}>{region.eyebrow}</p><h3 className="mt-1 text-[1.85rem] leading-none">{region.title}</h3><p className="mt-3 text-sm leading-6 text-[#6b7487]">{region.description}</p><span className="mt-5 inline-flex items-center text-xs font-bold uppercase tracking-[0.16em] text-[#13243f]">Browse <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" /></span></div>
             </button>
           ))}
         </div>
       </section>
+    ),
+    accumulation_atlas: (
+      <Card className="atelier-panel h-full p-5 shadow-none sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="atelier-kicker">Accumulation Atlas</p><h2 className="text-3xl">Seven months of growth</h2></div><span className="dev-chip">{formatCount(monthlyActivity.reduce((sum, month) => sum + month.total, 0), dashboardQuery.isLoading)} new records</span></div>
+        <div className="atelier-chart mt-7" aria-label="Records added during the last seven months">
+          {monthlyActivity.map((month) => <div key={month.key} className="atelier-chart-column"><span className="atelier-chart-value">{month.total}</span><span className="atelier-chart-bar" style={{ height: `${Math.max(4, (month.total / maxMonthlyActivity) * 100)}%` }} /><span className="atelier-chart-label">{month.label}</span></div>)}
+          {!monthlyActivity.length && <div className="col-span-full py-12 text-center text-sm text-[#6b7487]">Activity appears here as records are added.</div>}
+        </div>
+      </Card>
+    ),
+    classification_key: (
+      <Card className="atelier-panel h-full p-5 shadow-none sm:p-6">
+        <p className="atelier-kicker">Classification key</p><h2 className="text-3xl">Content has a fixed signal</h2>
+        <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+          {contentTaxonomy.map((item) => <div key={item.key} className="atelier-key-row"><span className="h-3 w-3 rounded-full border border-black/30" style={{ backgroundColor: item.color }} /><span className="flex-1 text-sm font-semibold text-[#13243f]">{item.label}</span><span className="font-mono text-xs text-[#6b7487]">{formatCount(overview?.contentTypeCounts[item.key], dashboardQuery.isLoading)}</span></div>)}
+        </div>
+      </Card>
+    ),
+    quick_synthesis: (
+      <Card className="atelier-panel h-full p-5 shadow-none sm:p-6">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="atelier-kicker">Quick synthesis</p><h2 className="text-3xl">Move knowledge through the system</h2></div><Sparkles className="h-6 w-6 text-[#5c61ff]" /></div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((action) => <button key={action.label} type="button" onClick={() => action.label === "Capture" ? goToCommonplace() : setLocation(action.route)} className="atelier-action-card group"><span className="atelier-action-icon" style={{ backgroundColor: action.accent }}><action.icon className="h-4 w-4" /></span><span className="mt-4 block text-sm font-black uppercase tracking-[0.13em] text-[#13243f]">{action.label}</span><span className="mt-1 block text-xs leading-5 text-[#6b7487]">{action.description}</span></button>)}
+        </div>
+      </Card>
+    ),
+    export_hub: (
+      <Card className="atelier-export-card h-full p-5 shadow-none sm:p-6">
+        <div className="flex items-start justify-between gap-4"><div><p className="atelier-kicker text-white/60">Export & share</p><h2 className="text-3xl text-white">Make knowledge portable.</h2></div><Layers3 className="h-6 w-6 text-[#f4c86a]" /></div>
+        <div className="mt-6 grid grid-cols-2 gap-2">{[{ label: "JSON data", icon: FileJson }, { label: "Markdown", icon: FileText }, { label: "Plain text", icon: FileText }, { label: "Relational", icon: Network }].map((format) => <div key={format.label} className="atelier-export-format"><format.icon className="h-4 w-4" /><span>{format.label}</span></div>)}</div>
+        <Button onClick={() => setLocation("/export")} className="mt-5 h-11 w-full rounded-full border border-white/25 bg-white text-[#13243f] hover:bg-[#f9f6ef]">Open export studio <ArrowRight className="ml-2 h-4 w-4" /></Button>
+      </Card>
+    ),
+  };
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(19rem,.7fr)]">
-        <Card className="atelier-panel p-5 shadow-none sm:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="atelier-kicker">Accumulation Atlas</p>
-              <h2 className="text-3xl">Seven months of growth</h2>
+  const hasCustomOrder = panelOrder.join("|") !== DEFAULT_DASHBOARD_PANEL_ORDER.join("|");
+
+  return (
+    <div className="atelier-dashboard space-y-5">
+      <section className={`atelier-arrange-header ${isEditing ? "is-editing" : ""}`} aria-label="Dashboard arrangement controls">
+        <div>
+          <p className="atelier-kicker">Command center composition</p>
+          <h2 className="text-2xl">{isEditing ? "Arrange your dashboard" : "Your dashboard, in your order"}</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-[#6b7487]">{isEditing ? "Drag panels or use the arrow controls. Changes save automatically to your account." : "Reorder the atelier around the way you capture, connect, and synthesize knowledge."}</p>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className="atelier-save-status" aria-live="polite">
+            {saveStatus === "saving" && <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving</>}
+            {saveStatus === "saved" && <><Check className="h-3.5 w-3.5" /> Saved</>}
+            {saveStatus === "error" && <>Save failed — your previous order was restored</>}
+          </span>
+          {isEditing && (confirmReset ? (
+            <div className="atelier-reset-confirm" role="group" aria-label="Confirm reset dashboard order">
+              <span>Restore default order?</span>
+              <Button size="sm" variant="outline" onClick={() => void resetLayout()} disabled={isLayoutBusy}>Confirm</Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmReset(false)} disabled={isLayoutBusy}>Cancel</Button>
             </div>
-            <span className="dev-chip">{formatCount(monthlyActivity.reduce((sum, month) => sum + month.total, 0), dashboardQuery.isLoading)} new records</span>
-          </div>
-          <div className="atelier-chart mt-7" aria-label="Records added during the last seven months">
-            {monthlyActivity.map((month) => (
-              <div key={month.key} className="atelier-chart-column">
-                <span className="atelier-chart-value">{month.total}</span>
-                <span className="atelier-chart-bar" style={{ height: `${Math.max(4, (month.total / maxMonthlyActivity) * 100)}%` }} />
-                <span className="atelier-chart-label">{month.label}</span>
-              </div>
-            ))}
-            {!monthlyActivity.length && <div className="col-span-full py-12 text-center text-sm text-[#6b7487]">Activity appears here as records are added.</div>}
-          </div>
-        </Card>
-
-        <Card className="atelier-panel p-5 shadow-none sm:p-6">
-          <p className="atelier-kicker">Classification key</p>
-          <h2 className="text-3xl">Content has a fixed signal</h2>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-            {contentTaxonomy.map((item) => (
-              <div key={item.key} className="atelier-key-row">
-                <span className="h-3 w-3 rounded-full border border-black/30" style={{ backgroundColor: item.color }} />
-                <span className="flex-1 text-sm font-semibold text-[#13243f]">{item.label}</span>
-                <span className="font-mono text-xs text-[#6b7487]">{formatCount(overview?.contentTypeCounts[item.key], dashboardQuery.isLoading)}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <Card className="atelier-panel p-5 shadow-none sm:p-6">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="atelier-kicker">Quick synthesis</p>
-              <h2 className="text-3xl">Move knowledge through the system</h2>
-            </div>
-            <Sparkles className="h-6 w-6 text-[#5c61ff]" />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {quickActions.map((action) => (
-              <button key={action.label} type="button" onClick={() => action.label === "Capture" ? goToCommonplace() : setLocation(action.route)} className="atelier-action-card group">
-                <span className="atelier-action-icon" style={{ backgroundColor: action.accent }}><action.icon className="h-4 w-4" /></span>
-                <span className="mt-4 block text-sm font-black uppercase tracking-[0.13em] text-[#13243f]">{action.label}</span>
-                <span className="mt-1 block text-xs leading-5 text-[#6b7487]">{action.description}</span>
-              </button>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="atelier-export-card p-5 shadow-none sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="atelier-kicker text-white/60">Export & share</p>
-              <h2 className="text-3xl text-white">Make knowledge portable.</h2>
-            </div>
-            <Layers3 className="h-6 w-6 text-[#f4c86a]" />
-          </div>
-          <div className="mt-6 grid grid-cols-2 gap-2">
-            {[
-              { label: "JSON data", icon: FileJson },
-              { label: "Markdown", icon: FileText },
-              { label: "Plain text", icon: FileText },
-              { label: "Relational", icon: Network },
-            ].map((format) => (
-              <div key={format.label} className="atelier-export-format">
-                <format.icon className="h-4 w-4" />
-                <span>{format.label}</span>
-              </div>
-            ))}
-          </div>
-          <Button onClick={() => setLocation("/export")} className="mt-5 h-11 w-full rounded-full border border-white/25 bg-white text-[#13243f] hover:bg-[#f9f6ef]">
-            Open export studio <ArrowRight className="ml-2 h-4 w-4" />
+          ) : (
+            <Button type="button" variant="outline" onClick={() => setConfirmReset(true)} disabled={!hasCustomOrder || isLayoutBusy} className="rounded-full"><RotateCcw className="mr-2 h-4 w-4" /> Reset default</Button>
+          ))}
+          <Button type="button" onClick={() => { setIsEditing((current) => !current); setConfirmReset(false); }} className="atelier-primary-action">
+            {isEditing ? <Check className="mr-2 h-4 w-4" /> : <SlidersHorizontal className="mr-2 h-4 w-4" />}
+            {isEditing ? "Done" : "Arrange dashboard"}
           </Button>
-        </Card>
+        </div>
       </section>
+
+      {(dashboardQuery.isError || layoutQuery.isError) && (
+        <div className="atelier-notice" role="alert">Some live dashboard preferences are temporarily unavailable. Core workspaces and the default panel order remain accessible.</div>
+      )}
+
+      <div className="sr-only" aria-live="polite">{announcement}</div>
+
+      <div className={`atelier-dashboard-grid ${isEditing ? "is-arranging" : ""}`}>
+        {panelOrder.map((panelId, index) => (
+          <DashboardPanelFrame
+            key={panelId}
+            panelId={panelId}
+            index={index}
+            total={panelOrder.length}
+            isEditing={isEditing}
+            isBusy={isLayoutBusy}
+            isDragging={draggedPanelId === panelId}
+            onMove={movePanel}
+            onDragStart={(event, id) => {
+              setDraggedPanelId(id);
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", id);
+            }}
+            onDragEnd={() => setDraggedPanelId(null)}
+            onDrop={handleDrop}
+          >
+            {panels[panelId]}
+          </DashboardPanelFrame>
+        ))}
+      </div>
     </div>
   );
 }

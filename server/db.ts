@@ -23,6 +23,7 @@ import {
   commonplaceColumns,
   commonplaceEntries,
   workspaceFeatureFlags,
+  dashboardLayoutPreferences,
   type InsertCommonplaceBoard,
   type InsertCommonplaceColumn,
   type InsertCommonplaceEntry,
@@ -39,6 +40,12 @@ import {
   type WorkspaceFeatureFlagKey,
 } from "../shared/featureFlags";
 import { buildPageInfo } from "../shared/pagination";
+import {
+  DASHBOARD_LAYOUT_VERSION,
+  DEFAULT_DASHBOARD_PANEL_ORDER,
+  normalizeDashboardPanelOrder,
+  type DashboardPanelId,
+} from "../shared/dashboardLayout";
 import {
   groupDedupComparableRecords,
   mergeLexiconEntries,
@@ -2438,6 +2445,58 @@ export async function updateWorkspaceFeatureFlag(userId: number, flagKey: Worksp
   }
 
   return getWorkspaceFeatureFlag(userId, flagKey);
+}
+
+export async function getDashboardLayoutPreference(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [saved] = await db
+    .select()
+    .from(dashboardLayoutPreferences)
+    .where(eq(dashboardLayoutPreferences.userId, userId))
+    .limit(1);
+
+  return {
+    panelOrder: normalizeDashboardPanelOrder(saved?.panelOrder),
+    layoutVersion: saved?.layoutVersion ?? DASHBOARD_LAYOUT_VERSION,
+    updatedAt: saved?.updatedAt ?? null,
+  };
+}
+
+export async function saveDashboardLayoutPreference(userId: number, panelOrder: DashboardPanelId[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const normalizedOrder = normalizeDashboardPanelOrder(panelOrder);
+  const [existing] = await db
+    .select({ id: dashboardLayoutPreferences.id })
+    .from(dashboardLayoutPreferences)
+    .where(eq(dashboardLayoutPreferences.userId, userId))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(dashboardLayoutPreferences)
+      .set({
+        panelOrder: normalizedOrder,
+        layoutVersion: DASHBOARD_LAYOUT_VERSION,
+        updatedAt: new Date(),
+      })
+      .where(eq(dashboardLayoutPreferences.userId, userId));
+  } else {
+    await db.insert(dashboardLayoutPreferences).values({
+      userId,
+      panelOrder: normalizedOrder,
+      layoutVersion: DASHBOARD_LAYOUT_VERSION,
+    });
+  }
+
+  return getDashboardLayoutPreference(userId);
+}
+
+export async function resetDashboardLayoutPreference(userId: number) {
+  return saveDashboardLayoutPreference(userId, [...DEFAULT_DASHBOARD_PANEL_ORDER]);
 }
 
 export type DeduplicationAction = "merge" | "archive" | "delete";

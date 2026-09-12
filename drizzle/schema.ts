@@ -433,6 +433,15 @@ export const workspaceFeatureFlags = mysqlTable("workspace_feature_flags", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const dashboardLayoutPreferences = mysqlTable("dashboard_layout_preferences", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  panelOrder: json("panelOrder").$type<string[]>().notNull(),
+  layoutVersion: int("layoutVersion").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export type CommonplaceBoard = typeof commonplaceBoards.$inferSelect;
 export type InsertCommonplaceBoard = typeof commonplaceBoards.$inferInsert;
 export type CommonplaceColumn = typeof commonplaceColumns.$inferSelect;
@@ -442,3 +451,5 @@ export type InsertCommonplaceEntry = typeof commonplaceEntries.$inferInsert;
 export type CommonplaceEntryType = typeof commonplaceEntries.$inferSelect.entryType;
 export type WorkspaceFeatureFlag = typeof workspaceFeatureFlags.$inferSelect;
 export type InsertWorkspaceFeatureFlag = typeof workspaceFeatureFlags.$inferInsert;
+export type DashboardLayoutPreference = typeof dashboardLayoutPreferences.$inferSelect;
+export type InsertDashboardLayoutPreference = typeof dashboardLayoutPreferences.$inferInsert;

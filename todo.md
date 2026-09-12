@@ -615,3 +615,13 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Add a live classification key that preserves the established content-type color taxonomy
 - [x] Add live accumulation, recent-work, relational-atlas, quick-synthesis, and export-hub surfaces backed by existing application data
 - [x] Verify that the coordinated overhaul remains usable and visually coherent at desktop and mobile breakpoints
+
+## Customizable Dashboard Panel Ordering
+- [x] Confirm the dashboard-order persistence scope and preferred interaction model: account-level, cross-device persistence
+- [x] Define stable panel identifiers, a default order, validation rules, and safe migration behavior for future panels
+- [x] Add an accessible Arrange Dashboard mode with drag-and-drop, Move up/Move down controls, clear selection feedback, and a Done action
+- [x] Persist each user’s panel order and restore it across visits without affecting other users
+- [x] Add a reset-to-default action and protect required command-center panels from accidental loss
+- [x] Preserve a coherent mobile reading order and reduced-motion behavior
+- [x] Add Vitest coverage for ordering, persistence, reset, pointer drag, keyboard controls, rollback, and invalid saved layouts
+- [x] Verify desktop and mobile behavior, refresh project health, and save a checkpoint

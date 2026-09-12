@@ -79,6 +79,9 @@ import {
   scanDeduplicationGroups,
   applyDeduplicationAction,
   getAtelierDashboardOverview,
+  getDashboardLayoutPreference,
+  saveDashboardLayoutPreference,
+  resetDashboardLayoutPreference,
 } from "./db";
 import {
   extractKeyInsights,
@@ -97,6 +100,7 @@ import {
   isKnownWorkspaceFeatureFlag,
   workspaceFeatureFlagDefinitions,
 } from "../shared/featureFlags";
+import { dashboardPanelIds } from "../shared/dashboardLayout";
 
 export const appRouter = router({
   system: systemRouter,
@@ -113,6 +117,19 @@ export const appRouter = router({
 
   dashboard: router({
     overview: protectedProcedure.query(async ({ ctx }) => getAtelierDashboardOverview(ctx.user.id)),
+    layout: protectedProcedure.query(async ({ ctx }) => getDashboardLayoutPreference(ctx.user.id)),
+    updateLayout: protectedProcedure
+      .input(
+        z.object({
+          panelOrder: z
+            .array(z.enum(dashboardPanelIds))
+            .min(2)
+            .max(dashboardPanelIds.length)
+            .refine((order) => new Set(order).size === order.length, "Panel identifiers must be unique"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => saveDashboardLayoutPreference(ctx.user.id, input.panelOrder)),
+    resetLayout: protectedProcedure.mutation(async ({ ctx }) => resetDashboardLayoutPreference(ctx.user.id)),
   }),
 
   featureFlags: router({
