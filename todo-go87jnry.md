@@ -66,4 +66,4 @@
 - [x] Correct tablet refinement-grid legibility and compact-device touch targets
 - [x] Add keyboard focus visibility to Library filter controls
 - [x] Verify visual repairs through responsive browser checks and regression tests
-- [ ] Save the completed design-review checkpoint
+- [x] Save the completed design-review checkpoint
