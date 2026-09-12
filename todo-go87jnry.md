@@ -57,4 +57,4 @@
 - [x] Add composable metadata filters, date range, sorting, and active-filter feedback
 - [x] Add regression coverage for combined search, filters, and reset behavior
 - [x] Run full validation and authenticated browser verification
-- [ ] Save the verified enhancement as a WebDev checkpoint
+- [x] Save the verified enhancement as a WebDev checkpoint
