@@ -745,6 +745,16 @@
 
   .library-clear-filter:hover { color: #13243f; }
 
+  .library-filter:focus-visible,
+  .library-star-filter:focus-visible,
+  .library-clear-filter:focus-visible,
+  .library-row-star:focus-visible,
+  .library-secondary-action:focus-visible,
+  .library-active-filter:focus-visible {
+    outline: 2px solid #5c61ff;
+    outline-offset: 3px;
+  }
+
   .library-refinement-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -804,6 +814,20 @@
     border-color: rgba(92,97,255,0.52);
     background: rgba(92,97,255,0.14);
     transform: translateY(-1px);
+  }
+
+  @media (max-width: 1024px) {
+    .library-refinement-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .library-filter,
+    .library-star-filter {
+      min-height: 2.75rem;
+    }
+
+    .library-index .library-row-star {
+      width: 2.75rem;
+      height: 2.75rem;
+    }
   }
 
   .library-catalogue,
@@ -1289,7 +1313,6 @@
     .atelier-geometry { min-height: 13rem; border-left: 0; border-top: 1px solid rgba(19,36,63,0.18); }
     .atelier-chart { height: 12rem; gap: 0.3rem; }
     .atelier-chart-label { font-size: 0.58rem; }
-    .library-refinement-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
   @keyframes library-loading {

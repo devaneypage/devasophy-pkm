@@ -143,6 +143,13 @@ def main():
         expect(mobile_page.get_by_role("heading", name="A reading room for working knowledge.")).to_be_visible()
         expect(mobile_page.get_by_role("textbox", name="Search the artifact index")).to_be_visible()
         expect(mobile_page.locator(".library-mobile-card").first).to_be_visible()
+        all_facet = mobile_page.get_by_role("button", name=re.compile(r"^All"))
+        expect(all_facet).to_be_visible()
+        assert all_facet.evaluate("element => element.getBoundingClientRect().height") >= 44, "Library facets must meet the 44px mobile touch-target minimum"
+        assert mobile_page.get_by_role("button", name=re.compile(r"^Star ")).first.evaluate("element => element.getBoundingClientRect().height") >= 44, "Artifact star controls must meet the 44px mobile touch-target minimum"
+        assert min(mobile_page.locator(".library-refinement-grid select").evaluate_all("elements => elements.map(element => element.getBoundingClientRect().width)")) >= 130, "Mobile refinement selects must retain readable widths"
+        all_facet.focus()
+        assert all_facet.evaluate("element => getComputedStyle(element).outlineStyle") != "none", "Library facets must expose a keyboard focus indicator"
         mobile_context.close()
 
         browser.close()
@@ -154,7 +161,7 @@ def main():
         json.dumps(
             {
                 "page": "/library",
-                "checks": ["hierarchy", "search-empty-state", "clear-search", "metadata-filters", "date-filter", "sort", "reset-view", "facet", "star", "commonplace-route", "mobile-catalogue"],
+                "checks": ["hierarchy", "search-empty-state", "clear-search", "metadata-filters", "date-filter", "sort", "reset-view", "facet", "star", "mobile-touch-targets", "mobile-refinement-width", "keyboard-focus", "commonplace-route", "mobile-catalogue"],
                 "screenshot": str(SCREENSHOT_PATH),
                 "pageErrors": page_errors,
                 "consoleErrors": console_errors,
