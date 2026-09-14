@@ -94,42 +94,66 @@ function relativeDate(value: Date | string) {
 }
 
 function NodeAtlas({ relationships }: { relationships?: { total: number; edges: Array<{ source: string; target: string; count: number }> } }) {
-  const coordinates: Record<string, { x: number; y: number; color: string; label: string }> = {
-    notebook: { x: 42, y: 48, color: "#e85b3e", label: "Notes" },
-    lexicon: { x: 118, y: 29, color: "#54b5dd", label: "Terms" },
-    document: { x: 105, y: 88, color: "#5c61ff", label: "Drafts" },
+  const [, setLocation] = useLocation();
+  const [selection, setSelection] = React.useState<{ kind: "node"; key: string } | { kind: "edge"; key: string } | null>(null);
+  const coordinates: Record<string, { x: number; y: number; color: string; label: string; route: string; description: string }> = {
+    notebook: { x: 42, y: 48, color: "#e85b3e", label: "Notes", route: "/commonplace", description: "Commonplace notes and quotations" },
+    lexicon: { x: 118, y: 29, color: "#54b5dd", label: "Terms", route: "/lexicon", description: "Clavis Aurea terms and definitions" },
+    document: { x: 105, y: 88, color: "#5c61ff", label: "Drafts", route: "/documents", description: "Research documents and working drafts" },
   };
-  const edges = relationships?.edges ?? [];
-
+  const edges = (relationships?.edges ?? []).filter((edge) => coordinates[edge.source] && coordinates[edge.target]);
+  const selectedNode = selection?.kind === "node" ? coordinates[selection.key] : undefined;
+  const selectedEdge = selection?.kind === "edge" ? edges.find((edge) => `${edge.source}-${edge.target}` === selection.key) : undefined;
+  const isEdgeActive = (edge: { source: string; target: string }, key: string) => {
+    if (selection?.kind === "edge") return selection.key === key;
+    return Boolean(selectedNode && (edge.source === selection?.key || edge.target === selection?.key));
+  };
+  const activate = (event: React.KeyboardEvent, callback: () => void) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      callback();
+    }
+  };
+  const selectedCount = selectedEdge?.count ?? (selectedNode ? edges.filter((edge) => edge.source === selection?.key || edge.target === selection?.key).reduce((sum, edge) => sum + edge.count, 0) : undefined);
   return (
     <div className="atelier-atlas" aria-label={`${relationships?.total ?? 0} semantic relationships in the Node Atlas`}>
-      <svg viewBox="0 0 160 118" role="img" aria-label="Relationship map connecting notes, terms, and drafts">
+      <svg viewBox="0 0 160 118" role="img" aria-label="Interactive relationship map connecting notes, terms, and drafts">
         {edges.map((edge) => {
           const source = coordinates[edge.source];
           const target = coordinates[edge.target];
-          if (!source || !target) return null;
+          const key = `${edge.source}-${edge.target}`;
+          const active = isEdgeActive(edge, key);
           return (
-            <line
-              key={`${edge.source}-${edge.target}`}
-              x1={source.x}
-              y1={source.y}
-              x2={target.x}
-              y2={target.y}
-              stroke="#13243f"
-              strokeOpacity="0.34"
-              strokeWidth={Math.min(5, 1.2 + edge.count * 0.35)}
-            />
+            <g key={key} role="button" tabIndex={0} aria-label={`${source.label} to ${target.label}, ${edge.count} relationships`} onClick={() => setSelection({ kind: "edge", key })} onKeyDown={(event) => activate(event, () => setSelection({ kind: "edge", key }))}>
+              <line x1={source.x} y1={source.y} x2={target.x} y2={target.y} stroke="transparent" strokeWidth="8" />
+              <line x1={source.x} y1={source.y} x2={target.x} y2={target.y} stroke={active ? "#f26a3d" : "#13243f"} strokeOpacity={active ? "0.86" : "0.34"} strokeWidth={active ? Math.min(6, 2 + edge.count * 0.35) : Math.min(5, 1.2 + edge.count * 0.35)} strokeDasharray={active ? "2 1" : undefined} />
+            </g>
           );
         })}
-        {Object.entries(coordinates).map(([key, node]) => (
-          <g key={key}>
-            <circle cx={node.x} cy={node.y} r="10" fill={node.color} stroke="#13243f" strokeWidth="1.6" />
-            <text x={node.x} y={node.y + 20} textAnchor="middle" className="atelier-atlas-label">
-              {node.label}
-            </text>
-          </g>
-        ))}
+        {Object.entries(coordinates).map(([key, node]) => {
+          const active = selection?.kind === "node" && selection.key === key;
+          return (
+            <g key={key} role="button" tabIndex={0} aria-label={`Explore ${node.label}: ${node.description}`} aria-pressed={active} onClick={() => setSelection({ kind: "node", key })} onKeyDown={(event) => activate(event, () => setSelection({ kind: "node", key }))}>
+              <circle cx={node.x} cy={node.y} r={active ? "12" : "10"} fill={node.color} stroke={active ? "#f26a3d" : "#13243f"} strokeWidth={active ? "3" : "1.6"} />
+              <text x={node.x} y={node.y + 20} textAnchor="middle" className="atelier-atlas-label">{node.label}</text>
+            </g>
+          );
+        })}
       </svg>
+      <div className="mt-2 rounded-xl border border-black/10 bg-[#f6f3ec] p-3" aria-live="polite">
+        {selectedNode ? (
+          <>
+            <div className="flex items-start justify-between gap-3"><div><p className="atelier-kicker">Selected node</p><p className="font-serif text-lg text-[#13243f]">{selectedNode.label}</p><p className="text-xs leading-5 text-[#6b7487]">{selectedNode.description} · {selectedCount ?? 0} connected relations</p></div><button type="button" className="text-xs font-semibold text-[#6b7487] underline underline-offset-2" onClick={() => setSelection(null)}>Clear</button></div>
+            <Button type="button" variant="outline" size="sm" className="atelier-secondary-action mt-3 w-full" onClick={() => setLocation(selectedNode.route)}>Open {selectedNode.label} <ArrowRight className="ml-2 h-3.5 w-3.5" /></Button>
+          </>
+        ) : selectedEdge ? (
+          <div className="flex items-start justify-between gap-3"><div><p className="atelier-kicker">Selected relation</p><p className="font-serif text-lg text-[#13243f]">{coordinates[selectedEdge.source].label} ↔ {coordinates[selectedEdge.target].label}</p><p className="text-xs leading-5 text-[#6b7487]">{selectedEdge.count} semantic {selectedEdge.count === 1 ? "relationship" : "relationships"} in the current atlas.</p></div><button type="button" className="text-xs font-semibold text-[#6b7487] underline underline-offset-2" onClick={() => setSelection(null)}>Clear</button></div>
+        ) : edges.length ? (
+          <p className="text-xs leading-5 text-[#6b7487]">Select a node to open its collection, or select a line to inspect a relationship.</p>
+        ) : (
+          <p className="text-xs leading-5 text-[#6b7487]">No semantic relationships are recorded yet. Add links between notes, terms, and drafts to begin the atlas.</p>
+        )}
+      </div>
     </div>
   );
 }

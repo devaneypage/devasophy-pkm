@@ -98,6 +98,21 @@ describe("Home atelier dashboard", () => {
     expect(setLocation).toHaveBeenNthCalledWith(2, "/search");
   });
 
+  it("explores a selected atlas node and opens its collection", () => {
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: /Explore Notes/i }));
+    expect(screen.getByText("Commonplace notes and quotations · 5 connected relations")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Open Notes/i }));
+    expect(setLocation).toHaveBeenCalledWith("/commonplace");
+  });
+
+  it("inspects a selected atlas edge", () => {
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: /Notes to Drafts, 5 relationships/i }));
+    expect(screen.getByText("Notes ↔ Drafts")).toBeTruthy();
+    expect(screen.getByText("5 semantic relationships in the current atlas.")).toBeTruthy();
+  });
+
   it("offers to enable the workspace instead of routing when the Commonplace flag is disabled", () => {
     commonplaceFlagState.commonplaceEnabled = false;
     render(<Home />);

@@ -1294,6 +1294,11 @@
     text-transform: uppercase;
   }
 
+  .atelier-atlas [role="button"] { cursor: pointer; outline: none; }
+  .atelier-atlas [role="button"]:focus-visible circle,
+  .atelier-atlas [role="button"]:focus-visible line:last-child { stroke: #f26a3d; stroke-opacity: 0.95; }
+  .atelier-atlas [role="button"]:focus-visible circle { stroke-width: 3; }
+
   .atelier-region-card {
     position: relative;
     overflow: hidden;
