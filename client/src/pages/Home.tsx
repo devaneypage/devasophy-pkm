@@ -93,15 +93,48 @@ function relativeDate(value: Date | string) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function NodeAtlas({ relationships }: { relationships?: { total: number; edges: Array<{ source: string; target: string; count: number }> } }) {
+const ATLAS_FILTER_STORAGE_KEY = "devanomy.atlas.filters.v1";
+const atlasModules = ["notebook", "lexicon", "document"] as const;
+type AtlasModule = (typeof atlasModules)[number];
+type AtlasEdge = { source: string; target: string; count: number; types?: Array<{ type: string; value: number }> };
+type AtlasFilters = { relationshipType: string; visibleModules: AtlasModule[] };
+
+function readAtlasFilters(): AtlasFilters {
+  const fallback: AtlasFilters = { relationshipType: "all", visibleModules: [...atlasModules] };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(ATLAS_FILTER_STORAGE_KEY) ?? "null") as Partial<AtlasFilters> | null;
+    const visibleModules = Array.isArray(parsed?.visibleModules) ? parsed.visibleModules.filter((module): module is AtlasModule => atlasModules.includes(module as AtlasModule)) : fallback.visibleModules;
+    return { relationshipType: typeof parsed?.relationshipType === "string" ? parsed.relationshipType : fallback.relationshipType, visibleModules };
+  } catch {
+    return fallback;
+  }
+}
+
+function NodeAtlas({ relationships }: { relationships?: { total: number; edges: AtlasEdge[]; linkTypes?: Array<{ type: string; value: number }> } }) {
   const [, setLocation] = useLocation();
   const [selection, setSelection] = React.useState<{ kind: "node"; key: string } | { kind: "edge"; key: string } | null>(null);
+  const [filters, setFilters] = React.useState<AtlasFilters>(readAtlasFilters);
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(ATLAS_FILTER_STORAGE_KEY, JSON.stringify(filters));
+    } catch {
+      // Local storage may be unavailable in private or restricted browser contexts.
+    }
+  }, [filters]);
   const coordinates: Record<string, { x: number; y: number; color: string; label: string; route: string; description: string }> = {
     notebook: { x: 42, y: 48, color: "#e85b3e", label: "Notes", route: "/commonplace", description: "Commonplace notes and quotations" },
     lexicon: { x: 118, y: 29, color: "#54b5dd", label: "Terms", route: "/lexicon", description: "Clavis Aurea terms and definitions" },
     document: { x: 105, y: 88, color: "#5c61ff", label: "Drafts", route: "/documents", description: "Research documents and working drafts" },
   };
-  const edges = (relationships?.edges ?? []).filter((edge) => coordinates[edge.source] && coordinates[edge.target]);
+  const availableTypes = relationships?.linkTypes ?? [];
+  React.useEffect(() => {
+    if (availableTypes.length && filters.relationshipType !== "all" && !availableTypes.some((item) => item.type === filters.relationshipType)) {
+      setFilters((current) => ({ ...current, relationshipType: "all" }));
+    }
+  }, [availableTypes, filters.relationshipType]);
+  const filteredEdges = (relationships?.edges ?? []).filter((edge) => coordinates[edge.source] && coordinates[edge.target] && filters.visibleModules.includes(edge.source as AtlasModule) && filters.visibleModules.includes(edge.target as AtlasModule) && (filters.relationshipType === "all" || edge.types?.some((type) => type.type === filters.relationshipType)));
+  const edges = filteredEdges.map((edge) => filters.relationshipType === "all" ? edge : { ...edge, count: edge.types?.find((type) => type.type === filters.relationshipType)?.value ?? 0 }).filter((edge) => edge.count > 0);
   const selectedNode = selection?.kind === "node" ? coordinates[selection.key] : undefined;
   const selectedEdge = selection?.kind === "edge" ? edges.find((edge) => `${edge.source}-${edge.target}` === selection.key) : undefined;
   const isEdgeActive = (edge: { source: string; target: string }, key: string) => {
@@ -115,8 +148,18 @@ function NodeAtlas({ relationships }: { relationships?: { total: number; edges: 
     }
   };
   const selectedCount = selectedEdge?.count ?? (selectedNode ? edges.filter((edge) => edge.source === selection?.key || edge.target === selection?.key).reduce((sum, edge) => sum + edge.count, 0) : undefined);
+  const toggleModule = (module: AtlasModule) => setFilters((current) => ({ ...current, visibleModules: current.visibleModules.includes(module) ? current.visibleModules.filter((item) => item !== module) : [...current.visibleModules, module] }));
+  const moduleLabels: Record<AtlasModule, string> = { notebook: "Notes", lexicon: "Terms", document: "Drafts" };
   return (
     <div className="atelier-atlas" aria-label={`${relationships?.total ?? 0} semantic relationships in the Node Atlas`}>
+      <div className="mb-2 flex flex-wrap items-center gap-2" aria-label="Atlas filters">
+        <label className="flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#6b7487]">Relation
+          <select aria-label="Filter relationship type" value={filters.relationshipType} onChange={(event) => { setSelection(null); setFilters((current) => ({ ...current, relationshipType: event.target.value })); }} className="rounded-full border border-black/15 bg-white/75 px-2 py-1 text-xs font-semibold normal-case tracking-normal text-[#13243f]">
+            <option value="all">All</option>{availableTypes.map((item) => <option key={item.type} value={item.type}>{item.type} ({item.value})</option>)}
+          </select>
+        </label>
+        <div className="flex flex-wrap gap-1" aria-label="Visible atlas modules">{atlasModules.map((module) => <button key={module} type="button" aria-pressed={filters.visibleModules.includes(module)} onClick={() => { setSelection(null); toggleModule(module); }} className={`rounded-full border px-2 py-1 text-[0.65rem] font-bold uppercase tracking-[0.08em] ${filters.visibleModules.includes(module) ? "border-[#13243f]/20 bg-white text-[#13243f]" : "border-black/10 bg-black/5 text-[#8b92a0] line-through"}`}>{moduleLabels[module]}</button>)}</div>
+      </div>
       <svg viewBox="0 0 160 118" role="img" aria-label="Interactive relationship map connecting notes, terms, and drafts">
         {edges.map((edge) => {
           const source = coordinates[edge.source];
@@ -130,7 +173,7 @@ function NodeAtlas({ relationships }: { relationships?: { total: number; edges: 
             </g>
           );
         })}
-        {Object.entries(coordinates).map(([key, node]) => {
+        {Object.entries(coordinates).filter(([key]) => filters.visibleModules.includes(key as AtlasModule)).map(([key, node]) => {
           const active = selection?.kind === "node" && selection.key === key;
           return (
             <g key={key} role="button" tabIndex={0} aria-label={`Explore ${node.label}: ${node.description}`} aria-pressed={active} onClick={() => setSelection({ kind: "node", key })} onKeyDown={(event) => activate(event, () => setSelection({ kind: "node", key }))}>

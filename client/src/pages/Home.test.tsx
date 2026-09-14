@@ -48,7 +48,7 @@ vi.mock("@/lib/trpc", () => ({
               { key: "2026-09", label: "Sep", total: 1 },
             ],
             recentWork: [{ id: 1, module: "document", title: "Knowledge Architecture", detail: "draft", route: "/documents", updatedAt: new Date("2026-09-12T10:00:00.000Z") }],
-            relationships: { total: 5, edges: [{ source: "notebook", target: "document", count: 5 }], linkTypes: [{ type: "supports", value: 5 }] },
+            relationships: { total: 5, edges: [{ source: "notebook", target: "document", count: 5, types: [{ type: "supports", value: 5 }] }], linkTypes: [{ type: "supports", value: 5 }] },
           },
           isLoading: false,
           isError: false,
@@ -75,6 +75,7 @@ describe("Home atelier dashboard", () => {
     resetLayoutMutateAsync.mockReset();
     updateLayoutMutateAsync.mockImplementation(async ({ panelOrder }) => ({ panelOrder, layoutVersion: 1, updatedAt: new Date() }));
     resetLayoutMutateAsync.mockResolvedValue({ panelOrder: [...DEFAULT_DASHBOARD_PANEL_ORDER], layoutVersion: 1, updatedAt: new Date() });
+    window.localStorage.clear();
     layoutQueryState.data = { panelOrder: [...DEFAULT_DASHBOARD_PANEL_ORDER], layoutVersion: 1, updatedAt: null };
     layoutQueryState.isError = false;
     commonplaceFlagState.commonplaceEnabled = true;
@@ -111,6 +112,17 @@ describe("Home atelier dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: /Notes to Drafts, 5 relationships/i }));
     expect(screen.getByText("Notes ↔ Drafts")).toBeTruthy();
     expect(screen.getByText("5 semantic relationships in the current atlas.")).toBeTruthy();
+  });
+
+  it("persists relationship and module visibility filters in local storage", () => {
+    const { unmount } = render(<Home />);
+    fireEvent.change(screen.getByRole("combobox", { name: /Filter relationship type/i }), { target: { value: "supports" } });
+    fireEvent.click(screen.getByRole("button", { name: "Notes" }));
+    expect(JSON.parse(window.localStorage.getItem("devanomy.atlas.filters.v1") ?? "{}")).toEqual({ relationshipType: "supports", visibleModules: ["lexicon", "document"] });
+    unmount();
+    render(<Home />);
+    expect((screen.getByRole("combobox", { name: /Filter relationship type/i }) as HTMLSelectElement).value).toBe("supports");
+    expect(screen.getByRole("button", { name: "Notes" }).getAttribute("aria-pressed")).toBe("false");
   });
 
   it("offers to enable the workspace instead of routing when the Commonplace flag is disabled", () => {

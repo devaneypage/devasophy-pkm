@@ -2946,15 +2946,18 @@ export async function getAtelierDashboardOverview(userId: number) {
     commonplaceTypeRows.map((row) => [row.entryType, Number(row.value)])
   ) as Partial<Record<CommonplaceEntryType, number>>;
 
-  const edgeMap = new Map<string, { source: string; target: string; count: number }>();
+  const edgeMap = new Map<string, { source: string; target: string; count: number; types: Array<{ type: string; value: number }> }>();
   const linkTypeMap = new Map<string, number>();
   for (const relationship of relationshipRows) {
     const key = `${relationship.sourceType}:${relationship.targetType}`;
-    const edge = edgeMap.get(key) ?? { source: relationship.sourceType, target: relationship.targetType, count: 0 };
+    const edge = edgeMap.get(key) ?? { source: relationship.sourceType, target: relationship.targetType, count: 0, types: [] };
     edge.count += 1;
+    const linkType = relationship.linkType?.trim() || "related";
+    const edgeType = edge.types.find((item) => item.type === linkType);
+    if (edgeType) edgeType.value += 1;
+    else edge.types.push({ type: linkType, value: 1 });
     edgeMap.set(key, edge);
 
-    const linkType = relationship.linkType?.trim() || "related";
     linkTypeMap.set(linkType, (linkTypeMap.get(linkType) ?? 0) + 1);
   }
 
@@ -2984,7 +2987,7 @@ export async function getAtelierDashboardOverview(userId: number) {
     recentWork,
     relationships: {
       total: Number(linkCountRows[0]?.value ?? 0),
-      edges: Array.from(edgeMap.values()).sort((left, right) => right.count - left.count),
+      edges: Array.from(edgeMap.values()).map((edge) => ({ ...edge, types: edge.types.sort((left, right) => right.value - left.value) })).sort((left, right) => right.count - left.count),
       linkTypes: Array.from(linkTypeMap, ([type, value]) => ({ type, value })).sort((left, right) => right.value - left.value),
     },
   };
