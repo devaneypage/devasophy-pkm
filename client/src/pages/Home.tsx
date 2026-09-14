@@ -177,6 +177,7 @@ function NodeAtlas({ relationships }: { relationships?: { total: number; edges: 
           const active = selection?.kind === "node" && selection.key === key;
           return (
             <g key={key} role="button" tabIndex={0} aria-label={`Explore ${node.label}: ${node.description}`} aria-pressed={active} onClick={() => setSelection({ kind: "node", key })} onKeyDown={(event) => activate(event, () => setSelection({ kind: "node", key }))}>
+              <title>{node.label}: {node.description}</title>
               <circle cx={node.x} cy={node.y} r={active ? "12" : "10"} fill={node.color} stroke={active ? "#f26a3d" : "#13243f"} strokeWidth={active ? "3" : "1.6"} />
               <text x={node.x} y={node.y + 20} textAnchor="middle" className="atelier-atlas-label">{node.label}</text>
             </g>

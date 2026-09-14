@@ -100,7 +100,8 @@ describe("Home atelier dashboard", () => {
   });
 
   it("explores a selected atlas node and opens its collection", () => {
-    render(<Home />);
+    const { container } = render(<Home />);
+    expect(container.querySelector("svg title")?.textContent).toBe("Notes: Commonplace notes and quotations");
     fireEvent.click(screen.getByRole("button", { name: /Explore Notes/i }));
     expect(screen.getByText("Commonplace notes and quotations · 5 connected relations")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Open Notes/i }));

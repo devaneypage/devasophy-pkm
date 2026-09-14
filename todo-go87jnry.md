@@ -67,3 +67,10 @@
 - [x] Add keyboard focus visibility to Library filter controls
 - [x] Verify visual repairs through responsive browser checks and regression tests
 - [x] Save the completed design-review checkpoint
+
+## Node Atlas Hover Tooltips — 2026-09-14
+
+- [x] Add concise native SVG hover/focus summaries to each interactive node
+- [x] Add regression coverage for tooltip summary content
+- [x] Run focused tests, full Vitest suite, TypeScript validation, production build, and route-bundle guard
+- [x] Save the verified Node Atlas tooltip enhancement as a WebDev checkpoint
