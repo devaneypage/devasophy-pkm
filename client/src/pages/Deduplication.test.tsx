@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockRefetch = vi.fn(async () => undefined);
-const mockResolve = vi.fn(async (_payload: unknown) => ({ action: "archive", targetKeys: ["document:2"] }));
+const mockResolve = vi.fn(async (_payload: unknown) => ({ action: "archive", targetKeys: ["document:2"], skippedTargetKeys: [] as string[] }));
 
 const mockGroups = [
   {
@@ -50,7 +50,7 @@ vi.mock("@/lib/trpc", () => ({
         }),
       },
       resolve: {
-        useMutation: (options?: { onSuccess?: (result: { action: string; targetKeys: string[] }) => void; onError?: (error: Error) => void }) => ({
+        useMutation: (options?: { onSuccess?: (result: { action: string; targetKeys: string[]; skippedTargetKeys?: string[] }) => void; onError?: (error: Error) => void }) => ({
           mutateAsync: async (payload: unknown) => {
             const result = await mockResolve(payload);
             options?.onSuccess?.(result);
@@ -92,5 +92,13 @@ describe("Deduplication page", () => {
         action: "archive",
       });
     });
+  });
+
+  it("reports targets resolved by another session and refreshes the workspace", async () => {
+    mockResolve.mockResolvedValueOnce({ action: "merge", targetKeys: [], skippedTargetKeys: ["lexicon:91456"] });
+    render(<Deduplication />);
+    fireEvent.click(screen.getByRole("button", { name: "Apply archive" }));
+    await waitFor(() => expect(screen.getByText(/already resolved elsewhere/i)).toBeTruthy());
+    expect(mockRefetch).toHaveBeenCalled();
   });
 });

@@ -56,6 +56,7 @@ import {
   normalizeDocumentRecord,
   normalizeIdeaRecord,
   normalizeLexiconRecord,
+  partitionExistingDedupTargets,
   type DedupComparableRecord,
   type DedupGroup,
   type DedupModule,
@@ -2718,22 +2719,24 @@ async function mergeIntoCanonicalRecord(userId: number, canonical: DedupComparab
 export async function applyDeduplicationAction(userId: number, input: DeduplicationApplyInput) {
   const records = await listDedupComparableRecords(userId);
   const recordMap = new Map(records.map((record) => [record.dedupKey, record]));
-
   const canonical = recordMap.get(input.canonicalKey);
   if (!canonical) {
     throw new Error("Canonical record not found");
   }
-
-  const targets = input.targetKeys.map((key) => {
-    const record = recordMap.get(key);
-    if (!record) {
-      throw new Error(`Target record not found: ${key}`);
-    }
-    return record;
-  });
+  const { targets, skippedTargetKeys } = partitionExistingDedupTargets(records, input.targetKeys);
 
   if (targets.length === 0) {
-    throw new Error("At least one target record is required");
+    return {
+      success: true as const,
+      action: input.action,
+      canonicalKey: input.canonicalKey,
+      targetKeys: [],
+      skippedTargetKeys,
+      sameModule: true,
+      updatedCount: 0,
+      archivedCount: 0,
+      deletedCount: 0,
+    };
   }
 
   const allRecords = [canonical, ...targets];
@@ -2773,7 +2776,8 @@ export async function applyDeduplicationAction(userId: number, input: Deduplicat
     success: true as const,
     action: input.action,
     canonicalKey: input.canonicalKey,
-    targetKeys: input.targetKeys,
+    targetKeys: targets.map((target) => target.dedupKey),
+    skippedTargetKeys,
     sameModule,
     updatedCount,
     archivedCount,

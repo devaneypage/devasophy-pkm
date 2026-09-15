@@ -38,7 +38,8 @@ export default function Deduplication() {
   const groupsQuery = trpc.deduplication.scan.useQuery();
   const resolveMutation = trpc.deduplication.resolve.useMutation({
     onSuccess: (result) => {
-      setStatusMessage(`Applied ${result.action} to ${result.targetKeys.length} duplicate record${result.targetKeys.length === 1 ? "" : "s"}.`);
+      const skipped = result.skippedTargetKeys?.length ?? 0;
+      setStatusMessage(skipped ? `${skipped} selected target${skipped === 1 ? " was" : "s were"} already resolved elsewhere. The workspace has been refreshed.` : `Applied ${result.action} to ${result.targetKeys.length} duplicate record${result.targetKeys.length === 1 ? "" : "s"}.`);
       void groupsQuery.refetch();
     },
     onError: (error) => {

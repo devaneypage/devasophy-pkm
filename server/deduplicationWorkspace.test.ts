@@ -7,6 +7,7 @@ import {
   normalizeDocumentRecord,
   normalizeIdeaRecord,
   normalizeLexiconRecord,
+  partitionExistingDedupTargets,
 } from "./duplicateDetection";
 
 describe("Deduplication workspace helpers", () => {
@@ -39,6 +40,13 @@ describe("Deduplication workspace helpers", () => {
     expect(book.author).toBe("Jane Doe");
     expect(document.uuid).toBe("doc-1");
     expect(idea.body).toBe("Body text");
+  });
+
+  it("partitions stale target keys without failing the resolution flow", () => {
+    const live = normalizeLexiconRecord({ id: 91455, term: "Aletheia", definition: "Disclosure." });
+    const result = partitionExistingDedupTargets([live], ["lexicon:91455", "lexicon:91456"]);
+    expect(result.targets.map((record) => record.dedupKey)).toEqual(["lexicon:91455"]);
+    expect(result.skippedTargetKeys).toEqual(["lexicon:91456"]);
   });
 
   it("detects cross-module title and body matches while disallowing merge", () => {

@@ -452,6 +452,17 @@ export interface DedupComparableRecord {
   raw: Record<string, any>;
 }
 
+export function partitionExistingDedupTargets(records: DedupComparableRecord[], targetKeys: string[]) {
+  const recordMap = new Map(records.map((record) => [record.dedupKey, record]));
+  return {
+    targets: targetKeys.flatMap((key) => {
+      const record = recordMap.get(key);
+      return record ? [record] : [];
+    }),
+    skippedTargetKeys: targetKeys.filter((key) => !recordMap.has(key)),
+  };
+}
+
 export interface DedupCandidatePair {
   leftKey: string;
   rightKey: string;
