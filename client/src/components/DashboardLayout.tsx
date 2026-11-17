@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
+import { HOMEPAGE_SEO, useHomepageSeo } from "@/hooks/useHomepageSeo";
 import { Download, FolderOpen, Grid2x2, LibraryBig, LogOut, PanelLeft, Search, Settings2, Upload } from "lucide-react";
 import {
   CategoriesIcon,
@@ -32,7 +33,7 @@ import {
   ResearchIcon,
   VocabularyIcon,
 } from "./DevanomyIcons";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import React, { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import TaxonomySidebar from "./TaxonomySidebar";
@@ -91,6 +92,7 @@ export default function DashboardLayout({
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
   const { loading, user } = useAuth();
+  useHomepageSeo(currentModule === "home");
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -109,6 +111,9 @@ export default function DashboardLayout({
               Devanomy Workspace
             </p>
             <h1 className="mb-4 text-4xl">Sign in to continue</h1>
+            {currentModule === "home" && (
+              <h2 className="mb-4 text-xl text-foreground">{HOMEPAGE_SEO.heading}</h2>
+            )}
             <p className="mb-8 text-sm leading-6 text-muted-foreground">
               Access your knowledge hub, lexicon, and research studio from a single integrated workspace.
             </p>

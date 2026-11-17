@@ -7,22 +7,25 @@
   ],
   "dev_command": "pnpm run dev",
   "env_vars": {
-    "DATABASE_URL": "mysql://3ecwSL7MSEz9ShF.78c8e8770d20:NL6HAsEauq162HLRh5i4@gateway02.us-east-1.prod.aws.tidbcloud.com:4000/EqCbheLsAyU2CJnijcBavG?ssl={\"rejectUnauthorized\":true}"
+    "DATABASE_URL": "mysql://3Ft8rhVMC3tZWGy.da78ff75f78a:NMoHyjbs3H29e3MJT45i@gateway02.us-east-1.prod.aws.tidbcloud.com:4000/EqCbheLsAyU2CJnijcBavG?ssl={\"rejectUnauthorized\":true}",
+    "DRIZZLE_DATABASE_URL": "mysql://3Ft8rhVMC3tZWGy.da78ff75f78a:NMoHyjbs3H29e3MJT45i@gateway02.us-east-1.prod.aws.tidbcloud.com:4000/EqCbheLsAyU2CJnijcBavG?ssl={\"rejectUnauthorized\":true}",
+    "MANUS_WEBDEV_PROJECT_ID": "EqCbheLsAyU2CJnijcBavG"
   },
   "experiments": [
     "no_db_push"
   ],
   "git_remote": {
     "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663296889444/EqCbheLsAyU2CJnijcBavG",
-    "access_key_id": "ASIAZV3A2ECZLZZBSNXJ",
-    "secret_access_key": "4Ws3XY8TX0wvsEA8U4th84seaY2F/0XIkBB6R3NB",
-    "session_token": "IQoJb3JpZ2luX2VjEO///////////wEaCXVzLWVhc3QtMSJHMEUCIQDu20aiBC1gfZyjn2t763y+el4w/cGWUnOZQRspmPrnFwIgQxROTj5Ep4KVlzGW3Wg3P8rGYazcQ9KIKtY1G8HRfUsq/wMIt///////////ARAEGgw2NjUzODYwOTg4NjYiDKWqdtdTvQPfI0dWOyrTA9tRrW/Db/uZtNo9t7s2YnVn7mEj7VNaHpnjDOpT9mqHwRYDfLgz9Pp0aNDqnCrBX3Dwclvz+W7R8dMUChxQLiU6jFB6FrXHaWW8z2eUBpp5By6T74YuCZUwsFeq6ucxvh9NclprwiKtrAkkglxcLwtAlF+YzxJwz63z4OdHgwNHa1SnRC6y2s3ao7tJj76nzGEom6RF0clMwm+8onz9zaM6dxXIUb9PQZFAJrJTZ8F/qCbsZdT4DtNE5DdR028x8Ad490rgUyYDgGRqYJp+QIATldunsatTtDue/zx1T9/6WUvFG8tQzMGw8jlHfrzSCb37MRHr202VksCkmfkLjyiGlYlHK6ZHFzrEx6Kkairay4+HyiliHIbdA1yvZ9pELpbz5NNqAZNxAZ+/wo+MobuJVmrspBUQJ+bJyaSAaQlt+nD2yvUliGbsDu7kvJFY9XltCnPgb/Zu4XbcZTmNWmkEhEbaO78pbq3GYF3W84VNDTmxeCG/2ZpFxhvl4KFE7NoirKUGQIrh4reoliRpHk5I07+C3kqA4PC5htNoEzFKqmKdMrqcicX9cy/nCIfvOACNfE0TcV+yXRFPhnd1XtAkzuBUlViFHtMg7dZ1sqt/5jjCML7CldUGOp0BG7uUnJScfpdDUPra36WD//Dk1Soaags66yyWTpKN2z38YC24QqD4EswNeNQQd1gXp6rCgpEZRba3TI1PdwPY9XbNZ3DX90zulDsauek7KL6yZic+mwsV3ehIuFvq0Ms3TlejRQnUDZZCDJteibYOc843UaH5VrZNc8nW/CXoq62dckofziANdHysXzAIq5G9BH+GQO7xerm037NP9w==",
-    "expiration": "2026-09-13T02:27:10.000Z",
+    "access_key_id": "ASIAZV3A2ECZDYURNFZN",
+    "secret_access_key": "pdydPuyP/S1rqudburW0GdFJFzS7ZB8AwcGUjwSu",
+    "session_token": "IQoJb3JpZ2luX2VjEBcaCXVzLWVhc3QtMSJGMEQCIGI/TYrqnk7UNJ9IVsIp3jWL6WnPpYxdwI51tqQolmhmAiA/SA6yx901S3b2t0pgrl9GiC7wDddCBHzJmO1jLMhzBCr/Awjg//////////8BEAQaDDY2NTM4NjA5ODg2NiIMm9UiD72Bq1OTCsQKKtMD1bkKsRCHYoI5GJMQkVqJCVLOvZ4MaT0j9H74x4cW+kAkFGLKq+n0/OiSbeOb+LyU0SZi7JX5MvC6KFm6EJ+sHcnE2+/9Rm8kU7LrtGG8Z4szwixHgo2WMUwvxYenHZqif8/s4RYcwsL2aOmtWWUDfCml9HhAJkEzlWVNpcHzmxHDlHMvDd7JiDNInKrRYn7rSPs/0iJryEXfkE/GpH8k7lMsLB3CTQO3BWtbnTbB6vj1vM967uVpIzF5b4hO0z2fnM1binOl8dHQ+uI5KCOcayZsTN+M0hJ6p2t8DdR6FajJUaStA/PtJJ6ygG+O4Q9kWHONzri+kjWmD8lZA7kWRzH3pFbDGWlgkUdCYBVAT+HdcunzTsPDYgG+vFmTkBS4T0dlWMO5OoG/droZ+DIW1rzKVG8PBaqLu49hPMz7f1MYzSclrKAnc7yc8lTFMNOviurK1AQZe511U2h//QRrMIkKH+Hf9flD0IkAGGLJyRh1bDnOt5LUz3WZSPy6x8QW/BqmJARHYYaFDw834EQB4Qpqq9C+RhJFbRjQStIf4JD3dh3lYZ9InnQ/eP9OhWizTKYpM6JqED1a3gkVkLmuVKTEojbZStjI6/2Z2Ng4sG/mqYcwjOjv1wY6ngHletjoFp0bI8ETjJYW0mUzdFiy0Exsago704bhC+qAxqP12ThEyQL9IO8uCj6UNRW+me4KgdXH2/ljP5XSu9GcTwHRKS3fahKozbg19bMMQJPTz8YdDp70KOYh92sbTsPX71JdDyrniszxOE2jccnqLuokuQWQDmYmWEsJHvmSCGk0XABD4t0pPkzyCNJ1/azNQrRWaRMUmb/H7/bqPw==",
+    "expiration": "2026-11-17T18:28:28.000Z",
     "backend": "GIT_BACKEND_S3"
   },
   "name": "devasophy-pkm",
   "path": "/home/ubuntu/devasophy-pkm",
   "port": 3000,
+  "runtime_endpoints": null,
   "secrets": {
     "BUILT_IN_FORGE_API_KEY": "o6owcNKyZhqPhiMzjmbgFb",
     "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
@@ -33,8 +36,8 @@
     "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
     "VITE_ANALYTICS_WEBSITE_ID": "3ea3eae0-fca8-4114-a313-9a5cb167f5ab",
     "VITE_APP_ID": "EqCbheLsAyU2CJnijcBavG",
-    "VITE_APP_LOGO": "https://files.manuscdn.com/user_upload_by_module/web_dev_logo/310519663296889444/agRfEKZaKeeMrPUa.jpg",
-    "VITE_APP_TITLE": "devanomy",
+    "VITE_APP_LOGO": "https://files.manuscdn.com/user_upload_by_module/web_dev_logo/310519663296889444/lrWvXcIVbPlmqnga.jpeg",
+    "VITE_APP_TITLE": "deva-RWS",
     "VITE_FRONTEND_FORGE_API_KEY": "iTkPM8Tpe6oZsyUUQjws4N",
     "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",
     "VITE_OAUTH_PORTAL_URL": "https://manus.im"

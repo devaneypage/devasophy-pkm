@@ -625,3 +625,10 @@ Identify which request or route returns the unexpected HTML payload
 - [x] Preserve a coherent mobile reading order and reduced-motion behavior
 - [x] Add Vitest coverage for ordering, persistence, reset, pointer drag, keyboard controls, rollback, and invalid saved layouts
 - [x] Verify desktop and mobile behavior, refresh project health, and save a checkpoint
+
+## Homepage SEO — 2026-11-17
+- [x] Set a 55-character homepage title with document.title and static HTML fallback.
+- [x] Add a 149-character description and exactly five focused meta keywords.
+- [x] Display a 46-character descriptive H2 in signed-out and authenticated home views.
+- [x] Add metadata lifecycle, no-duplicate-tag, route cleanup, and exact-limit regression tests.
+- [x] Verify all 331 tests, TypeScript, production build, bundle guard, clean diff, and signed-out runtime metadata; inspect desktop/mobile layouts.

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCommonplaceFeatureFlag } from "@/lib/featureFlags";
 import { trpc } from "@/lib/trpc";
+import { HOMEPAGE_SEO } from "@/hooks/useHomepageSeo";
 import {
   DEFAULT_DASHBOARD_PANEL_ORDER,
   dashboardPanelDefinitions,
@@ -520,7 +521,7 @@ export default function Home() {
       <section className={`atelier-arrange-header ${isEditing ? "is-editing" : ""}`} aria-label="Dashboard arrangement controls">
         <div>
           <p className="atelier-kicker">Command center composition</p>
-          <h2 className="text-2xl">{isEditing ? "Arrange your dashboard" : "Your dashboard, in your order"}</h2>
+          <h2 className="text-2xl">{isEditing ? "Arrange your dashboard" : HOMEPAGE_SEO.heading}</h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-[#6b7487]">{isEditing ? "Drag panels or use the arrow controls. Changes save automatically to your account." : "Reorder the atelier around the way you capture, connect, and synthesize knowledge."}</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">

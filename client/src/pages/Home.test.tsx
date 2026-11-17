@@ -87,6 +87,7 @@ describe("Home atelier dashboard", () => {
     expect(screen.getByRole("heading", { name: /Welcome back to your knowledge territory/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Arrange dashboard/i })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Six regions of the territory" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Your personal knowledge and research workspace" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Content has a fixed signal" })).toBeTruthy();
     expect(screen.getByText("Knowledge Architecture")).toBeTruthy();
   });
